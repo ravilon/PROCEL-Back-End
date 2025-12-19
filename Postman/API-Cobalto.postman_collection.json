@@ -1,0 +1,53 @@
+{
+	"info": {
+		"_postman_id": "0d0cc0b9-aeeb-492b-9a55-682d8d2a39a0",
+		"name": "API-Cobalto",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "35944251"
+	},
+	"item": [
+		{
+			"name": "GetAllRooms",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaSalas/?rows=-1",
+					"protocol": "https",
+					"host": [
+						"cobalto",
+						"ufpel",
+						"edu",
+						"br"
+					],
+					"path": [
+						"servicosgerais",
+						"consultas",
+						"salasDeAula",
+						"listaSalas",
+						""
+					],
+					"query": [
+						{
+							"key": "rows",
+							"value": "-1"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
