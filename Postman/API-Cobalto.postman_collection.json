@@ -48,6 +48,102 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "LoginCobalto",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "txtEmail",
+							"value": "{{cpf}}",
+							"type": "text"
+						},
+						{
+							"key": "txtSenha",
+							"value": "{{senha}}",
+							"type": "text"
+						}
+					]
+				},
+				"url": {
+					"raw": "https://cobalto.ufpel.edu.br/autenticacao/login/entrar",
+					"protocol": "https",
+					"host": [
+						"cobalto",
+						"ufpel",
+						"edu",
+						"br"
+					],
+					"path": [
+						"autenticacao",
+						"login",
+						"entrar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetProfile",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://cobalto.ufpel.edu.br/dashboard/configuracao",
+					"protocol": "https",
+					"host": [
+						"cobalto",
+						"ufpel",
+						"edu",
+						"br"
+					],
+					"path": [
+						"dashboard",
+						"configuracao"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "cpf",
+			"value": "",
+			"type": "default"
+		},
+		{
+			"key": "senha",
+			"value": "",
+			"type": "default"
 		}
 	]
 }
