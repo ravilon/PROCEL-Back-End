@@ -9,13 +9,15 @@ public class RoomsSyncService {
     private final RoomsSource source;
     private final RoomsIngestionService ingestion;
 
-    public RoomsSyncService(@Qualifier("roomsSource") RoomsSource source,
-                            RoomsIngestionService ingestion) {
+    public RoomsSyncService(
+            @Qualifier("roomsSource") RoomsSource source,
+            RoomsIngestionService ingestion
+    ) {
         this.source = source;
         this.ingestion = ingestion;
     }
 
-    public int sync() {
+    public RoomsIngestionResult sync() {
         return ingestion.ingest(source.fetchRooms());
     }
 }
