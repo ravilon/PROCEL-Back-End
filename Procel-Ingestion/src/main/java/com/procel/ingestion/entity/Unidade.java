@@ -1,6 +1,7 @@
 package com.procel.ingestion.entity;
 
 import jakarta.persistence.*;
+
 import java.util.UUID;
 
 @Entity
@@ -16,7 +17,7 @@ public class Unidade {
     @GeneratedValue
     private UUID id;
 
-    @Column(name = "nome", length = 150, nullable = false)
+    @Column(nullable = false, length = 150)
     private String nome;
 
     protected Unidade() {}

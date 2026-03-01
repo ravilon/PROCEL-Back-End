@@ -54,7 +54,7 @@ public class Compartimento {
     @Column(name = "lotacao_raw", length = 40)
     private String lotacaoRaw;
 
-    protected Compartimento() {}
+    public Compartimento() {}
 
     public Compartimento(Long externalId, Predio predio, Unidade unidade, String nome, String tipo) {
         this.externalId = externalId;
