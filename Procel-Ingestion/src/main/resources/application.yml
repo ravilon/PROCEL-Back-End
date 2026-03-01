@@ -1,0 +1,49 @@
+clkespring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/procel_analytics
+    username: postgres
+    password: postgres
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/procel_analytics
+    username: postgres
+    password: postgres
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: debug
+
+procel:
+  rooms:
+    source: cobalto # cobalto | resource
+    resource-path: seed/cobalto-compartimentos.sample.json
+
+  integration:
+    cobalto:
+      base-url: http://localhost:8081   # ajuste
+      rooms-path: /api/compartimentos   # ajuste
+      auth:
+        type: none  # none | bearer
+        token: ""   # se bearer
+      timeout-ms: 10000
