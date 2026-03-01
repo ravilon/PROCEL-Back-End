@@ -25,4 +25,5 @@ procel:
     rooms:
       url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaSalas/
       timeout-ms: 10000
+      page-size: 1000
       php-sessid: ""   # opcional (se precisar)

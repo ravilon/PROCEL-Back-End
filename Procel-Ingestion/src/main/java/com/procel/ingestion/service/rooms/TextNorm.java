@@ -8,8 +8,10 @@ public final class TextNorm {
     /** trim + collapse whitespace. Não muda caixa, não remove acentos. */
     public static String norm(String s) {
         if (s == null) return null;
-        String t = s.trim().replaceAll("\\s+", " ");
-        return t.isBlank() ? null : t;
+        // NBSP -> space, trim, collapse whitespace
+        String t = s.replace('\u00A0', ' ').trim();
+        t = t.replaceAll("\\s+", " ");
+        return t;
     }
 
     public static BigDecimal toBigDecimalOrNull(String s) {

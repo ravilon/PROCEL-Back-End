@@ -9,7 +9,6 @@ import java.util.UUID;
     name = "compartimento",
     uniqueConstraints = {
         @UniqueConstraint(name = "ux_compartimento_external_id", columnNames = {"external_id"}),
-        @UniqueConstraint(name = "ux_compartimento_predio_nome", columnNames = {"predio_id", "nome"})
     },
     indexes = {
         @Index(name = "idx_compartimento_predio_id", columnList = "predio_id"),
@@ -34,7 +33,7 @@ public class Compartimento {
     @JoinColumn(name = "unidade_id", nullable = false)
     private Unidade unidade;
 
-    @Column(name = "nome", length = 150, nullable = false)
+    @Column(name = "nome", length = 255, nullable = false)
     private String nome;
 
     // "Circulação", "Sala", etc. (utilizacao_compartimento_descricao)

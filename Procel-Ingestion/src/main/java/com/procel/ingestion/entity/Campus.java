@@ -16,7 +16,7 @@ public class Campus {
     @GeneratedValue
     private UUID id;
 
-    @Column(name = "nome", length = 150, nullable = false)
+    @Column(name = "nome", length = 255, nullable = false)
     private String nome;
 
     protected Campus() {}

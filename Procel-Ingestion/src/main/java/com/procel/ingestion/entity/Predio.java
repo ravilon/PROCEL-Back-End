@@ -23,7 +23,7 @@ public class Predio {
     @JoinColumn(name = "campus_id", nullable = false)
     private Campus campus;
 
-    @Column(name = "nome", length = 150, nullable = false)
+    @Column(name = "nome", length = 255, nullable = false)
     private String nome;
 
     protected Predio() {}
