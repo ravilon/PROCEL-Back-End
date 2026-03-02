@@ -23,12 +23,13 @@ public class SiiSmartSeedConfig {
             seed(defRepo, sii, "humidity_pct", "Umidade", DataType.NUMERIC, "%");
             seed(defRepo, sii, "presence", "Presença", DataType.BOOLEAN, null);
             seed(defRepo, sii, "noise_db", "Ruído ambiente", DataType.NUMERIC, "dB");
-
             seed(defRepo, sii, "energy_total_room", "Consumo de energia total da sala", DataType.NUMERIC, "kWh");
-
             seed(defRepo, sii, "ac_setpoint_c", "Set point do ar-condicionado", DataType.NUMERIC, "C");
             seed(defRepo, sii, "ac_status", "Status do ar-condicionado", DataType.BOOLEAN, null);
             seed(defRepo, sii, "light_status", "Status da iluminação", DataType.BOOLEAN, null);
+            seed(defRepo, sii, "energy_ac", "Consumo do ar-condicionado", DataType.NUMERIC, "kWh");
+            seed(defRepo, sii, "energy_lighting", "Consumo da iluminação", DataType.NUMERIC, "kWh");
+            seed(defRepo, sii, "energy_room_circuit", "Consumo do circuito da sala", DataType.NUMERIC, "kWh");
         };
     }
 
