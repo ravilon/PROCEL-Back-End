@@ -4,6 +4,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import com.procel.ingestion.entity.rooms.Campus;
 import java.util.Optional;
 
-public interface CampusRepository extends JpaRepository<Campus, Long> {
-    Optional<Campus> findByNome(String nome);
-}
+public interface CampusRepository extends JpaRepository<Campus, String> {}

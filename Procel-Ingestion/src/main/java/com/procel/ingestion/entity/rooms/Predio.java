@@ -15,8 +15,8 @@ import jakarta.persistence.*;
 public class Predio {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id", nullable = false, length = 600)
+    private String id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "campus_id", nullable = false)
@@ -30,9 +30,10 @@ public class Predio {
     public Predio(Campus campus, String nome) {
         this.campus = campus;
         this.nome = nome;
+        this.id = campus.getNome().trim() + "|" + nome.trim();
     }
 
-    public Long getId() { return id; }
+    public String getId() { return id; }
     public Campus getCampus() { return campus; }
     public String getNome() { return nome; }
 

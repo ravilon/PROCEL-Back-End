@@ -10,12 +10,8 @@ import jakarta.persistence.*;
     }
 )
 public class Campus {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(name = "nome", length = 255, nullable = false)
+    @Column(name = "nome", nullable = false, length = 255)
     private String nome;
 
     protected Campus() {}
@@ -24,7 +20,6 @@ public class Campus {
         this.nome = nome;
     }
 
-    public Long getId() { return id; }
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
 }

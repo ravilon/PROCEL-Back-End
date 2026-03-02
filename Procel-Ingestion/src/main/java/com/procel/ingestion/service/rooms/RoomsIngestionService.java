@@ -9,10 +9,10 @@ import com.procel.ingestion.repository.rooms.CompartimentoRepository;
 import com.procel.ingestion.repository.rooms.PredioRepository;
 import com.procel.ingestion.repository.rooms.UnidadeRepository;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,18 +21,13 @@ import java.util.Map;
 @Service
 @Transactional
 public class RoomsIngestionService {
+
     private static final Logger log = LoggerFactory.getLogger(RoomsIngestionService.class);
 
     private final CampusRepository campusRepo;
     private final PredioRepository predioRepo;
     private final UnidadeRepository unidadeRepo;
     private final CompartimentoRepository compartRepo;
-
-    private <T> boolean equalsNullable(T a, T b) {
-        if (a == null && b == null) return true;
-        if (a == null || b == null) return false;
-        return a.equals(b);
-    }
 
     public RoomsIngestionService(
             CampusRepository campusRepo,
@@ -44,6 +39,12 @@ public class RoomsIngestionService {
         this.predioRepo = predioRepo;
         this.unidadeRepo = unidadeRepo;
         this.compartRepo = compartRepo;
+    }
+
+    private <T> boolean equalsNullable(T a, T b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.equals(b);
     }
 
     public RoomsIngestionResult ingest(List<RoomRecord> rooms) {
@@ -60,6 +61,7 @@ public class RoomsIngestionService {
 
         for (RoomRecord r : rooms) {
 
+            // externalId do compartimento é obrigatório para integração
             if (r.externalId() == null) {
                 skipped++;
                 continue;
@@ -77,25 +79,34 @@ public class RoomsIngestionService {
                 continue;
             }
 
-            Campus campus = campusByNome.computeIfAbsent(campusNome,
-                    n -> campusRepo.findByNome(n).orElseGet(() -> campusRepo.save(new Campus(n)))
+            // CAMPUS (PK natural = nome)
+            Campus campus = campusByNome.computeIfAbsent(
+                    campusNome,
+                    n -> campusRepo.findById(n).orElseGet(() -> campusRepo.save(new Campus(n)))
             );
 
-            Unidade unidade = unidadeByNome.computeIfAbsent(unidadeNome,
-                    n -> unidadeRepo.findByNome(n).orElseGet(() -> unidadeRepo.save(new Unidade(n)))
+            // UNIDADE (PK natural = nome)
+            Unidade unidade = unidadeByNome.computeIfAbsent(
+                    unidadeNome,
+                    n -> unidadeRepo.findById(n).orElseGet(() -> unidadeRepo.save(new Unidade(n)))
             );
 
-            String predioKey = campus.getId() + "|" + predioNome;
-            Predio predio = predioByKey.computeIfAbsent(predioKey,
-                    k -> predioRepo.findByCampus_IdAndNome(campus.getId(), predioNome)
-                            .orElseGet(() -> predioRepo.save(new Predio(campus, predioNome)))
+            // PRÉDIO (PK natural = campusNome|predioNome)
+            String predioId = campusNome + "|" + predioNome;
+
+            Predio predio = predioByKey.computeIfAbsent(
+                    predioId,
+                    k -> predioRepo.findById(k).orElseGet(() -> predioRepo.save(new Predio(campus, predioNome)))
             );
 
-            Compartimento comp = compartRepo.findByExternalId(r.externalId()).orElse(null);
+            // COMPARTIMENTO (PK interna Long + externalId Long UNIQUE)
+            Compartimento comp = compartRepo.findByExternalId(r.externalId())
+                    .orElseGet(Compartimento::new);
 
-            if (comp == null) {
+            boolean isNew = (comp.getId() == null);
+
+            if (isNew) {
                 // INSERT
-                comp = new Compartimento();
                 comp.setExternalId(r.externalId());
                 comp.setPredio(predio);
                 comp.setUnidade(unidade);
@@ -108,65 +119,67 @@ public class RoomsIngestionService {
 
                 compartRepo.save(comp);
                 inserted++;
+                continue;
+            }
+
+            // UPDATE somente se mudou algo
+            boolean changed = false;
+
+            // Importante: comparar pelo ID do prédio (campus|nome), não só pelo nome
+            if (comp.getPredio() == null || !comp.getPredio().getId().equals(predio.getId())) {
+                comp.setPredio(predio);
+                changed = true;
+            }
+
+            if (comp.getUnidade() == null || !comp.getUnidade().getNome().equals(unidade.getNome())) {
+                comp.setUnidade(unidade);
+                changed = true;
+            }
+
+            if (comp.getNome() == null || !comp.getNome().equals(compNome)) {
+                comp.setNome(compNome);
+                changed = true;
+            }
+
+            String tipoFinal = (tipo != null ? tipo : "nao_informado");
+            if (comp.getTipo() == null || !comp.getTipo().equals(tipoFinal)) {
+                comp.setTipo(tipoFinal);
+                changed = true;
+            }
+
+            if (!equalsNullable(comp.getPavimento(), r.pavimento())) {
+                comp.setPavimento(r.pavimento());
+                changed = true;
+            }
+
+            if (!equalsNullable(comp.getCapacidade(), r.capacidade())) {
+                comp.setCapacidade(r.capacidade());
+                changed = true;
+            }
+
+            if (!equalsNullable(comp.getArea(), r.area())) {
+                comp.setArea(r.area());
+                changed = true;
+            }
+
+            if (!equalsNullable(comp.getLotacaoRaw(), lotacaoRaw)) {
+                comp.setLotacaoRaw(lotacaoRaw);
+                changed = true;
+            }
+
+            if (changed) {
+                compartRepo.save(comp);
+                updated++;
             } else {
-                // UPDATE somente se mudou algo
-                boolean changed = false;
-
-                if (!comp.getPredio().getId().equals(predio.getId())) {
-                    comp.setPredio(predio);
-                    changed = true;
-                }
-
-                if (!comp.getUnidade().getId().equals(unidade.getId())) {
-                    comp.setUnidade(unidade);
-                    changed = true;
-                }
-
-                if (!comp.getNome().equals(compNome)) {
-                    comp.setNome(compNome);
-                    changed = true;
-                }
-
-                String tipoFinal = (tipo != null ? tipo : "nao_informado");
-                if (!comp.getTipo().equals(tipoFinal)) {
-                    comp.setTipo(tipoFinal);
-                    changed = true;
-                }
-
-                if (!equalsNullable(comp.getPavimento(), r.pavimento())) {
-                    comp.setPavimento(r.pavimento());
-                    changed = true;
-                }
-
-                if (!equalsNullable(comp.getCapacidade(), r.capacidade())) {
-                    comp.setCapacidade(r.capacidade());
-                    changed = true;
-                }
-
-                if (!equalsNullable(comp.getArea(), r.area())) {
-                    comp.setArea(r.area());
-                    changed = true;
-                }
-
-                if (!equalsNullable(comp.getLotacaoRaw(), lotacaoRaw)) {
-                    comp.setLotacaoRaw(lotacaoRaw);
-                    changed = true;
-                }
-
-                if (changed) {
-                    compartRepo.save(comp);
-                    updated++;
-                } else {
-                    skipped++;
-                }
+                skipped++;
             }
         }
 
         long elapsed = System.currentTimeMillis() - start;
 
         log.info(
-            "Rooms sync finished | fetched={} inserted={} updated={} skipped={} elapsedMs={}",
-            rooms.size(), inserted, updated, skipped, elapsed
+                "Rooms sync finished | fetched={} inserted={} updated={} skipped={} elapsedMs={}",
+                rooms.size(), inserted, updated, skipped, elapsed
         );
 
         return new RoomsIngestionResult(

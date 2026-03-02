@@ -12,10 +12,7 @@ import jakarta.persistence.*;
 public class Unidade {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false, length = 255)
+    @Column(name = "nome", nullable = false, length = 255)
     private String nome;
 
     protected Unidade() {}
@@ -24,8 +21,6 @@ public class Unidade {
         this.nome = nome;
     }
 
-    public Long getId() { return id; }
     public String getNome() { return nome; }
-
     public void setNome(String nome) { this.nome = nome; }
 }
