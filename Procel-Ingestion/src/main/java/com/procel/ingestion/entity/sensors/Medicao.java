@@ -9,7 +9,8 @@ import java.util.UUID;
 @Table(
     name = "medicao",
     indexes = {
-        @Index(name = "idx_medicao_sensor_timestamp", columnList = "sensor_id,timestamp")
+        // FK agora referencia sensor.external_id (String)
+        @Index(name = "idx_medicao_sensor_ts", columnList = "sensor_external_id,timestamp")
     }
 )
 public class Medicao {
@@ -19,7 +20,11 @@ public class Medicao {
     private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "sensor_id", nullable = false)
+    @JoinColumn(
+        name = "sensor_external_id",
+        nullable = false,
+        referencedColumnName = "external_id" // deixa explícito (PK do Sensor)
+    )
     private Sensor sensor;
 
     @Column(name = "timestamp", nullable = false)

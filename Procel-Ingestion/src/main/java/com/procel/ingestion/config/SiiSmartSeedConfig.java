@@ -33,6 +33,6 @@ public class SiiSmartSeedConfig {
     }
 
     private void seed(ParametroDefRepository defRepo, TipoDeSensor tipo, String nome, String desc, DataType dt, String unit) {
-        defRepo.findByTipo_IdAndNome(tipo.getId(), nome).orElseGet(() -> defRepo.save(new ParametroDef(tipo, nome, desc, dt, unit)));
+        defRepo.findByTipo_NomeAndNome(tipo.getNome(), nome).orElseGet(() -> defRepo.save(new ParametroDef(tipo, nome, desc, dt, unit)));
     }
 }

@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 @Transactional
@@ -41,8 +40,11 @@ public class SensorIngestionService {
     }
 
     public void ingest(RawSensorEvent event) {
+        // Sensor PK = external_id (String)
         Sensor sensor = sensorRepo.findByExternalId(event.sensorExternalId())
-                .orElseThrow(() -> new IllegalStateException("Sensor not found for externalId=" + event.sensorExternalId()));
+                .orElseThrow(() -> new IllegalStateException(
+                        "Sensor not found for externalId=" + event.sensorExternalId()
+                ));
 
         Medicao medicao = new Medicao(
                 sensor,
@@ -52,18 +54,24 @@ public class SensorIngestionService {
         );
         medicao = medicaoRepo.save(medicao);
 
-        UUID tipoId = sensor.getTipo().getId();
+        // TipoDeSensor PK = nome (String)
+        String tipoNome = sensor.getTipo().getNome();
 
         for (Map.Entry<String, Object> e : event.payload().entrySet()) {
             String key = e.getKey();
             Object rawValue = e.getValue();
 
-            ParametroDef def = parametroDefRepo.findByTipo_IdAndNome(tipoId, key)
-                    .orElseThrow(() -> new IllegalStateException("ParametroDef not found: tipo=" + sensor.getTipo().getNome() + " key=" + key));
+            ParametroDef def = parametroDefRepo.findByTipo_NomeAndNome(tipoNome, key)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "ParametroDef not found: tipo=" + tipoNome + " key=" + key
+                    ));
 
-            // integridade: def deve ser do mesmo tipo do sensor (a query já garante, mas deixo explícito)
-            if (!Objects.equals(def.getTipo().getId(), tipoId)) {
-                throw new IllegalStateException("ParametroDef tipo mismatch for key=" + key);
+            // integridade: def deve ser do mesmo tipo do sensor
+            if (!Objects.equals(def.getTipo().getNome(), tipoNome)) {
+                throw new IllegalStateException(
+                        "ParametroDef tipo mismatch for key=" + key +
+                        " (expected tipo=" + tipoNome + ", got tipo=" + def.getTipo().getNome() + ")"
+                );
             }
 
             ParametroValor valor = new ParametroValor(medicao, def);
@@ -86,15 +94,18 @@ public class SensorIngestionService {
     private Boolean coerceBoolean(Object v) {
         if (v == null) return null;
         if (v instanceof Boolean b) return b;
+
         String s = v.toString().trim().toLowerCase();
         if (s.equals("true") || s.equals("1") || s.equals("yes") || s.equals("y")) return true;
         if (s.equals("false") || s.equals("0") || s.equals("no") || s.equals("n")) return false;
+
         throw new IllegalArgumentException("Cannot coerce boolean from: " + v);
     }
 
     private BigDecimal coerceNumeric(Object v) {
         if (v == null) return null;
         if (v instanceof Number n) return BigDecimal.valueOf(n.doubleValue());
+
         String s = v.toString().trim().replace(",", ".");
         return new BigDecimal(s);
     }

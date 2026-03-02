@@ -8,10 +8,13 @@ import java.util.UUID;
 @Table(
     name = "parametro_def",
     uniqueConstraints = {
-        @UniqueConstraint(name = "ux_parametro_def_tipo_nome", columnNames = {"tipo_id", "nome"})
+        @UniqueConstraint(
+            name = "ux_parametro_def_tipo_nome",
+            columnNames = {"tipo_nome", "nome"}
+        )
     },
     indexes = {
-        @Index(name = "idx_parametro_def_tipo_id", columnList = "tipo_id")
+        @Index(name = "idx_parametro_def_tipo_nome", columnList = "tipo_nome")
     }
 )
 public class ParametroDef {
@@ -21,7 +24,7 @@ public class ParametroDef {
     private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "tipo_id", nullable = false)
+    @JoinColumn(name = "tipo_nome", nullable = false)
     private TipoDeSensor tipo;
 
     @Column(name = "nome", nullable = false, length = 120)

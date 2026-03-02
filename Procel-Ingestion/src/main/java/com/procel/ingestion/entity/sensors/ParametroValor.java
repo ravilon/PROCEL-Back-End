@@ -42,10 +42,8 @@ public class ParametroValor {
     @Column(name = "text_value", length = 1000)
     private String textValue;
 
-    public ParametroValor() {
-    }
+    public ParametroValor() {}
 
-    // 👇 ESTE CONSTRUTOR É O QUE ESTAVA FALTANDO
     public ParametroValor(Medicao medicao, ParametroDef parametroDef) {
         this.medicao = medicao;
         this.parametroDef = parametroDef;

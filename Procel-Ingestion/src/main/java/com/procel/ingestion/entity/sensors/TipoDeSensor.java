@@ -1,21 +1,15 @@
 package com.procel.ingestion.entity.sensors;
 
-import jakarta.persistence.*;
-import java.util.UUID;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
-@Table(
-    name = "tipo_de_sensor",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "ux_tipo_de_sensor_nome", columnNames = {"nome"})
-    }
-)
+@Table(name = "tipo_de_sensor")
 public class TipoDeSensor {
 
     @Id
-    @GeneratedValue
-    private UUID id;
-
     @Column(name = "nome", nullable = false, length = 80)
     private String nome;
 
@@ -25,7 +19,6 @@ public class TipoDeSensor {
         this.nome = nome;
     }
 
-    public UUID getId() { return id; }
     public String getNome() { return nome; }
 
     public void setNome(String nome) { this.nome = nome; }
