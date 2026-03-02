@@ -47,6 +47,10 @@ public class RoomsIngestionService {
         return a.equals(b);
     }
 
+    private static String compartimentoIdFromExternal(Long externalId) {
+        return String.valueOf(externalId);
+    }
+
     public RoomsIngestionResult ingest(List<RoomRecord> rooms) {
 
         long start = System.currentTimeMillis();
@@ -61,7 +65,7 @@ public class RoomsIngestionService {
 
         for (RoomRecord r : rooms) {
 
-            // externalId do compartimento é obrigatório para integração
+            // no fluxo atual, externalId do Cobalto é obrigatório
             if (r.externalId() == null) {
                 skipped++;
                 continue;
@@ -79,19 +83,16 @@ public class RoomsIngestionService {
                 continue;
             }
 
-            // CAMPUS (PK natural = nome)
             Campus campus = campusByNome.computeIfAbsent(
                     campusNome,
                     n -> campusRepo.findById(n).orElseGet(() -> campusRepo.save(new Campus(n)))
             );
 
-            // UNIDADE (PK natural = nome)
             Unidade unidade = unidadeByNome.computeIfAbsent(
                     unidadeNome,
                     n -> unidadeRepo.findById(n).orElseGet(() -> unidadeRepo.save(new Unidade(n)))
             );
 
-            // PRÉDIO (PK natural = campusNome|predioNome)
             String predioId = campusNome + "|" + predioNome;
 
             Predio predio = predioByKey.computeIfAbsent(
@@ -99,15 +100,15 @@ public class RoomsIngestionService {
                     k -> predioRepo.findById(k).orElseGet(() -> predioRepo.save(new Predio(campus, predioNome)))
             );
 
-            // COMPARTIMENTO (PK interna Long + externalId Long UNIQUE)
-            Compartimento comp = compartRepo.findByExternalId(r.externalId())
-                    .orElseGet(Compartimento::new);
+            String compId = compartimentoIdFromExternal(r.externalId());
+
+            Compartimento comp = compartRepo.findById(compId).orElseGet(Compartimento::new);
 
             boolean isNew = (comp.getId() == null);
 
             if (isNew) {
                 // INSERT
-                comp.setExternalId(r.externalId());
+                comp.setId(compId);
                 comp.setPredio(predio);
                 comp.setUnidade(unidade);
                 comp.setNome(compNome);
@@ -125,7 +126,7 @@ public class RoomsIngestionService {
             // UPDATE somente se mudou algo
             boolean changed = false;
 
-            // Importante: comparar pelo ID do prédio (campus|nome), não só pelo nome
+            // comparar pelo ID do prédio (campus|nome)
             if (comp.getPredio() == null || !comp.getPredio().getId().equals(predio.getId())) {
                 comp.setPredio(predio);
                 changed = true;

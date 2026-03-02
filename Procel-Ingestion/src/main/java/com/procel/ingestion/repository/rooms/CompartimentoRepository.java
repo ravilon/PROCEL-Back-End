@@ -1,9 +1,6 @@
 package com.procel.ingestion.repository.rooms;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.procel.ingestion.entity.rooms.Compartimento;
-import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface CompartimentoRepository extends JpaRepository<Compartimento, Long> {
-    Optional<Compartimento> findByExternalId(Long externalId);
-}
+public interface CompartimentoRepository extends JpaRepository<Compartimento, String> {}

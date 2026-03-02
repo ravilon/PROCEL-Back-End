@@ -6,9 +6,6 @@ import java.math.BigDecimal;
 @Entity
 @Table(
     name = "compartimento",
-    uniqueConstraints = {
-        @UniqueConstraint(name = "ux_compartimento_external_id", columnNames = {"external_id"}),
-    },
     indexes = {
         @Index(name = "idx_compartimento_predio_id", columnList = "predio_id"),
         @Index(name = "idx_compartimento_unidade_id", columnList = "unidade_id")
@@ -16,13 +13,14 @@ import java.math.BigDecimal;
 )
 public class Compartimento {
 
+    /**
+     * ID do domínio:
+     * - Cobalto: String.valueOf(externalId) (ex.: "2")
+     * - Ad hoc: qualquer string que você definir (ex.: "MANUAL-001")
+     */
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    // Cobalto: compartimento_id
-    @Column(name = "external_id", nullable = false)
-    private Long externalId;
+    @Column(name = "id", nullable = false, length = 80)
+    private String id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "predio_id", nullable = false)
@@ -48,22 +46,20 @@ public class Compartimento {
     @Column(name = "area", precision = 10, scale = 2)
     private BigDecimal area;
 
-    // Se quiser guardar lotacao do payload como texto
     @Column(name = "lotacao_raw", length = 40)
     private String lotacaoRaw;
 
     public Compartimento() {}
 
-    public Compartimento(Long externalId, Predio predio, Unidade unidade, String nome, String tipo) {
-        this.externalId = externalId;
+    public Compartimento(String id, Predio predio, Unidade unidade, String nome, String tipo) {
+        this.id = id;
         this.predio = predio;
         this.unidade = unidade;
         this.nome = nome;
         this.tipo = tipo;
     }
 
-    public Long getId() { return id; }
-    public Long getExternalId() { return externalId; }
+    public String getId() { return id; }
     public Predio getPredio() { return predio; }
     public Unidade getUnidade() { return unidade; }
     public String getNome() { return nome; }
@@ -73,7 +69,7 @@ public class Compartimento {
     public BigDecimal getArea() { return area; }
     public String getLotacaoRaw() { return lotacaoRaw; }
 
-    public void setExternalId(Long externalId) { this.externalId = externalId; }
+    public void setId(String id) { this.id = id; }
     public void setPredio(Predio predio) { this.predio = predio; }
     public void setUnidade(Unidade unidade) { this.unidade = unidade; }
     public void setNome(String nome) { this.nome = nome; }
