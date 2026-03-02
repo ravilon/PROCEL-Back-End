@@ -1,8 +1,7 @@
-package com.procel.ingestion.entity;
+package com.procel.ingestion.entity.rooms;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.util.UUID;
 
 @Entity
 @Table(
@@ -18,8 +17,8 @@ import java.util.UUID;
 public class Compartimento {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     // Cobalto: compartimento_id
     @Column(name = "external_id", nullable = false)
@@ -63,7 +62,7 @@ public class Compartimento {
         this.tipo = tipo;
     }
 
-    public UUID getId() { return id; }
+    public Long getId() { return id; }
     public Long getExternalId() { return externalId; }
     public Predio getPredio() { return predio; }
     public Unidade getUnidade() { return unidade; }

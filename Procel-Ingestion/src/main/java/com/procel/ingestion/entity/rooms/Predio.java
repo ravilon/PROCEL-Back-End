@@ -1,7 +1,6 @@
-package com.procel.ingestion.entity;
+package com.procel.ingestion.entity.rooms;
 
 import jakarta.persistence.*;
-import java.util.UUID;
 
 @Entity
 @Table(
@@ -16,8 +15,8 @@ import java.util.UUID;
 public class Predio {
 
     @Id
-    @GeneratedValue
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "campus_id", nullable = false)
@@ -33,7 +32,7 @@ public class Predio {
         this.nome = nome;
     }
 
-    public UUID getId() { return id; }
+    public Long getId() { return id; }
     public Campus getCampus() { return campus; }
     public String getNome() { return nome; }
 

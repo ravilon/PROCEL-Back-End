@@ -1,13 +1,14 @@
 package com.procel.ingestion.service.rooms;
 
-import com.procel.ingestion.entity.Campus;
-import com.procel.ingestion.entity.Compartimento;
-import com.procel.ingestion.entity.Predio;
-import com.procel.ingestion.entity.Unidade;
-import com.procel.ingestion.repository.CampusRepository;
-import com.procel.ingestion.repository.CompartimentoRepository;
-import com.procel.ingestion.repository.PredioRepository;
-import com.procel.ingestion.repository.UnidadeRepository;
+import com.procel.ingestion.entity.rooms.Campus;
+import com.procel.ingestion.entity.rooms.Compartimento;
+import com.procel.ingestion.entity.rooms.Predio;
+import com.procel.ingestion.entity.rooms.Unidade;
+import com.procel.ingestion.repository.rooms.CampusRepository;
+import com.procel.ingestion.repository.rooms.CompartimentoRepository;
+import com.procel.ingestion.repository.rooms.PredioRepository;
+import com.procel.ingestion.repository.rooms.UnidadeRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
