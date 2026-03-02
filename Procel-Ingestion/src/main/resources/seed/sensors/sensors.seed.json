@@ -1,0 +1,10 @@
+{
+  "sensors": [
+    {
+      "externalId": "SII-001",
+      "nome": "SII Smart - Sala 400D",
+      "tipoNome": "SII_SMART",
+      "compartimentoId": "2"
+    }
+  ]
+}

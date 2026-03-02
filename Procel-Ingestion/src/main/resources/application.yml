@@ -20,6 +20,8 @@ procel:
   rooms:
     source: cobalto # cobalto | resource
     resource-path: seed/cobalto-compartimentos.sample.json
+  sensors:
+    seed-path: seed/sensors/sensors.seed.json
 
   cobalto:
     rooms:
