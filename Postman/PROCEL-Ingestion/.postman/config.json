@@ -1,0 +1,17 @@
+{
+  "workspace": {
+    "id": "571ad421-dfc7-4996-9c71-520881722cd8"
+  },
+  "entities": {
+    "environments": [
+      "..\\PROCEL-Ingestion-Env.postman_environment.json"
+    ],
+    "flows": [],
+    "globals": [],
+    "mocks": [],
+    "specs": [],
+    "collections": [
+      "..\\PROCEL-Ingestion-E2E.postman_collection.json"
+    ]
+  }
+}

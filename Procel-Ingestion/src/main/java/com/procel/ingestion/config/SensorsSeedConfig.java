@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import java.util.List;
 public class SensorsSeedConfig {
 
     @Bean
+    @DependsOn("entityManagerFactory")
     CommandLineRunner seedSensorsFromJson(
             ObjectMapper om,
             @Value("${procel.sensors.seed-path:seed/sensors/sii-smart.sample.json}") String path,
@@ -47,7 +49,7 @@ public class SensorsSeedConfig {
         for (SensorSeedDTO s : file.sensors()) {
             validate(s);
 
-            // ✅ Robustez: garante tipo independentemente da ordem de runners
+            // ✅ garante tipo (após schema pronto)
             TipoDeSensor tipo = tipoRepo.findById(s.tipoNome())
                     .orElseGet(() -> tipoRepo.save(new TipoDeSensor(s.tipoNome())));
 

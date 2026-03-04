@@ -12,6 +12,16 @@ spring:
       hibernate:
         format_sql: true
 
+      jakarta:
+        persistence:
+          schema-generation:
+            database:
+              action: create-drop
+            scripts:
+              action: create
+              create-target: target/schema.sql
+            create-source: metadata
+
 logging:
   level:
     org.hibernate.SQL: debug

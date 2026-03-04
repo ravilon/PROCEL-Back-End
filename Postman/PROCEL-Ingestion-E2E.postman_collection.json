@@ -1,0 +1,606 @@
+{
+  "info": {
+    "name": "PROCEL Ingestion - E2E",
+    "_postman_id": "d36efd2c-3066-43bc-a091-e6438b5625d3",
+    "description": "Coleção Postman baseada no script PowerShell E2E (rooms sync, sensors seed, pessoa CRUD, presenca checkin/checkout, ingest mock, medicoes queries).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://srv1428963.hstgr.cloud:8080"
+    },
+    {
+      "key": "roomId",
+      "value": "2"
+    },
+    {
+      "key": "sensorExternalId",
+      "value": "SII-001"
+    },
+    {
+      "key": "pessoaId",
+      "value": "ravilon"
+    },
+    {
+      "key": "pessoaEmail",
+      "value": "ravilon@exemplo.com"
+    },
+    {
+      "key": "fromIso",
+      "value": ""
+    },
+    {
+      "key": "toIso",
+      "value": ""
+    },
+    {
+      "key": "presencaId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Setup window (from/to)",
+      "item": [
+        {
+          "name": "Set fromIso/toIso (last 10 minutes)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Define janela de consulta: últimos 10 minutos",
+                  "const to = new Date();",
+                  "const from = new Date(to.getTime() - 10*60*1000);",
+                  "pm.collectionVariables.set('toIso', to.toISOString().replace(/\\.\\d{3}Z$/, 'Z'));",
+                  "pm.collectionVariables.set('fromIso', from.toISOString().replace(/\\.\\d{3}Z$/, 'Z'));",
+                  "",
+                  "console.log('fromIso=', pm.collectionVariables.get('fromIso'));",
+                  "console.log('toIso=', pm.collectionVariables.get('toIso'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Rooms & Sensors bootstrap",
+      "item": [
+        {
+          "name": "POST /api/rooms/sync",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/sync",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "sync"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/sensors/seed/from-resource",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors/seed/from-resource",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensors",
+                "seed",
+                "from-resource"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Pessoas",
+      "item": [
+        {
+          "name": "POST /api/pessoas (create - may conflict)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Aceita 201 Created ou 409 Conflict (já existe)",
+                  "pm.test('Status is 201 or 409', function () {",
+                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Ravilon Aguiar\",\n  \"email\": \"{{pessoaEmail}}\",\n  \"userId\": \"{{pessoaId}}\",\n  \"password\": \"123456\",\n  \"telefone\": \"51999999999\",\n  \"matricula\": \"MAT-001\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pessoas",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pessoas"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/pessoas/{{pessoaId}}",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.test('Has userId', function () { pm.expect(data.userId || data.id || data.pessoaId).to.be.ok; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/pessoas/{{pessoaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pessoas",
+                "{{pessoaId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "PUT /api/pessoas/{{pessoaId}} (update)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Ravilon A. Santos\",\n  \"telefone\": \"51988887777\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pessoas/{{pessoaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "pessoas",
+                "{{pessoaId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Presenças",
+      "item": [
+        {
+          "name": "POST /api/presencas/checkin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                  "const data = pm.response.json();",
+                  "pm.test('Has presenca.id', function () { pm.expect(data.id).to.be.ok; });",
+                  "pm.collectionVariables.set('presencaId', data.id);",
+                  "console.log('presencaId=', data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"compartimentoId\": \"{{roomId}}\",\n  \"source\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presencas/checkin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presencas",
+                "checkin"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/presencas/ocupacao/compartimentos/{{roomId}}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presencas",
+                "ocupacao",
+                "compartimentos",
+                "{{roomId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/presencas/abertas/compartimentos/{{roomId}}",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presencas/abertas/compartimentos/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presencas",
+                "abertas",
+                "compartimentos",
+                "{{roomId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Sensors ingest mock",
+      "item": [
+        {
+          "name": "POST /api/sensors/ingest/mock",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200/202', function () { pm.expect([200, 202]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sensorExternalId\": \"{{sensorExternalId}}\",\n  \"minutesBack\": 10,\n  \"everySeconds\": 10,\n  \"source\": \"mock\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors/ingest/mock",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensors",
+                "ingest",
+                "mock"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Medições",
+      "item": [
+        {
+          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes/latest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensors",
+                "{{sensorExternalId}}",
+                "medicoes",
+                "latest"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&limit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes?from={{fromIso}}&to={{toIso}}&limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensors",
+                "{{sensorExternalId}}",
+                "medicoes"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{fromIso}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{toIso}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/rooms/{{roomId}}/medicoes/latest",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes/latest",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{roomId}}",
+                "medicoes",
+                "latest"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/rooms/{{roomId}}/medicoes?from&to&limit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes?from={{fromIso}}&to={{toIso}}&limit=50",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rooms",
+                "{{roomId}}",
+                "medicoes"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "{{fromIso}}"
+                },
+                {
+                  "key": "to",
+                  "value": "{{toIso}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "06 - Checkout",
+      "item": [
+        {
+          "name": "POST /api/presencas/checkout/by-pessoa (optional)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Esse endpoint é opcional; se não existir, pode retornar 404.",
+                  "pm.test('Status is 200/201/404', function () {",
+                  "  pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presencas/checkout/by-pessoa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presencas",
+                "checkout",
+                "by-pessoa"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST /api/presencas/checkout (fallback by presencaId)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get('presencaId')) {",
+                  "  console.warn('presencaId vazio. Rode o checkin primeiro.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"presencaId\": \"{{presencaId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/presencas/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presencas",
+                "checkout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET /api/presencas/ocupacao/compartimentos/{{roomId}} (after checkout)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "presencas",
+                "ocupacao",
+                "compartimentos",
+                "{{roomId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
