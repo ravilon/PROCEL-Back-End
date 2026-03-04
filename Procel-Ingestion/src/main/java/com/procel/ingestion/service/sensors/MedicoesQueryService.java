@@ -4,10 +4,16 @@ import com.procel.ingestion.dto.sensors.MedicaoDTOs;
 import com.procel.ingestion.entity.sensors.Medicao;
 import com.procel.ingestion.entity.sensors.ParametroValor;
 import com.procel.ingestion.repository.sensors.MedicaoRepository;
+import com.procel.ingestion.repository.sensors.MedicaoSpecs;
 import com.procel.ingestion.repository.sensors.ParametroValorRepository;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.Instant;
 import java.util.*;
@@ -26,10 +32,20 @@ public class MedicoesQueryService {
     }
 
     @Transactional(readOnly = true)
-    public List<MedicaoDTOs.MedicaoResponse> listarPorSensor(String sensorExternalId, Instant from, Instant to, int limit) {
+    @GetMapping("/api/sensors/{sensorExternalId}/medicoes")
+    public List<MedicaoDTOs.MedicaoResponse> listarPorSensor(
+        @PathVariable String sensorExternalId,
+        @RequestParam(required = false) String from,
+        @RequestParam(required = false) String to,
+        @RequestParam(defaultValue = "50") int limit
+    ) {
+        Instant fromI = parseInstantOrNull(from);
+        Instant toI   = parseInstantOrNull(to);
+
         int safeLimit = clampLimit(limit);
-        List<Medicao> medicoes = medicaoRepo.findBySensorExternalId(sensorExternalId, from, to, PageRequest.of(0, safeLimit));
-        return enrich(medicoes);
+        List<Medicao> list = medicaoRepo.findBySensorExternalId(sensorExternalId, fromI, toI, PageRequest.of(0, safeLimit));
+
+        return enrich(list);
     }
 
     @Transactional(readOnly = true)
@@ -103,5 +119,16 @@ public class MedicoesQueryService {
     private int clampLimit(int limit) {
         if (limit <= 0) return 200;
         return Math.min(limit, 1000);
+    }
+
+    private Instant parseInstantOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            return Instant.parse(value);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }

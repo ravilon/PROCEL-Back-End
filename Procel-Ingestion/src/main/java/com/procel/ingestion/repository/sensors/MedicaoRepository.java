@@ -3,6 +3,7 @@ package com.procel.ingestion.repository.sensors;
 import com.procel.ingestion.entity.sensors.Medicao;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -10,7 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public interface MedicaoRepository extends JpaRepository<Medicao, UUID> {
+public interface MedicaoRepository extends JpaRepository<Medicao, UUID>, JpaSpecificationExecutor<Medicao> {
 
     @Query("""
            select m from Medicao m
