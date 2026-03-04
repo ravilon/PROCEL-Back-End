@@ -35,4 +35,9 @@ public class PresencasController {
     public PresencaDTOs.OcupacaoResponse ocupacao(@PathVariable String compartimentoId) {
         return service.ocupacaoAtual(compartimentoId);
     }
+
+    @PostMapping("/checkout/by-pessoa")
+    public PresencaDTOs.PresencaResponse checkoutByPessoa(@RequestBody PresencaDTOs.CheckoutByPessoaRequest req) {
+        return service.checkoutByPessoa(req);
+    }
 }

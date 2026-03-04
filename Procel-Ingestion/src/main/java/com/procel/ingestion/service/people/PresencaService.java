@@ -91,6 +91,23 @@ public class PresencaService {
         return new PresencaDTOs.OcupacaoResponse(comp.getId(), comp.getNome(), presentes);
     }
 
+    @Transactional
+    public PresencaDTOs.PresencaResponse checkoutByPessoa(PresencaDTOs.CheckoutByPessoaRequest req) {
+        if (req == null) throw new IllegalArgumentException("body is required");
+        if (req.pessoaId() == null || req.pessoaId().isBlank()) throw new IllegalArgumentException("pessoaId is required");
+
+        String pessoaId = req.pessoaId().trim();
+
+        Presenca p = presencaRepo.findOpenByPessoaId(pessoaId)
+                .orElseThrow(() -> new NotFoundException("No open presence session for pessoaId=" + pessoaId));
+
+        Instant checkoutAt = (req.checkoutAt() != null) ? req.checkoutAt() : Instant.now();
+        if (checkoutAt.isBefore(p.getCheckinAt())) throw new IllegalArgumentException("checkoutAt must be >= checkinAt");
+
+        p.checkout(checkoutAt);
+        return toResponse(p);
+    }
+
     private static PresencaDTOs.PresencaResponse toResponse(Presenca p) {
         return new PresencaDTOs.PresencaResponse(
                 p.getId(),

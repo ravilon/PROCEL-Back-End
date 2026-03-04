@@ -17,6 +17,11 @@ public class PresencaDTOs {
             Instant checkoutAt
     ) {}
 
+    public record CheckoutByPessoaRequest(
+            String pessoaId,
+            Instant checkoutAt
+    ) {}
+
     public record PresencaResponse(
             UUID id,
             String pessoaId,
