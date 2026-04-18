@@ -25,7 +25,7 @@ $ErrorActionPreference = "Stop"
 # ---------------------------
 # Config
 # ---------------------------
-$BaseUrl = "http://srv1428963.hstgr.cloud:8080"
+$BaseUrl = "http://localhost:8080"
 $RoomId = "2"
 $SensorExternalId = "SII-001"
 
