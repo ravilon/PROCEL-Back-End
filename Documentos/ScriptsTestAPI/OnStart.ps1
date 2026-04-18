@@ -25,7 +25,7 @@ $ErrorActionPreference = "Stop"
 # ---------------------------
 # Config
 # ---------------------------
-$BaseUrl = "http://localhost:8080"
+$BaseUrl = "http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io"
 $RoomId = "2"
 $SensorExternalId = "SII-001"
 
