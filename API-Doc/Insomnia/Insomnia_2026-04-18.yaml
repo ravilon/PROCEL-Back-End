@@ -627,7 +627,7 @@ collection:
                 store: true
               rebuildPath: true
     environment:
-      baseUrl: http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io
+      baseUrl: https://procel.servehttp.com
       roomId: "2"
       sensorExternalId: SII-001
       pessoaId: ravilon
@@ -665,7 +665,7 @@ environments:
     modified: 1776529048684
     isPrivate: false
   data:
-    baseUrl: http://srv1428963.hstgr.cloud:8080
+    baseUrl: https://procel.servehttp.com
     roomId: "2"
     sensorExternalId: SII-001
     pessoaId: ravilon

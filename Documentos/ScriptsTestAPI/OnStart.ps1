@@ -26,8 +26,8 @@ $ErrorActionPreference = "Stop"
 # ---------------------------
 # Config
 # ---------------------------
-# Adjust BaseUrl for http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io or http://localhost:8080
-$BaseUrl = "http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io"
+# Adjust BaseUrl for https://procel.servehttp.com or http://localhost:8080
+$BaseUrl = "https://procel.servehttp.com"
 $RoomId = "2"
 $SensorExternalId = "SII-001"
 

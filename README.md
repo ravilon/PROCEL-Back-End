@@ -74,13 +74,13 @@ Password:   postgres
 Tambem existe uma instancia publicada via Coolify para testes sem rodar o backend localmente:
 
 ```text
-http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io/
+https://procel.servehttp.com
 ```
 
 Documentacao Swagger nesse ambiente:
 
 ```text
-http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io/docs
+https://procel.servehttp.com/docs
 ```
 
 Use esse host como `baseUrl` no Insomnia, Postman ou no script E2E quando quiser testar contra o servidor remoto.
