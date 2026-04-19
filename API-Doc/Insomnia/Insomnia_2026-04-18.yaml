@@ -1,0 +1,678 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: PROCEL Ingestion - E2E
+meta:
+  id: wrk_1268bc4575c14d539bcbe4f241a53944
+  created: 1776477181096
+  modified: 1776477181096
+  description: ""
+collection:
+  - name: PROCEL Ingestion - E2E
+    meta:
+      id: fld_c5ee36a0ef114b07be3509b52ab628b2
+      created: 1776477181098
+      modified: 1776553908795
+      sortKey: -1776477176821
+      description: Coleção Postman baseada no script PowerShell E2E (rooms sync,
+        sensors seed, pessoa CRUD, presenca checkin/checkout, ingest mock,
+        medicoes queries).
+    children:
+      - name: 00 - Setup window (from/to)
+        meta:
+          id: fld_5d51f20eea93498d899445cb7bf62b2d
+          created: 1776477181099
+          modified: 1776477181099
+          sortKey: -1776477176820
+          description: ""
+        children:
+          - url: "{{baseUrl}}/actuator/health"
+            name: Set fromIso/toIso (last 10 minutes)
+            meta:
+              id: req_0986154187fa42f7978b7298b99f843b
+              created: 1776477181101
+              modified: 1776477181101
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176819
+            method: GET
+            scripts:
+              preRequest: >-
+                // Define janela de consulta: últimos 10 minutos
+
+                const to = new Date();
+
+                const from = new Date(to.getTime() - 10*60*1000);
+
+                insomnia.collectionVariables.set('toIso',
+                to.toISOString().replace(/\.\d{3}Z$/, 'Z'));
+
+                insomnia.collectionVariables.set('fromIso',
+                from.toISOString().replace(/\.\d{3}Z$/, 'Z'));
+
+
+                console.log('fromIso=',
+                insomnia.collectionVariables.get('fromIso'));
+
+                console.log('toIso=',
+                insomnia.collectionVariables.get('toIso'));
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 01 - Auth
+        meta:
+          id: fld_auth_procel_jwt
+          created: 1776553373000
+          modified: 1776553373000
+          sortKey: -1776477176818.5
+          description: ""
+        children:
+          - url: "{{baseUrl}}/api/auth/login"
+            name: POST /api/auth/login (admin bootstrap)
+            meta:
+              id: req_auth_login_procel_jwt
+              created: 1776553373001
+              modified: 1776553373001
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176818.4
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "email": "{{adminEmail}}",
+                  "password": "{{adminPassword}}"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+            scripts:
+              afterResponse: >-
+                insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+
+                const data = insomnia.response.json();
+
+                insomnia.test('Has accessToken', function () {
+                insomnia.expect(data.accessToken).to.be.ok; });
+
+                insomnia.collectionVariables.set('jwtToken', data.accessToken);
+
+                console.log('jwtToken saved');
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 02 - Rooms & Sensors bootstrap
+        meta:
+          id: fld_fd32d0fc0e6b42efae6c850f033f85fc
+          created: 1776477181103
+          modified: 1776477181103
+          sortKey: -1776477176818
+          description: ""
+        children:
+          - url: "{{ _.baseUrl }}/api/rooms/sync"
+            name: POST /api/rooms/sync
+            meta:
+              id: req_523aa9b741e745c4a1dd25405ac9b86d
+              created: 1776477181104
+              modified: 1776486116472
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176817
+            method: POST
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{_['baseUrl']}}/api/sensors/seed/from-resource"
+            name: POST /api/sensors/seed/from-resource
+            meta:
+              id: req_970613144b154fd5ab9b86d21c7136d8
+              created: 1776477181106
+              modified: 1776477207976
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176816
+            method: POST
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 03 - Pessoas
+        meta:
+          id: fld_f3c8ba48dbe04450a1d1dd369e8d10e2
+          created: 1776477181107
+          modified: 1776529048689
+          sortKey: -1776477176815
+          description: ""
+        children:
+          - url: "{{baseUrl}}/api/pessoas"
+            name: POST /api/pessoas (create - may conflict)
+            meta:
+              id: req_a2fa8eeb54704126be8bb9caddecc6ff
+              created: 1776477181108
+              modified: 1776487456332
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176814
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "nome": "Ravilon Aguiar",
+                  "email": "{{_['pessoaEmail']}}",
+                  "userId": "{{_['pessoaId']}}",
+                  "password": "123456",
+                  "telefone": "51999999999",
+                  "matricula": "MAT-001",
+                  "roles": ["USUARIO"]
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: >-
+                // Aceita 201 Created ou 409 Conflict (já existe)
+
+                insomnia.test('Status is 200, 201 or 409', function () {
+                  insomnia.expect([200, 201, 409]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{pessoaId}}"
+            name: GET /api/pessoas/{{pessoaId}}
+            meta:
+              id: req_0023b0bf70a34d90938d444756e817a3
+              created: 1776477181110
+              modified: 1776477181110
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176813
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: >-
+                insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+
+                const data = insomnia.response.json();
+
+                insomnia.test('Has userId', function () {
+                insomnia.expect(data.userId || data.id ||
+                data.pessoaId).to.be.ok; });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{pessoaId}}"
+            name: PUT /api/pessoas/{{pessoaId}} (update)
+            meta:
+              id: req_92486e68d8e243e2b075acd432788d7f
+              created: 1776477181112
+              modified: 1776477181112
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176812
+            method: PUT
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "nome": "Ravilon A. Santos",
+                  "telefone": "51988887777"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 04 - Presenças
+        meta:
+          id: fld_430bcf2fc7df4077953fc58bbcb65959
+          created: 1776477181114
+          modified: 1776487485839
+          sortKey: -1776477176811
+          description: ""
+        children:
+          - url: "{{baseUrl}}/api/presencas/checkin"
+            name: POST /api/presencas/checkin
+            meta:
+              id: req_703a02e3d7744e20a6dfe589185c5770
+              created: 1776477181115
+              modified: 1776477181115
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176810
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "pessoaId": "{{pessoaId}}",
+                  "compartimentoId": "{{roomId}}",
+                  "source": "manual"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: >-
+                insomnia.test('Status 200/201', function () {
+                insomnia.expect([200, 201]).to.include(insomnia.response.code);
+                });
+
+                const data = insomnia.response.json();
+
+                insomnia.test('Has presenca.id', function () {
+                insomnia.expect(data.id).to.be.ok; });
+
+                insomnia.collectionVariables.set('presencaId', data.id);
+
+                console.log('presencaId=', data.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}"
+            name: GET /api/presencas/ocupacao/compartimentos/{{roomId}}
+            meta:
+              id: req_33c3cb68d12b4b7b9f71dafbdad18222
+              created: 1776477181118
+              modified: 1776477181118
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176809
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/presencas/abertas/compartimentos/{{roomId}}"
+            name: GET /api/presencas/abertas/compartimentos/{{roomId}}
+            meta:
+              id: req_16be586d0e654f00ab86cf5161f04686
+              created: 1776477181119
+              modified: 1776477181119
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176808
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 05 - Sensors ingest mock
+        meta:
+          id: fld_e409b5de029b47e783207d9bb33cfda3
+          created: 1776477181121
+          modified: 1776477181121
+          sortKey: -1776477176807
+          description: ""
+        children:
+          - url: "{{baseUrl}}/api/sensors/ingest/mock"
+            name: POST /api/sensors/ingest/mock
+            meta:
+              id: req_58a8c8b2b3ec4c3fabc2131444d09a8a
+              created: 1776477181123
+              modified: 1776477181123
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176806
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "sensorExternalId": "{{sensorExternalId}}",
+                  "minutesBack": 10,
+                  "everySeconds": 10,
+                  "source": "mock"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200/202', function () {
+                insomnia.expect([200, 202]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 06 - Medições
+        meta:
+          id: fld_7b9ba42fd0d34b3dbf281705c4894634
+          created: 1776477181125
+          modified: 1776477181125
+          sortKey: -1776477176805
+          description: ""
+        children:
+          - url: "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes/latest"
+            name: GET /api/sensors/{{sensorExternalId}}/medicoes/latest
+            meta:
+              id: req_b63b7872b9f84386bcf2e6558a7783f2
+              created: 1776477181127
+              modified: 1776477181127
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176804
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes"
+            name: GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&limit
+            meta:
+              id: req_bf73cc6a4b3343b88591c69489794027
+              created: 1776477181129
+              modified: 1776477181129
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176803
+            method: GET
+            parameters:
+              - name: from
+                value: "{{fromIso}}"
+                disabled: false
+              - name: to
+                value: "{{toIso}}"
+                disabled: false
+              - name: limit
+                value: "50"
+                disabled: false
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/rooms/{{roomId}}/medicoes/latest"
+            name: GET /api/rooms/{{roomId}}/medicoes/latest
+            meta:
+              id: req_d23bcb46950441c9909568ef13e304a3
+              created: 1776477181133
+              modified: 1776477181133
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176802
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/rooms/{{roomId}}/medicoes"
+            name: GET /api/rooms/{{roomId}}/medicoes?from&to&limit
+            meta:
+              id: req_e5edd5b1a7f64d5fafd8baad86df5720
+              created: 1776477181136
+              modified: 1776477181136
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176801
+            method: GET
+            parameters:
+              - name: from
+                value: "{{fromIso}}"
+                disabled: false
+              - name: to
+                value: "{{toIso}}"
+                disabled: false
+              - name: limit
+                value: "50"
+                disabled: false
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 07 - Checkout
+        meta:
+          id: fld_4152ef9eb16c4e6a8306bd96b66ebac7
+          created: 1776477181137
+          modified: 1776487540252
+          sortKey: -1776477176800
+          description: ""
+        children:
+          - url: "{{_['baseUrl']}}/api/presencas/checkout/by-pessoa"
+            name: POST /api/presencas/checkout/by-pessoa (optional)
+            meta:
+              id: req_8c9ac59642b7475fad64bc087ad5cd6c
+              created: 1776477181139
+              modified: 1776477181139
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176799
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "pessoaId": "{{pessoaId}}"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: >-
+                // Esse endpoint é opcional; se não existir, pode retornar 404.
+
+                insomnia.test('Status is 200/201/404', function () {
+                  insomnia.expect([200, 201, 404]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/presencas/checkout"
+            name: POST /api/presencas/checkout (fallback by presencaId)
+            meta:
+              id: req_e92ab778dc924fc8b72040c0a788c655
+              created: 1776477181141
+              modified: 1776487609521
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176798
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "presencaId": "{{ _.presencaId }}"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              preRequest: |-
+                if (!insomnia.collectionVariables.get('presencaId')) {
+                  console.warn('presencaId vazio. Rode o checkin primeiro.');
+                }
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}"
+            name: GET /api/presencas/ocupacao/compartimentos/{{roomId}} (after checkout)
+            meta:
+              id: req_8d02b87c4ca2412eb565fc9b72a1576d
+              created: 1776477181143
+              modified: 1776477181143
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176797
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+    environment:
+      baseUrl: http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io
+      roomId: "2"
+      sensorExternalId: SII-001
+      pessoaId: ravilon
+      pessoaEmail: ravilon@exemplo.com
+      fromIso: ""
+      toIso: ""
+      presencaId: ""
+      jwtToken: ""
+      adminEmail: admin@procel.local
+      adminPassword: admin123
+    environmentPropertyOrder:
+      "&":
+        - baseUrl
+        - roomId
+        - sensorExternalId
+        - pessoaId
+        - pessoaEmail
+        - fromIso
+        - toIso
+        - presencaId
+        - jwtToken
+        - adminEmail
+        - adminPassword
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_e056bdd507d53104f87cb0cdc5982b1dc8c75b34
+    created: 1776477181149
+    modified: 1776529048682
+environments:
+  name: Variables
+  meta:
+    id: env_55bad53a39434f64a9de8b282a1f224f
+    created: 1776477181144
+    modified: 1776529048684
+    isPrivate: false
+  data:
+    baseUrl: http://srv1428963.hstgr.cloud:8080
+    roomId: "2"
+    sensorExternalId: SII-001
+    pessoaId: ravilon
+    pessoaEmail: ravilon@exemplo.com
+    fromIso: ""
+    toIso: ""
+    presencaId: 7655bd02-1302-4589-9902-8aa89ccf01c6
+    jwtToken: ""
+    adminEmail: admin@procel.local
+    adminPassword: admin123

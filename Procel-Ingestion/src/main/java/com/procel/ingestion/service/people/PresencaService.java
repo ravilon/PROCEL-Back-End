@@ -32,18 +32,25 @@ public class PresencaService {
     public PresencaDTOs.PresencaResponse checkin(PresencaDTOs.CheckinRequest req) {
         if (req == null) throw new IllegalArgumentException("body is required");
         if (req.pessoaId() == null || req.pessoaId().isBlank()) throw new IllegalArgumentException("pessoaId is required");
+        return checkinForPessoa(req.pessoaId(), req);
+    }
+
+    @Transactional
+    public PresencaDTOs.PresencaResponse checkinForPessoa(String pessoaId, PresencaDTOs.CheckinRequest req) {
+        if (req == null) throw new IllegalArgumentException("body is required");
+        if (pessoaId == null || pessoaId.isBlank()) throw new IllegalArgumentException("pessoaId is required");
         if (req.compartimentoId() == null || req.compartimentoId().isBlank()) throw new IllegalArgumentException("compartimentoId is required");
 
-        String pessoaId = req.pessoaId().trim();
+        String normalizedPessoaId = pessoaId.trim();
         String compartimentoId = req.compartimentoId().trim();
 
-        Pessoa pessoa = pessoaRepo.findById(pessoaId)
-                .orElseThrow(() -> new NotFoundException("Pessoa not found id=" + pessoaId));
+        Pessoa pessoa = pessoaRepo.findById(normalizedPessoaId)
+                .orElseThrow(() -> new NotFoundException("Pessoa not found id=" + normalizedPessoaId));
 
         Compartimento comp = compartimentoRepo.findById(compartimentoId)
                 .orElseThrow(() -> new NotFoundException("Compartimento not found id=" + compartimentoId));
 
-        presencaRepo.findOpenByPessoaId(pessoaId).ifPresent(open -> {
+        presencaRepo.findOpenByPessoaId(normalizedPessoaId).ifPresent(open -> {
             throw new ConflictException("Pessoa already has an open presence session (presencaId=" + open.getId() + ")");
         });
 
@@ -61,6 +68,28 @@ public class PresencaService {
 
         Presenca p = presencaRepo.findById(req.presencaId())
             .orElseThrow(() -> new NotFoundException("Presenca not found id=" + req.presencaId()));
+
+        if (p.getCheckoutAt() != null) throw new ConflictException("Presenca already closed id=" + p.getId());
+
+        Instant checkoutAt = (req.checkoutAt() != null) ? req.checkoutAt() : Instant.now();
+        if (checkoutAt.isBefore(p.getCheckinAt())) throw new IllegalArgumentException("checkoutAt must be >= checkinAt");
+
+        p.checkout(checkoutAt);
+        return toResponse(p);
+    }
+
+    @Transactional
+    public PresencaDTOs.PresencaResponse checkout(PresencaDTOs.CheckoutRequest req, String authenticatedPessoaId, boolean canActForOthers) {
+        if (req == null) throw new IllegalArgumentException("body is required");
+        if (req.presencaId() == null) throw new IllegalArgumentException("presencaId is required");
+        if (authenticatedPessoaId == null || authenticatedPessoaId.isBlank()) throw new IllegalArgumentException("authenticatedPessoaId is required");
+
+        Presenca p = presencaRepo.findById(req.presencaId())
+                .orElseThrow(() -> new NotFoundException("Presenca not found id=" + req.presencaId()));
+
+        if (!canActForOthers && !p.getPessoa().getId().equals(authenticatedPessoaId)) {
+            throw new NotFoundException("Presenca not found id=" + req.presencaId());
+        }
 
         if (p.getCheckoutAt() != null) throw new ConflictException("Presenca already closed id=" + p.getId());
 
@@ -102,6 +131,21 @@ public class PresencaService {
                 .orElseThrow(() -> new NotFoundException("No open presence session for pessoaId=" + pessoaId));
 
         Instant checkoutAt = (req.checkoutAt() != null) ? req.checkoutAt() : Instant.now();
+        if (checkoutAt.isBefore(p.getCheckinAt())) throw new IllegalArgumentException("checkoutAt must be >= checkinAt");
+
+        p.checkout(checkoutAt);
+        return toResponse(p);
+    }
+
+    @Transactional
+    public PresencaDTOs.PresencaResponse checkoutByPessoa(String pessoaId, Instant requestedCheckoutAt) {
+        if (pessoaId == null || pessoaId.isBlank()) throw new IllegalArgumentException("pessoaId is required");
+
+        String normalizedPessoaId = pessoaId.trim();
+        Presenca p = presencaRepo.findOpenByPessoaId(normalizedPessoaId)
+                .orElseThrow(() -> new NotFoundException("No open presence session for pessoaId=" + normalizedPessoaId));
+
+        Instant checkoutAt = (requestedCheckoutAt != null) ? requestedCheckoutAt : Instant.now();
         if (checkoutAt.isBefore(p.getCheckinAt())) throw new IllegalArgumentException("checkoutAt must be >= checkinAt");
 
         p.checkout(checkoutAt);

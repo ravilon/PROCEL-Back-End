@@ -4,6 +4,7 @@ Backend changed to accept from/to as STRING and parse with Instant.parse().
 So we can send ISO-8601 strings directly (no URL-encoding required).
 
 Covers:
+- Auth login (JWT)
 - Rooms sync
 - Sensors seed
 - Pessoa create/get/update
@@ -25,12 +26,17 @@ $ErrorActionPreference = "Stop"
 # ---------------------------
 # Config
 # ---------------------------
+# Adjust BaseUrl for http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io or http://localhost:8080
 $BaseUrl = "http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io"
 $RoomId = "2"
 $SensorExternalId = "SII-001"
 
 $PessoaId = "ravilon"
 $PessoaEmail = "ravilon@exemplo.com"
+
+$AdminEmail = "admin@procel.local"
+$AdminPassword = "admin123"
+$JwtToken = $null
 
 # ---------------------------
 # Helpers
@@ -64,6 +70,29 @@ function PrintJson($title, $obj) {
   $obj | ConvertTo-Json -Depth 20
 }
 
+function InvokeApi($Path, $Method = "GET", $Body = $null, [switch]$NoAuth) {
+  $headers = @{}
+  if (-not $NoAuth) {
+    if ([string]::IsNullOrWhiteSpace($JwtToken)) {
+      throw "JWT token is empty. Run login before authenticated API calls."
+    }
+    $headers["Authorization"] = "Bearer $JwtToken"
+  }
+
+  $params = @{
+    Uri = "$BaseUrl$Path"
+    Method = $Method
+    Headers = $headers
+  }
+
+  if ($null -ne $Body) {
+    $params["ContentType"] = "application/json"
+    $params["Body"] = ($Body | ConvertTo-Json -Depth 10)
+  }
+
+  Invoke-RestMethod @params
+}
+
 # ISO times for queries (Instant.parse expects ISO-8601 with Z or offset)
 $to = [DateTimeOffset]::UtcNow
 $from10m = $to.AddMinutes(-10)
@@ -78,55 +107,70 @@ Write-Host "RoomId: $RoomId | SensorExternalId: $SensorExternalId | PessoaId: $P
 Write-Host "Window: from=$FromIso to=$ToIso" -ForegroundColor Yellow
 
 # ---------------------------
-# 1) Rooms sync
+# 1) Auth login
+# ---------------------------
+$login = TryCall "POST /api/auth/login (admin bootstrap)" {
+  InvokeApi "/api/auth/login" -Method POST -NoAuth -Body @{
+    email=$AdminEmail
+    password=$AdminPassword
+  }
+}
+
+$JwtToken = $login.accessToken
+if ([string]::IsNullOrWhiteSpace($JwtToken)) { throw "No accessToken returned from login." }
+Write-Host "[OK] JWT token acquired. ExpiresAt: $($login.expiresAt)" -ForegroundColor Green
+
+# ---------------------------
+# 2) Rooms sync
 # ---------------------------
 TryCall "POST /api/rooms/sync" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/rooms/sync" -Method POST
+  InvokeApi "/api/rooms/sync" -Method POST
 } | Out-Null
 
 # ---------------------------
-# 2) Sensors seed
+# 3) Sensors seed
 # ---------------------------
 TryCall "POST /api/sensors/seed/from-resource" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/sensors/seed/from-resource" -Method POST
+  InvokeApi "/api/sensors/seed/from-resource" -Method POST
 } | Out-Null
 
 # ---------------------------
-# 3) Pessoa create (ignore conflict) + get + update
+# 4) Pessoa create (ignore conflict) + get + update
 # ---------------------------
 SoftCall "POST /api/pessoas (create - may conflict)" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/pessoas" -Method POST -ContentType "application/json" -Body (@{
+  InvokeApi "/api/pessoas" -Method POST -Body @{
     nome="Ravilon Aguiar"
     email=$PessoaEmail
     userId=$PessoaId
     password="123456"
     telefone="51999999999"
     matricula="MAT-001"
-  } | ConvertTo-Json -Depth 10)
+    roles=@("USUARIO")
+  }
 } | Out-Null
 
 $pessoa = TryCall "GET /api/pessoas/$PessoaId" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/pessoas/$PessoaId" -Method GET
+  InvokeApi "/api/pessoas/$PessoaId" -Method GET
 }
 PrintJson "Pessoa (GET)" $pessoa
 
 $pessoaUpd = TryCall "PUT /api/pessoas/$PessoaId (update)" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/pessoas/$PessoaId" -Method PUT -ContentType "application/json" -Body (@{
+  InvokeApi "/api/pessoas/$PessoaId" -Method PUT -Body @{
     nome="Ravilon A. Santos"
     telefone="51988887777"
-  } | ConvertTo-Json -Depth 10)
+  }
 }
 PrintJson "Pessoa (PUT)" $pessoaUpd
 
 # ---------------------------
-# 4) Presenca checkin
+# 5) Presenca checkin
 # ---------------------------
 $presenca = TryCall "POST /api/presencas/checkin" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/presencas/checkin" -Method POST -ContentType "application/json" -Body (@{
+  InvokeApi "/api/presencas/checkin" -Method POST -Body @{
     pessoaId=$PessoaId
     compartimentoId=$RoomId
     source="manual"
-  } | ConvertTo-Json -Depth 10)
+  }
 }
 PrintJson "Presenca checkin" $presenca
 
@@ -134,58 +178,58 @@ $presencaId = $presenca.id
 if (-not $presencaId) { throw "No presenca.id returned from checkin." }
 
 # ---------------------------
-# 5) Ingest mock (generate Medicoes)
+# 6) Ingest mock (generate Medicoes)
 # ---------------------------
 $ingestRes = TryCall "POST /api/sensors/ingest/mock" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/sensors/ingest/mock" -Method POST -ContentType "application/json" -Body (@{
+  InvokeApi "/api/sensors/ingest/mock" -Method POST -Body @{
     sensorExternalId=$SensorExternalId
     minutesBack=10
     everySeconds=10
     source="mock"
-  } | ConvertTo-Json -Depth 10)
+  }
 }
 PrintJson "Sensors ingest mock" $ingestRes
 
 Start-Sleep -Seconds 1
 
 # ---------------------------
-# 6) Medicoes queries
+# 7) Medicoes queries
 # ---------------------------
 $latestSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes/latest" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/sensors/$SensorExternalId/medicoes/latest" -Method GET
+  InvokeApi "/api/sensors/$SensorExternalId/medicoes/latest" -Method GET
 }
 PrintJson "Medicao latest (sensor)" $latestSensor
 
 $listSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes?from&to&limit" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/sensors/$SensorExternalId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
+  InvokeApi "/api/sensors/$SensorExternalId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
 }
 PrintJson "Medicoes list (sensor, last 10m)" $listSensor
 
 $latestRoom = TryCall "GET /api/rooms/$RoomId/medicoes/latest" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/rooms/$RoomId/medicoes/latest" -Method GET
+  InvokeApi "/api/rooms/$RoomId/medicoes/latest" -Method GET
 }
 PrintJson "Medicao latest (room)" $latestRoom
 
 $listRoom = TryCall "GET /api/rooms/$RoomId/medicoes?from&to&limit" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/rooms/$RoomId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
+  InvokeApi "/api/rooms/$RoomId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
 }
 PrintJson "Medicoes list (room, last 10m)" $listRoom
 
 # ---------------------------
-# 7) Presenca occupancy + open list
+# 8) Presenca occupancy + open list
 # ---------------------------
 $ocup = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
+  InvokeApi "/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
 }
 PrintJson "Ocupacao atual" $ocup
 
 $abertas = TryCall "GET /api/presencas/abertas/compartimentos/$RoomId" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/presencas/abertas/compartimentos/$RoomId" -Method GET
+  InvokeApi "/api/presencas/abertas/compartimentos/$RoomId" -Method GET
 }
 PrintJson "Presencas abertas" $abertas
 
 # ---------------------------
-# 8) Gamification summary (console) using latestRoom.valores
+# 9) Gamification summary (console) using latestRoom.valores
 # ---------------------------
 Write-Host ""
 Write-Host "=== GAMIFICATION SUMMARY (Room $RoomId) ===" -ForegroundColor Cyan
@@ -220,19 +264,19 @@ if ($latestRoom -and $latestRoom.valores) {
 }
 
 # ---------------------------
-# 9) Checkout (by pessoa if available; fallback by presencaId)
+# 10) Checkout (by pessoa if available; fallback by presencaId)
 # ---------------------------
 $checkoutByPessoa = SoftCall "POST /api/presencas/checkout/by-pessoa (optional)" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/presencas/checkout/by-pessoa" -Method POST -ContentType "application/json" -Body (@{
+  InvokeApi "/api/presencas/checkout/by-pessoa" -Method POST -Body @{
     pessoaId=$PessoaId
-  } | ConvertTo-Json -Depth 10)
+  }
 }
 
 if ($null -eq $checkoutByPessoa) {
   $checkoutById = TryCall "POST /api/presencas/checkout (fallback)" {
-    Invoke-RestMethod -Uri "$BaseUrl/api/presencas/checkout" -Method POST -ContentType "application/json" -Body (@{
+    InvokeApi "/api/presencas/checkout" -Method POST -Body @{
       presencaId=$presencaId
-    } | ConvertTo-Json -Depth 10)
+    }
   }
   PrintJson "Checkout (by presencaId)" $checkoutById
 } else {
@@ -240,10 +284,10 @@ if ($null -eq $checkoutByPessoa) {
 }
 
 # ---------------------------
-# 10) Occupancy after checkout
+# 11) Occupancy after checkout
 # ---------------------------
 $ocup2 = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId (after checkout)" {
-  Invoke-RestMethod -Uri "$BaseUrl/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
+  InvokeApi "/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
 }
 PrintJson "Ocupacao after checkout" $ocup2
 

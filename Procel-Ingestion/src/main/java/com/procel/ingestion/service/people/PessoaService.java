@@ -2,12 +2,17 @@ package com.procel.ingestion.service.people;
 
 import com.procel.ingestion.dto.people.PessoaDTOs;
 import com.procel.ingestion.entity.people.Pessoa;
+import com.procel.ingestion.entity.people.Role;
 import com.procel.ingestion.exception.ConflictException;
 import com.procel.ingestion.exception.NotFoundException;
 import com.procel.ingestion.repository.people.PessoaRepository;
 import com.procel.ingestion.security.PasswordHasher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class PessoaService {
@@ -42,6 +47,7 @@ public class PessoaService {
                 req.telefone(),
                 matricula
         );
+        p.setRoles(parseRoles(req.roles(), Set.of(Role.USUARIO)));
 
         p = pessoaRepo.save(p);
         return toResponse(p);
@@ -85,6 +91,10 @@ public class PessoaService {
             p.setPasswordHash(passwordHasher.hash(req.password()));
         }
 
+        if (req.roles() != null && !req.roles().isEmpty()) {
+            p.setRoles(parseRoles(req.roles(), Set.of(Role.USUARIO)));
+        }
+
         return toResponse(p);
     }
 
@@ -109,7 +119,25 @@ public class PessoaService {
                 p.getEmail(),
                 p.getTelefone(),
                 p.getMatricula(),
-                p.getCreatedAt()
+                p.getCreatedAt(),
+                p.getRoles().stream().map(Role::name).collect(Collectors.toCollection(LinkedHashSet::new))
         );
+    }
+
+    private static Set<Role> parseRoles(Set<String> requestedRoles, Set<Role> defaultRoles) {
+        if (requestedRoles == null || requestedRoles.isEmpty()) {
+            return new LinkedHashSet<>(defaultRoles);
+        }
+
+        return requestedRoles.stream()
+                .map(role -> {
+                    if (role == null || role.isBlank()) throw new IllegalArgumentException("role cannot be blank");
+                    try {
+                        return Role.valueOf(role.trim().toUpperCase());
+                    } catch (IllegalArgumentException e) {
+                        throw new IllegalArgumentException("invalid role: " + role);
+                    }
+                })
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

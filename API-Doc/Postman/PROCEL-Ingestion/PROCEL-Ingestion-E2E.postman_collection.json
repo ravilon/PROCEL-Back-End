@@ -37,8 +37,30 @@
     {
       "key": "presencaId",
       "value": ""
+    },
+    {
+      "key": "jwtToken",
+      "value": ""
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@procel.local"
+    },
+    {
+      "key": "adminPassword",
+      "value": "admin123"
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwtToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "00 - Setup window (from/to)",
@@ -82,7 +104,58 @@
       ]
     },
     {
-      "name": "01 - Rooms & Sensors bootstrap",
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "POST /api/auth/login (admin bootstrap)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+                  "const data = pm.response.json();",
+                  "pm.test('Has accessToken', function () { pm.expect(data.accessToken).to.be.ok; });",
+                  "pm.collectionVariables.set('jwtToken', data.accessToken);",
+                  "console.log('jwtToken saved');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Rooms & Sensors bootstrap",
       "item": [
         {
           "name": "POST /api/rooms/sync",
@@ -126,7 +199,7 @@
       ]
     },
     {
-      "name": "02 - Pessoas",
+      "name": "03 - Pessoas",
       "item": [
         {
           "name": "POST /api/pessoas (create - may conflict)",
@@ -137,8 +210,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "// Aceita 201 Created ou 409 Conflict (já existe)",
-                  "pm.test('Status is 201 or 409', function () {",
-                  "  pm.expect([201, 409]).to.include(pm.response.code);",
+                  "pm.test('Status is 200, 201 or 409', function () {",
+                  "  pm.expect([200, 201, 409]).to.include(pm.response.code);",
                   "});"
                 ]
               }
@@ -154,7 +227,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Ravilon Aguiar\",\n  \"email\": \"{{pessoaEmail}}\",\n  \"userId\": \"{{pessoaId}}\",\n  \"password\": \"123456\",\n  \"telefone\": \"51999999999\",\n  \"matricula\": \"MAT-001\"\n}"
+              "raw": "{\n  \"nome\": \"Ravilon Aguiar\",\n  \"email\": \"{{pessoaEmail}}\",\n  \"userId\": \"{{pessoaId}}\",\n  \"password\": \"123456\",\n  \"telefone\": \"51999999999\",\n  \"matricula\": \"MAT-001\",\n  \"roles\": [\"USUARIO\"]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/pessoas",
@@ -243,7 +316,7 @@
       ]
     },
     {
-      "name": "03 - Presenças",
+      "name": "04 - Presenças",
       "item": [
         {
           "name": "POST /api/presencas/checkin",
@@ -333,7 +406,7 @@
       ]
     },
     {
-      "name": "04 - Sensors ingest mock",
+      "name": "05 - Sensors ingest mock",
       "item": [
         {
           "name": "POST /api/sensors/ingest/mock",
@@ -378,7 +451,7 @@
       ]
     },
     {
-      "name": "05 - Medições",
+      "name": "06 - Medições",
       "item": [
         {
           "name": "GET /api/sensors/{{sensorExternalId}}/medicoes/latest",
@@ -493,7 +566,7 @@
       ]
     },
     {
-      "name": "06 - Checkout",
+      "name": "07 - Checkout",
       "item": [
         {
           "name": "POST /api/presencas/checkout/by-pessoa (optional)",

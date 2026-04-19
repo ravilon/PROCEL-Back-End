@@ -3,6 +3,8 @@ package com.procel.ingestion.entity.people;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(
@@ -41,6 +43,15 @@ public class Pessoa {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "pessoa_role",
+            joinColumns = @JoinColumn(name = "pessoa_id")
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 40)
+    private Set<Role> roles = new HashSet<>();
+
     protected Pessoa() {}
 
     public Pessoa(String id, String nome, String email, String passwordHash, String telefone, String matricula) {
@@ -60,10 +71,12 @@ public class Pessoa {
     public String getTelefone() { return telefone; }
     public String getMatricula() { return matricula; }
     public Instant getCreatedAt() { return createdAt; }
+    public Set<Role> getRoles() { return roles; }
 
     public void setNome(String nome) { this.nome = nome; }
     public void setEmail(String email) { this.email = email; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public void setTelefone(String telefone) { this.telefone = telefone; }
     public void setMatricula(String matricula) { this.matricula = matricula; }
+    public void setRoles(Set<Role> roles) { this.roles = roles; }
 }

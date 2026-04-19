@@ -23,6 +23,12 @@ public class ApiExceptionHandler {
         return new ErrorResponse(ex.getMessage(), "CONFLICT", Instant.now());
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse unauthorized(UnauthorizedException ex) {
+        return new ErrorResponse(ex.getMessage(), "UNAUTHORIZED", Instant.now());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse badRequest(IllegalArgumentException ex) {

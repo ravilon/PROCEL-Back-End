@@ -33,6 +33,17 @@ procel:
   sensors:
     seed-path: seed/sensors/sensors.seed.json
 
+  security:
+    jwt:
+      secret: ${PROCEL_JWT_SECRET:change-this-local-development-secret-32chars}
+      expiration-minutes: ${PROCEL_JWT_EXPIRATION_MINUTES:60}
+    bootstrap-admin:
+      enabled: ${PROCEL_BOOTSTRAP_ADMIN_ENABLED:true}
+      user-id: ${PROCEL_BOOTSTRAP_ADMIN_USER_ID:admin}
+      nome: ${PROCEL_BOOTSTRAP_ADMIN_NOME:Administrador PROCEL}
+      email: ${PROCEL_BOOTSTRAP_ADMIN_EMAIL:admin@procel.local}
+      password: ${PROCEL_BOOTSTRAP_ADMIN_PASSWORD:admin123}
+
   cobalto:
     rooms:
       url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaSalas/

@@ -2,6 +2,7 @@ package com.procel.ingestion.controller;
 
 import com.procel.ingestion.dto.people.PresencaDTOs;
 import com.procel.ingestion.service.people.PresencaService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,13 +18,16 @@ public class PresencasController {
     }
 
     @PostMapping("/checkin")
-    public PresencaDTOs.PresencaResponse checkin(@RequestBody PresencaDTOs.CheckinRequest req) {
-        return service.checkin(req);
+    public PresencaDTOs.PresencaResponse checkin(@RequestBody PresencaDTOs.CheckinRequest req, Authentication authentication) {
+        String pessoaId = canActForOthers(authentication) && req != null && req.pessoaId() != null && !req.pessoaId().isBlank()
+                ? req.pessoaId()
+                : authentication.getName();
+        return service.checkinForPessoa(pessoaId, req);
     }
 
     @PostMapping("/checkout")
-    public PresencaDTOs.PresencaResponse checkout(@RequestBody PresencaDTOs.CheckoutRequest req) {
-        return service.checkout(req);
+    public PresencaDTOs.PresencaResponse checkout(@RequestBody PresencaDTOs.CheckoutRequest req, Authentication authentication) {
+        return service.checkout(req, authentication.getName(), canActForOthers(authentication));
     }
 
     @GetMapping("/abertas/compartimentos/{compartimentoId}")
@@ -37,7 +41,17 @@ public class PresencasController {
     }
 
     @PostMapping("/checkout/by-pessoa")
-    public PresencaDTOs.PresencaResponse checkoutByPessoa(@RequestBody PresencaDTOs.CheckoutByPessoaRequest req) {
-        return service.checkoutByPessoa(req);
+    public PresencaDTOs.PresencaResponse checkoutByPessoa(@RequestBody PresencaDTOs.CheckoutByPessoaRequest req, Authentication authentication) {
+        String pessoaId = canActForOthers(authentication) && req != null && req.pessoaId() != null && !req.pessoaId().isBlank()
+                ? req.pessoaId()
+                : authentication.getName();
+        return service.checkoutByPessoa(pessoaId, req == null ? null : req.checkoutAt());
+    }
+
+    private static boolean canActForOthers(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN")
+                                || authority.getAuthority().equals("ROLE_OPERADOR"));
     }
 }

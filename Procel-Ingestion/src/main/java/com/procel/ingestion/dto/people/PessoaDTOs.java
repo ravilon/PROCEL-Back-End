@@ -1,6 +1,7 @@
 package com.procel.ingestion.dto.people;
 
 import java.time.Instant;
+import java.util.Set;
 
 public class PessoaDTOs {
 
@@ -10,16 +11,18 @@ public class PessoaDTOs {
             String userId,
             String password,
             String telefone,
-            String matricula
+            String matricula,
+            Set<String> roles
     ) {}
 
     public record UpdatePessoaRequest(
             String nome,
             String email,
-            String userId,   // NÃO será permitido mudar (PK)
+            String userId,
             String password,
             String telefone,
-            String matricula
+            String matricula,
+            Set<String> roles
     ) {}
 
     public record PessoaResponse(
@@ -28,6 +31,7 @@ public class PessoaDTOs {
             String email,
             String telefone,
             String matricula,
-            Instant createdAt
+            Instant createdAt,
+            Set<String> roles
     ) {}
 }

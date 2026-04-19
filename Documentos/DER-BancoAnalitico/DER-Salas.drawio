@@ -450,6 +450,34 @@
                 <mxCell id="248" value="criado_em" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;rounded=0;" vertex="1" parent="1">
                     <mxGeometry x="947" y="842" width="20" height="20" as="geometry"/>
                 </mxCell>
+                <mxCell id="250" value="" style="edgeStyle=none;html=1;endArrow=none;endFill=0;" edge="1" parent="1" source="214" target="251">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="251" value="PessoaRole" style="whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="1390" y="700" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="252" value="1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="250">
+                    <mxGeometry x="-0.78" y="-2" relative="1" as="geometry">
+                        <mxPoint x="-8" y="-4" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="253" value="N" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" vertex="1" connectable="0" parent="250">
+                    <mxGeometry x="0.82" y="2" relative="1" as="geometry">
+                        <mxPoint x="8" y="-4" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="254" style="edgeStyle=none;html=1;endArrow=none;endFill=0;" edge="1" parent="1" source="255" target="251">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="255" value="pessoa_id" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="1370" y="640" width="20" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="256" style="edgeStyle=none;html=1;endArrow=none;endFill=0;" edge="1" parent="1" source="257" target="251">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="257" value="role" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;rounded=0;" vertex="1" parent="1">
+                    <mxGeometry x="1450" y="630" width="20" height="20" as="geometry"/>
+                </mxCell>
             </root>
         </mxGraphModel>
     </diagram>
