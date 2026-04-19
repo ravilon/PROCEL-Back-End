@@ -62,7 +62,7 @@ public class PessoaService {
                 password,
                 telefone,
                 matricula,
-                Set.of(Role.USUARIO)
+                Set.of(Role.USUARIO.name())
         ));
     }
 
