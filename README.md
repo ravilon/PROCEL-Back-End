@@ -10,7 +10,6 @@ API-Doc/
   Postman/                  # Collections/environments Postman
 Database/
   PROCEL-Ingestion/         # DDL versionado do banco analitico
-DataHarvester/              # Script legado de extracao Cobalto
 Documentos/
   DER-BancoAnalitico/       # DER draw.io
   ScriptsTestAPI/           # Script E2E PowerShell
@@ -338,30 +337,6 @@ procel:
 ```
 
 Se `source` for `resource`, a API usa o JSON local configurado em `resource-path`.
-
-## DataHarvester
-
-`DataHarvester/` contem o script legado Python para extracao do Cobalto.
-
-Dependencias:
-
-```powershell
-cd DataHarvester
-pip install -r requirements.txt
-```
-
-Variaveis esperadas no `.env`:
-
-```text
-PG_HOST
-PG_PORT
-PG_DATABASE
-PG_USER
-PG_PASSWORD
-COBALTO_URL
-COBALTO_TIMEOUT
-PHPSESSID
-```
 
 ## Comandos Uteis
 
