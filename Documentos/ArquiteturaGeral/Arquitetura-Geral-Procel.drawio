@@ -1,0 +1,122 @@
+<mxfile host="app.diagrams.net" modified="2026-04-19T00:00:00.000Z" agent="Codex" version="26.0.0" type="device">
+  <diagram id="arquitetura-geral-procel" name="Arquitetura Geral PROCEL">
+    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1700" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Arquitetura Geral PROCEL" style="text;html=1;strokeColor=none;fillColor=none;fontSize=28;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="30" width="520" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Pipeline IoT antigo reinterpretado com o estado atual do Procel-Ingestion e a ingestao bruta futura de sensores" style="text;html=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="60" y="72" width="900" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-now" value="Atual" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="40" width="90" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-future" value="Planejado" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="40" width="110" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="zone-source" value="1. Origem dos dados / Edge" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="140" width="290" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-ingestion" value="2. Ingestao bruta planejada" style="swimlane;html=1;rounded=0;startSize=30;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="410" y="140" width="330" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-storage" value="3. Armazenamento" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#e2f0d9;strokeColor=#82b366;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="800" y="140" width="360" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-api" value="4. Procel-Ingestion - API e dominio atual" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="140" width="360" height="610" as="geometry" />
+        </mxCell>
+        <mxCell id="zone-consume" value="5. Consumo e operacao" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="60" y="800" width="1520" height="210" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sensor-sii" value="Sensor Sii Smart&lt;br&gt;temperatura, energia, presenca" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="95" y="195" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sensor-ext" value="Sensores externos&lt;br&gt;rede local UFPel" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="95" y="300" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="ufpel-network" value="Rede Local UFPel&lt;br&gt;transporte da telemetria" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="95" y="395" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="api-sii" value="API Sii Smart&lt;br&gt;gateway externo / entrada IoT" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="465" y="195" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="future-ingestor" value="Aplicacao futura&lt;br&gt;Procel-Sensors-Ingestion&lt;br&gt;consome sensores reais&lt;br&gt;grava apenas dados brutos" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="465" y="305" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="old-harvester" value="Data Harvester&lt;br&gt;referencia historica removida&lt;br&gt;antiga janela aproximada de 8s" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;dashed=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="465" y="425" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="raw-nosql" value="Banco NoSQL&lt;br&gt;Raw Sensor Data&lt;br&gt;payload bruto e semi-estruturado" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="190" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="postgres" value="PostgreSQL&lt;br&gt;procel_analytics&lt;br&gt;banco analitico atual" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="870" y="360" width="220" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="tables" value="Modelo analitico&lt;br&gt;campus, predio, andar&lt;br&gt;compartimento, sala&lt;br&gt;pessoa, pessoa_role, presenca&lt;br&gt;tipo_de_sensor, sensor&lt;br&gt;medicao, parametro_def, parametro_valor" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#82b366;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="850" y="520" width="260" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="aggregate-db" value="Banco agregado&lt;br&gt;consumo total por predio&lt;br&gt;mantido como possibilidade futura" style="shape=cylinder3d;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="870" y="685" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="spring-api" value="Spring Boot API&lt;br&gt;Java 21 | Spring Boot 4&lt;br&gt;/api/*" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="185" width="220" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="auth" value="Auth e acesso&lt;br&gt;JWT Bearer&lt;br&gt;ADMIN, OPERADOR, ANALISTA,&lt;br&gt;USUARIO, INGESTOR" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285" y="310" width="230" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="domains" value="Endpoints atuais&lt;br&gt;auth register/login&lt;br&gt;pessoas e roles&lt;br&gt;presencas e ocupacao&lt;br&gt;rooms sync&lt;br&gt;sensors seed/mock&lt;br&gt;medicoes por sensor/sala" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1285" y="450" width="230" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="cobalto" value="API Cobalto&lt;br&gt;salas e compartimentos" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1235" y="650" width="135" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="seed-files" value="Seeds locais&lt;br&gt;sensores e fallback" style="shape=folder;tabWidth=65;tabHeight=18;tabPosition=left;html=1;whiteSpace=wrap;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1405" y="650" width="135" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="coolify" value="Servidor Coolify&lt;br&gt;http://b8xxcv7fawgq3494xzbz97fw.187.77.58.122.sslip.io/" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="855" width="270" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="docs" value="Swagger /docs&lt;br&gt;OpenAPI /v3/api-docs&lt;br&gt;Insomnia e Postman" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="430" y="855" width="220" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="script" value="Script E2E&lt;br&gt;Documentos/ScriptsTestAPI/OnStart.ps1" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#ffffff;strokeColor=#666666;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="710" y="855" width="240" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="gamification" value="Aplicacao de gamificacao&lt;br&gt;consumo via API&lt;br&gt;rankings, feedback e engajamento" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="855" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="artifacts" value="Artefatos versionados&lt;br&gt;DER-BancoAnalitico/DER-Salas.drawio&lt;br&gt;Database/PROCEL-Ingestion/createAnaliticalDB.sql&lt;br&gt;README.md" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1320" y="845" width="220" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" value="telemetria" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="sensor-sii" target="api-sii"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" value="telemetria" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="sensor-ext" target="api-sii"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" value="rede" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="ufpel-network" target="future-ingestor"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" value="entrada padronizada" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" edge="1" parent="1" source="api-sii" target="future-ingestor"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5" value="payload bruto" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" edge="1" parent="1" source="future-ingestor" target="raw-nosql"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" value="substituido" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=11;" edge="1" parent="1" source="old-harvester" target="future-ingestor"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7" value="dados estruturados" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" edge="1" parent="1" source="spring-api" target="postgres"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" value="DDL Hibernate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" edge="1" parent="1" source="postgres" target="tables"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e9" value="consultas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontSize=11;" edge="1" parent="1" source="spring-api" target="domains"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e10" value="protege" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=11;" edge="1" parent="1" source="auth" target="spring-api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e11" value="salas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#d79b00;fontSize=11;" edge="1" parent="1" source="cobalto" target="domains"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e12" value="seeds" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" edge="1" parent="1" source="seed-files" target="domains"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e13" value="HTTP" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="coolify" target="spring-api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e14" value="documenta" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="docs" target="spring-api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e15" value="testa" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="script" target="spring-api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e16" value="consome" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" edge="1" parent="1" source="gamification" target="spring-api"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e17" value="base para DER e DDL" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" edge="1" parent="1" source="artifacts" target="postgres"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e18" value="agregacao futura" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" edge="1" parent="1" source="postgres" target="aggregate-db"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
