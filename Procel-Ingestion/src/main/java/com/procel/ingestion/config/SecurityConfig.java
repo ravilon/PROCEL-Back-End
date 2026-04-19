@@ -35,7 +35,17 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) -> response.sendError(HttpServletResponse.SC_FORBIDDEN))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/api/auth/login").permitAll()
+                        .requestMatchers(
+                                "/actuator/health",
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/docs",
+                                "/docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs",
+                                "/v3/api-docs/**"
+                        ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pessoas").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/pessoas/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/rooms/sync").hasAnyRole("ADMIN", "OPERADOR")

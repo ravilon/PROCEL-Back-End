@@ -53,6 +53,19 @@ public class PessoaService {
         return toResponse(p);
     }
 
+    @Transactional
+    public PessoaDTOs.PessoaResponse registerUsuario(String nome, String email, String userId, String password, String telefone, String matricula) {
+        return create(new PessoaDTOs.CreatePessoaRequest(
+                nome,
+                email,
+                userId,
+                password,
+                telefone,
+                matricula,
+                Set.of(Role.USUARIO)
+        ));
+    }
+
     @Transactional(readOnly = true)
     public PessoaDTOs.PessoaResponse get(String id) {
         Pessoa p = pessoaRepo.findById(id).orElseThrow(() -> new NotFoundException("Pessoa not found id=" + id));

@@ -26,6 +26,14 @@ logging:
   level:
     org.hibernate.SQL: debug
 
+springdoc:
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
 procel:
   rooms:
     source: cobalto # cobalto | resource
