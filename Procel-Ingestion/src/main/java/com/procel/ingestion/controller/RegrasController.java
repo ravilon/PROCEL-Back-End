@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/rules")
-@Tag(name = "Rules", description = "Cadastro de grupos de regras, regras por parametro e vinculos com sensores.")
+@Tag(name = "Rules", description = "Cadastro de grupos de regras, regras por parametro e vinculos com sensores. Um ParametroDef pode ter varias RegraParametro globalmente, mas um sensor nao pode ter mais de uma regra ativa/agendada sobreposta para o mesmo ParametroDef do seu TipoDeSensor.")
 public class RegrasController {
 
     private final RegrasService service;
@@ -41,7 +41,7 @@ public class RegrasController {
     }
 
     @PostMapping("/groups/{grupoId}/rules")
-    @Operation(summary = "Cria regra para parametro em um grupo", description = "Requer ADMIN ou OPERADOR.")
+    @Operation(summary = "Cria regra para parametro em um grupo", description = "Requer ADMIN ou OPERADOR. O mesmo grupo nao pode ter duas regras ativas para o mesmo parametroDefId.")
     public RegraDTOs.RegraParametroResponse criarRegra(
             @PathVariable UUID grupoId,
             @RequestBody RegraDTOs.RegraParametroRequest req
@@ -56,7 +56,7 @@ public class RegrasController {
     }
 
     @PostMapping("/sensors/{sensorExternalId}/groups")
-    @Operation(summary = "Vincula grupo de regras a um sensor", description = "Requer ADMIN ou OPERADOR.")
+    @Operation(summary = "Vincula grupo de regras a um sensor", description = "Requer ADMIN ou OPERADOR. Para vinculos ATIVO/AGENDADO, todas as regras ativas do grupo devem pertencer ao mesmo TipoDeSensor do sensor, e nao pode haver outra regra ativa/agendada sobreposta para o mesmo ParametroDef nesse sensor.")
     public RegraDTOs.SensorGrupoRegraResponse vincularGrupoAoSensor(
             @PathVariable String sensorExternalId,
             @RequestBody RegraDTOs.SensorGrupoRegraRequest req

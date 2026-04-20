@@ -10,5 +10,9 @@ public interface RegraParametroRepository extends JpaRepository<RegraParametro, 
 
     List<RegraParametro> findAllByGrupoRegra_IdOrderByPrioridadeDescSeveridadeDesc(UUID grupoRegraId);
 
+    List<RegraParametro> findAllByGrupoRegra_IdAndAtivoTrueOrderByPrioridadeDescSeveridadeDesc(UUID grupoRegraId);
+
     List<RegraParametro> findAllByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(UUID grupoRegraId, UUID parametroDefId);
+
+    boolean existsByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(UUID grupoRegraId, UUID parametroDefId);
 }

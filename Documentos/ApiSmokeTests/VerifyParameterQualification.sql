@@ -130,3 +130,22 @@ where m.sensor_external_id = 'SII-001'
   and m.source = 'api-test'
 group by pd.nome, rp.nome, apv.resultado
 order by total desc;
+
+-- 8) Sanity check: active/scheduled overlapping links that would create
+-- more than one active rule for the same sensor + parametro_def.
+-- This should return zero rows after the API validations.
+select
+  sgr.sensor_external_id,
+  pd.nome as parametro_nome,
+  count(*) as active_rule_count,
+  string_agg(distinct gr.nome, ' | ') as grupos
+from sensor_grupo_regra sgr
+join grupo_regra gr on gr.id = sgr.grupo_regra_id
+join regra_parametro rp on rp.grupo_regra_id = gr.id
+join parametro_def pd on pd.id = rp.parametro_def_id
+where sgr.status in ('ATIVO', 'AGENDADO')
+  and gr.ativo = true
+  and rp.ativo = true
+group by sgr.sensor_external_id, pd.id, pd.nome
+having count(*) > 1
+order by sgr.sensor_external_id, pd.nome;

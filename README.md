@@ -260,6 +260,13 @@ GET  /api/rules/sensors/{sensorExternalId}/groups
 
 Esses endpoints permitem criar grupos de regras, cadastrar regras por `parametro_def`, vincular grupos a sensores e ativar uma configuracao de qualificacao. Durante a ingestao, cada `parametro_valor` medido e avaliado contra os grupos ativos do sensor. Resultados sao persistidos em `avaliacao_parametro_valor` e retornados nas consultas de medicoes no campo `qualificacoes`.
 
+Cardinalidade aplicada na API:
+
+- Um `parametro_def` pode ter varias `regra_parametro` globalmente, porque regras diferentes podem existir para estudos, grupos ou sensores diferentes.
+- Um `grupo_regra` nao pode ter duas regras ativas para o mesmo `parametro_def`.
+- Um sensor so pode ter um vinculo ativo/agendado, com janela de validade sobreposta, que produza regra ativa para um mesmo `parametro_def`.
+- Regras vinculadas a um sensor precisam pertencer ao mesmo `tipo_de_sensor` do sensor.
+
 Operadores suportados:
 
 ```text

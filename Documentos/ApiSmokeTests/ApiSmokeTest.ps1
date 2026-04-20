@@ -206,45 +206,82 @@ if (-not $presencaId) { throw "No presenca.id returned from checkin." }
 # ---------------------------
 # 6) DER Parameter Qualification setup
 # ---------------------------
+# The API enforces one active/scheduled rule per sensor + ParametroDef.
+# Reuse existing API test group/rule/link so this smoke test can run more than once
+# against the same database without creating conflicting qualifications.
 $paramDefs = TryCall "GET /api/rules/parameter-defs?tipoNome=$SensorTipoNome" {
   InvokeApi "/api/rules/parameter-defs?tipoNome=$SensorTipoNome" -Method GET
 }
 PrintJson "Parameter defs ($SensorTipoNome)" $paramDefs
 
-$ruleParam = @($paramDefs | Where-Object { $_.nome -eq $RuleParametroNome } | Select-Object -First 1)
+$ruleParam = $paramDefs | Where-Object { $_.nome -eq $RuleParametroNome } | Select-Object -First 1
 if ($null -eq $ruleParam -or [string]::IsNullOrWhiteSpace($ruleParam.id)) {
   throw "ParametroDef not found for tipoNome=$SensorTipoNome nome=$RuleParametroNome"
 }
 
-$ruleGroup = TryCall "POST /api/rules/groups" {
-  InvokeApi "/api/rules/groups" -Method POST -Body @{
-    nome="API test DER - $SensorExternalId - $RuleParametroNome"
-    descricao="API test rule group created by OnStart.ps1"
-    ativo=$true
+$ruleGroupName = "API test DER - $SensorExternalId - $RuleParametroNome"
+$groups = TryCall "GET /api/rules/groups" {
+  InvokeApi "/api/rules/groups" -Method GET
+}
+$ruleGroup = $groups | Where-Object { $_.nome -eq $ruleGroupName } | Select-Object -First 1
+if ($null -eq $ruleGroup -or [string]::IsNullOrWhiteSpace($ruleGroup.id)) {
+  $ruleGroup = TryCall "POST /api/rules/groups" {
+    InvokeApi "/api/rules/groups" -Method POST -Body @{
+      nome=$ruleGroupName
+      descricao="API test rule group created by ApiSmokeTest.ps1"
+      ativo=$true
+    }
   }
+} else {
+  Write-Host "[OK] Reusing DER rule group $($ruleGroup.id)" -ForegroundColor Green
+}
+if ($null -eq $ruleGroup -or [string]::IsNullOrWhiteSpace($ruleGroup.id)) {
+  throw "DER rule group setup failed: group id is empty."
 }
 PrintJson "DER rule group" $ruleGroup
 
-$rule = TryCall "POST /api/rules/groups/$($ruleGroup.id)/rules" {
-  InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules" -Method POST -Body @{
-    parametroDefId=$ruleParam.id
-    nome="API test temperature qualification"
-    descricao="API test rule: generated temperature above zero"
-    operador="GT"
-    valorNumeric1=0
-    resultado="ALERTA"
-    severidade=2
-    prioridade=100
-    ativo=$true
+$groupRules = TryCall "GET /api/rules/groups/$($ruleGroup.id)/rules" {
+  InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules" -Method GET
+}
+$rule = $groupRules | Where-Object { $_.parametroDefId -eq $ruleParam.id -and $_.ativo } | Select-Object -First 1
+if ($null -eq $rule -or [string]::IsNullOrWhiteSpace($rule.id)) {
+  $rule = TryCall "POST /api/rules/groups/$($ruleGroup.id)/rules" {
+    InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules" -Method POST -Body @{
+      parametroDefId=$ruleParam.id
+      nome="API test temperature qualification"
+      descricao="API test rule: generated temperature above zero"
+      operador="GT"
+      valorNumeric1=0
+      resultado="ALERTA"
+      severidade=2
+      prioridade=100
+      ativo=$true
+    }
   }
+} else {
+  Write-Host "[OK] Reusing DER parameter rule $($rule.id)" -ForegroundColor Green
+}
+if ($null -eq $rule -or [string]::IsNullOrWhiteSpace($rule.id)) {
+  throw "DER parameter rule setup failed: rule id is empty."
 }
 PrintJson "DER parameter rule" $rule
 
-$sensorRuleLink = TryCall "POST /api/rules/sensors/$SensorExternalId/groups" {
-  InvokeApi "/api/rules/sensors/$SensorExternalId/groups" -Method POST -Body @{
-    grupoRegraId=$ruleGroup.id
-    status="ATIVO"
+$sensorRuleLinks = TryCall "GET /api/rules/sensors/$SensorExternalId/groups" {
+  InvokeApi "/api/rules/sensors/$SensorExternalId/groups" -Method GET
+}
+$sensorRuleLink = $sensorRuleLinks | Where-Object { $_.grupoRegraId -eq $ruleGroup.id -and $_.status -eq "ATIVO" } | Select-Object -First 1
+if ($null -eq $sensorRuleLink -or [string]::IsNullOrWhiteSpace($sensorRuleLink.id)) {
+  $sensorRuleLink = TryCall "POST /api/rules/sensors/$SensorExternalId/groups" {
+    InvokeApi "/api/rules/sensors/$SensorExternalId/groups" -Method POST -Body @{
+      grupoRegraId=$ruleGroup.id
+      status="ATIVO"
+    }
   }
+} else {
+  Write-Host "[OK] Reusing DER sensor-rule link $($sensorRuleLink.id)" -ForegroundColor Green
+}
+if ($null -eq $sensorRuleLink -or [string]::IsNullOrWhiteSpace($sensorRuleLink.id)) {
+  throw "DER sensor-rule link setup failed: link id is empty."
 }
 PrintJson "DER sensor-rule link" $sensorRuleLink
 

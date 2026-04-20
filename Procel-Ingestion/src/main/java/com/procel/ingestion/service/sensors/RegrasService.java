@@ -7,7 +7,10 @@ import com.procel.ingestion.repository.sensors.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -65,6 +68,10 @@ public class RegrasService {
         ParametroDef parametroDef = parametroDefRepo.findById(req.parametroDefId())
                 .orElseThrow(() -> new NotFoundException("ParametroDef not found id=" + req.parametroDefId()));
         validateRegra(parametroDef, req);
+        boolean ativo = req.ativo() == null || req.ativo();
+        if (ativo && regraRepo.existsByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(grupoId, req.parametroDefId())) {
+            throw new IllegalArgumentException("GrupoRegra already has an active rule for parametroDefId=" + req.parametroDefId());
+        }
 
         RegraParametro regra = new RegraParametro();
         regra.setGrupoRegra(grupo);
@@ -79,7 +86,7 @@ public class RegrasService {
         regra.setResultado(req.resultado());
         regra.setSeveridade(req.severidade() == null ? 0 : req.severidade());
         regra.setPrioridade(req.prioridade() == null ? 0 : req.prioridade());
-        regra.setAtivo(req.ativo() == null || req.ativo());
+        regra.setAtivo(ativo);
 
         return toRegraResponse(regraRepo.save(regra));
     }
@@ -106,11 +113,13 @@ public class RegrasService {
                 .orElseThrow(() -> new NotFoundException("Sensor not found externalId=" + sensorExternalId));
         GrupoRegra grupo = grupoRepo.findById(req.grupoRegraId())
                 .orElseThrow(() -> new NotFoundException("GrupoRegra not found id=" + req.grupoRegraId()));
+        SensorGrupoRegraStatus status = req.status() == null ? SensorGrupoRegraStatus.RASCUNHO : req.status();
+        validateGrupoSensorLink(sensor, grupo, status, req.validoDe(), req.validoAte());
 
         SensorGrupoRegra vinculo = sensorGrupoRepo.save(new SensorGrupoRegra(
                 sensor,
                 grupo,
-                req.status() == null ? SensorGrupoRegraStatus.RASCUNHO : req.status(),
+                status,
                 req.validoDe(),
                 req.validoAte()
         ));
@@ -192,6 +201,83 @@ public class RegrasService {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private void validateGrupoSensorLink(
+            Sensor sensor,
+            GrupoRegra grupo,
+            SensorGrupoRegraStatus status,
+            Instant validoDe,
+            Instant validoAte
+    ) {
+        if (status != SensorGrupoRegraStatus.ATIVO && status != SensorGrupoRegraStatus.AGENDADO) {
+            return;
+        }
+
+        List<RegraParametro> proposedRules = regraRepo.findAllByGrupoRegra_IdAndAtivoTrueOrderByPrioridadeDescSeveridadeDesc(grupo.getId());
+        if (proposedRules.isEmpty()) {
+            throw new IllegalArgumentException("GrupoRegra must have at least one active rule before being linked as " + status);
+        }
+
+        String sensorTipoNome = sensor.getTipo().getNome();
+        Set<UUID> proposedParametroIds = new HashSet<>();
+        for (RegraParametro regra : proposedRules) {
+            ParametroDef parametroDef = regra.getParametroDef();
+            if (!sensorTipoNome.equals(parametroDef.getTipo().getNome())) {
+                throw new IllegalArgumentException(
+                        "RegraParametro id=" + regra.getId()
+                                + " uses parametro tipo=" + parametroDef.getTipo().getNome()
+                                + " but sensor tipo=" + sensorTipoNome
+                );
+            }
+            if (!proposedParametroIds.add(parametroDef.getId())) {
+                throw new IllegalArgumentException("GrupoRegra has more than one active rule for parametroDefId=" + parametroDef.getId());
+            }
+        }
+
+        validateNoSensorRuleConflicts(sensor, proposedParametroIds, validoDe, validoAte, SensorGrupoRegraStatus.ATIVO);
+        validateNoSensorRuleConflicts(sensor, proposedParametroIds, validoDe, validoAte, SensorGrupoRegraStatus.AGENDADO);
+    }
+
+    private void validateNoSensorRuleConflicts(
+            Sensor sensor,
+            Set<UUID> proposedParametroIds,
+            Instant validoDe,
+            Instant validoAte,
+            SensorGrupoRegraStatus status
+    ) {
+        List<SensorGrupoRegra> links = sensorGrupoRepo.findAllBySensor_ExternalIdAndStatus(sensor.getExternalId(), status);
+        for (SensorGrupoRegra link : links) {
+            if (!validityWindowsOverlap(validoDe, validoAte, link.getValidoDe(), link.getValidoAte())) {
+                continue;
+            }
+
+            List<RegraParametro> existingRules = regraRepo.findAllByGrupoRegra_IdAndAtivoTrueOrderByPrioridadeDescSeveridadeDesc(
+                    link.getGrupoRegra().getId()
+            );
+            for (RegraParametro existingRule : existingRules) {
+                UUID parametroDefId = existingRule.getParametroDef().getId();
+                if (proposedParametroIds.contains(parametroDefId)) {
+                    throw new IllegalArgumentException(
+                            "Sensor " + sensor.getExternalId()
+                                    + " already has a " + status
+                                    + " rule for parametroDefId=" + parametroDefId
+                                    + " in grupoRegraId=" + link.getGrupoRegra().getId()
+                    );
+                }
+            }
+        }
+    }
+
+    private static boolean validityWindowsOverlap(
+            Instant startA,
+            Instant endA,
+            Instant startB,
+            Instant endB
+    ) {
+        boolean aStartsBeforeBEnds = endB == null || startA == null || startA.isBefore(endB);
+        boolean bStartsBeforeAEnds = endA == null || startB == null || startB.isBefore(endA);
+        return aStartsBeforeBEnds && bStartsBeforeAEnds;
     }
 
     private static void validateRegra(ParametroDef parametroDef, RegraDTOs.RegraParametroRequest req) {

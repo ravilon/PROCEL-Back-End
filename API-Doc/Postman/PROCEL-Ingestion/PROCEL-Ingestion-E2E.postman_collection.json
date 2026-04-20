@@ -2,7 +2,7 @@
     "info":  {
                  "name":  "PROCEL Ingestion - API Smoke Test",
                  "_postman_id":  "d36efd2c-3066-43bc-a091-e6438b5625d3",
-                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries).",
+                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries). Regra de cardinalidade: um ParametroDef pode ter varias RegraParametro globalmente, mas um sensor nao pode ter mais de uma regra ativa/agendada sobreposta para o mesmo ParametroDef do seu TipoDeSensor. Para execucao repetida contra a mesma base, prefira o script ApiSmokeTest.ps1, que reutiliza o grupo/regra/vinculo de teste quando ja existem.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -630,7 +630,8 @@
 
                                                    ]
                                   }
-                              ]
+                              ],
+                     "description":  "Configura DER Parameter Qualification. A API rejeita duas regras ativas/agendadas sobrepostas para o mesmo sensor + ParametroDef. Esta pasta mostra o fluxo basico de criacao; para reruns idempotentes use Documentos/ApiSmokeTests/ApiSmokeTest.ps1."
                  },
                  {
                      "name":  "06 - Sensors ingest mock",

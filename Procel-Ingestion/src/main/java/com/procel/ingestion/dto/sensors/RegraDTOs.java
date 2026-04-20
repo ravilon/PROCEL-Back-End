@@ -27,6 +27,7 @@ public class RegraDTOs {
     ) {}
 
     public record RegraParametroRequest(
+            @Schema(description = "ParametroDef alvo da regra. Um ParametroDef pode ter varias regras globalmente, mas um grupo nao pode ter duas regras ativas para o mesmo parametroDefId.")
             UUID parametroDefId,
             @Schema(example = "Temperatura critica")
             String nome,
@@ -62,6 +63,7 @@ public class RegraDTOs {
     ) {}
 
     public record SensorGrupoRegraRequest(
+            @Schema(description = "Grupo de regras a vincular ao sensor. Se status for ATIVO ou AGENDADO, as regras ativas do grupo devem ser do mesmo TipoDeSensor do sensor e nao podem conflitar com outro vinculo ativo/agendado para o mesmo ParametroDef.")
             UUID grupoRegraId,
             SensorGrupoRegraStatus status,
             Instant validoDe,

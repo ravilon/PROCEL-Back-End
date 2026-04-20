@@ -377,7 +377,7 @@ collection:
           created: 1776556000000
           modified: 1776556000000
           sortKey: -1776477176807.5
-          description: ""
+          description: "Configura DER Parameter Qualification. A API rejeita duas regras ativas/agendadas sobrepostas para o mesmo sensor + ParametroDef. Esta pasta mostra o fluxo basico de criacao; para reruns idempotentes use Documentos/ApiSmokeTests/ApiSmokeTest.ps1."
         children:
           - url: "{{baseUrl}}/api/rules/parameter-defs"
             name: GET /api/rules/parameter-defs?tipoNome
