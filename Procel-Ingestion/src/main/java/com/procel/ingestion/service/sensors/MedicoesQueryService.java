@@ -1,8 +1,10 @@
 package com.procel.ingestion.service.sensors;
 
 import com.procel.ingestion.dto.sensors.MedicaoDTOs;
+import com.procel.ingestion.entity.sensors.AvaliacaoParametroValor;
 import com.procel.ingestion.entity.sensors.Medicao;
 import com.procel.ingestion.entity.sensors.ParametroValor;
+import com.procel.ingestion.repository.sensors.AvaliacaoParametroValorRepository;
 import com.procel.ingestion.repository.sensors.MedicaoRepository;
 import com.procel.ingestion.repository.sensors.MedicaoSpecs;
 import com.procel.ingestion.repository.sensors.ParametroValorRepository;
@@ -25,10 +27,16 @@ public class MedicoesQueryService {
 
     private final MedicaoRepository medicaoRepo;
     private final ParametroValorRepository valorRepo;
+    private final AvaliacaoParametroValorRepository avaliacaoRepo;
 
-    public MedicoesQueryService(MedicaoRepository medicaoRepo, ParametroValorRepository valorRepo) {
+    public MedicoesQueryService(
+            MedicaoRepository medicaoRepo,
+            ParametroValorRepository valorRepo,
+            AvaliacaoParametroValorRepository avaliacaoRepo
+    ) {
         this.medicaoRepo = medicaoRepo;
         this.valorRepo = valorRepo;
+        this.avaliacaoRepo = avaliacaoRepo;
     }
 
     // =========================
@@ -132,19 +140,26 @@ public class MedicoesQueryService {
         Map<UUID, List<ParametroValor>> byMedicao = valores.stream()
                 .collect(Collectors.groupingBy(v -> v.getMedicao().getId()));
 
+        Map<UUID, List<AvaliacaoParametroValor>> byParametroValor = loadAvaliacoes(valores);
+
         return medicoes.stream()
-                .map(m -> toResponse(m, byMedicao.getOrDefault(m.getId(), List.of())))
+                .map(m -> toResponse(m, byMedicao.getOrDefault(m.getId(), List.of()), byParametroValor))
                 .toList();
     }
 
     private MedicaoDTOs.MedicaoResponse enrichOne(Medicao m) {
         List<ParametroValor> vals = valorRepo.findAllByMedicao_IdIn(List.of(m.getId()));
-        return toResponse(m, vals);
+        return toResponse(m, vals, loadAvaliacoes(vals));
     }
 
-    private MedicaoDTOs.MedicaoResponse toResponse(Medicao m, List<ParametroValor> valores) {
+    private MedicaoDTOs.MedicaoResponse toResponse(
+            Medicao m,
+            List<ParametroValor> valores,
+            Map<UUID, List<AvaliacaoParametroValor>> avaliacoesByParametroValor
+    ) {
 
         Map<String, Object> payload = new LinkedHashMap<>();
+        Map<String, List<MedicaoDTOs.ParametroQualificacaoResponse>> qualificacoes = new LinkedHashMap<>();
         for (ParametroValor pv : valores) {
             String key = pv.getParametroDef().getNome();
             Object value = switch (pv.getParametroDef().getDataType()) {
@@ -153,6 +168,13 @@ public class MedicoesQueryService {
                 case NUMERIC -> pv.getNumericValue();
             };
             payload.put(key, value);
+            qualificacoes.put(
+                    key,
+                    avaliacoesByParametroValor.getOrDefault(pv.getId(), List.of())
+                            .stream()
+                            .map(MedicoesQueryService::toQualificacaoResponse)
+                            .toList()
+            );
         }
 
         var sensor = m.getSensor();
@@ -167,7 +189,28 @@ public class MedicoesQueryService {
                 m.getTimestamp(),
                 m.getRecebidoEm(),
                 m.getSource(),
-                payload
+                payload,
+                qualificacoes
+        );
+    }
+
+    private Map<UUID, List<AvaliacaoParametroValor>> loadAvaliacoes(List<ParametroValor> valores) {
+        if (valores.isEmpty()) return Map.of();
+        List<UUID> ids = valores.stream().map(ParametroValor::getId).toList();
+        return avaliacaoRepo.findAllByParametroValor_IdIn(ids).stream()
+                .collect(Collectors.groupingBy(a -> a.getParametroValor().getId()));
+    }
+
+    private static MedicaoDTOs.ParametroQualificacaoResponse toQualificacaoResponse(AvaliacaoParametroValor avaliacao) {
+        var regra = avaliacao.getRegraParametro();
+        return new MedicaoDTOs.ParametroQualificacaoResponse(
+                avaliacao.getId(),
+                regra != null ? regra.getId() : null,
+                regra != null ? regra.getNome() : null,
+                avaliacao.getResultado(),
+                avaliacao.getSeveridade(),
+                avaliacao.getMensagem(),
+                avaliacao.getAvaliadoEm()
         );
     }
 

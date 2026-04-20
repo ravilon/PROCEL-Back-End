@@ -1,679 +1,946 @@
-{
-  "info": {
-    "name": "PROCEL Ingestion - E2E",
-    "_postman_id": "d36efd2c-3066-43bc-a091-e6438b5625d3",
-    "description": "Coleção Postman baseada no script PowerShell E2E (rooms sync, sensors seed, pessoa CRUD, presenca checkin/checkout, ingest mock, medicoes queries).",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-  },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "https://procel.servehttp.com"
-    },
-    {
-      "key": "roomId",
-      "value": "2"
-    },
-    {
-      "key": "sensorExternalId",
-      "value": "SII-001"
-    },
-    {
-      "key": "pessoaId",
-      "value": "ravilon"
-    },
-    {
-      "key": "pessoaEmail",
-      "value": "ravilon@exemplo.com"
-    },
-    {
-      "key": "fromIso",
-      "value": ""
-    },
-    {
-      "key": "toIso",
-      "value": ""
-    },
-    {
-      "key": "presencaId",
-      "value": ""
-    },
-    {
-      "key": "jwtToken",
-      "value": ""
-    },
-    {
-      "key": "adminEmail",
-      "value": "admin@procel.local"
-    },
-    {
-      "key": "adminPassword",
-      "value": "admin123"
-    }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{jwtToken}}",
-        "type": "string"
-      }
-    ]
-  },
-  "item": [
-    {
-      "name": "00 - Setup window (from/to)",
-      "item": [
-        {
-          "name": "Set fromIso/toIso (last 10 minutes)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Define janela de consulta: últimos 10 minutos",
-                  "const to = new Date();",
-                  "const from = new Date(to.getTime() - 10*60*1000);",
-                  "pm.collectionVariables.set('toIso', to.toISOString().replace(/\\.\\d{3}Z$/, 'Z'));",
-                  "pm.collectionVariables.set('fromIso', from.toISOString().replace(/\\.\\d{3}Z$/, 'Z'));",
-                  "",
-                  "console.log('fromIso=', pm.collectionVariables.get('fromIso'));",
-                  "console.log('toIso=', pm.collectionVariables.get('toIso'));"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/actuator/health",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "actuator",
-                "health"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "01 - Auth",
-      "item": [
-        {
-          "name": "POST /api/auth/login (admin bootstrap)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has accessToken', function () { pm.expect(data.accessToken).to.be.ok; });",
-                  "pm.collectionVariables.set('jwtToken', data.accessToken);",
-                  "console.log('jwtToken saved');"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "02 - Rooms & Sensors bootstrap",
-      "item": [
-        {
-          "name": "POST /api/rooms/sync",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rooms/sync",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "sync"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/sensors/seed/from-resource",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/seed/from-resource",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "seed",
-                "from-resource"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "03 - Pessoas",
-      "item": [
-        {
-          "name": "POST /api/pessoas (create - may conflict)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Aceita 201 Created ou 409 Conflict (já existe)",
-                  "pm.test('Status is 200, 201 or 409', function () {",
-                  "  pm.expect([200, 201, 409]).to.include(pm.response.code);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Ravilon Aguiar\",\n  \"email\": \"{{pessoaEmail}}\",\n  \"userId\": \"{{pessoaId}}\",\n  \"password\": \"123456\",\n  \"telefone\": \"51999999999\",\n  \"matricula\": \"MAT-001\",\n  \"roles\": [\"USUARIO\"]\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/pessoas/{{pessoaId}}",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has userId', function () { pm.expect(data.userId || data.id || data.pessoaId).to.be.ok; });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{pessoaId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{pessoaId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /api/pessoas/{{pessoaId}} (update)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Ravilon A. Santos\",\n  \"telefone\": \"51988887777\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{pessoaId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{pessoaId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "04 - Presenças",
-      "item": [
-        {
-          "name": "POST /api/presencas/checkin",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has presenca.id', function () { pm.expect(data.id).to.be.ok; });",
-                  "pm.collectionVariables.set('presencaId', data.id);",
-                  "console.log('presencaId=', data.id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"compartimentoId\": \"{{roomId}}\",\n  \"source\": \"manual\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/checkin",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "checkin"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/presencas/ocupacao/compartimentos/{{roomId}}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "ocupacao",
-                "compartimentos",
-                "{{roomId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/presencas/abertas/compartimentos/{{roomId}}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/abertas/compartimentos/{{roomId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "abertas",
-                "compartimentos",
-                "{{roomId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "05 - Sensors ingest mock",
-      "item": [
-        {
-          "name": "POST /api/sensors/ingest/mock",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/202', function () { pm.expect([200, 202]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"sensorExternalId\": \"{{sensorExternalId}}\",\n  \"minutesBack\": 10,\n  \"everySeconds\": 10,\n  \"source\": \"mock\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/ingest/mock",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "ingest",
-                "mock"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "06 - Medições",
-      "item": [
-        {
-          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes/latest",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes/latest",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "{{sensorExternalId}}",
-                "medicoes",
-                "latest"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&limit",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes?from={{fromIso}}&to={{toIso}}&limit=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "{{sensorExternalId}}",
-                "medicoes"
-              ],
-              "query": [
-                {
-                  "key": "from",
-                  "value": "{{fromIso}}"
-                },
-                {
-                  "key": "to",
-                  "value": "{{toIso}}"
-                },
-                {
-                  "key": "limit",
-                  "value": "50"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/rooms/{{roomId}}/medicoes/latest",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes/latest",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "{{roomId}}",
-                "medicoes",
-                "latest"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/rooms/{{roomId}}/medicoes?from&to&limit",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes?from={{fromIso}}&to={{toIso}}&limit=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "{{roomId}}",
-                "medicoes"
-              ],
-              "query": [
-                {
-                  "key": "from",
-                  "value": "{{fromIso}}"
-                },
-                {
-                  "key": "to",
-                  "value": "{{toIso}}"
-                },
-                {
-                  "key": "limit",
-                  "value": "50"
-                }
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "07 - Checkout",
-      "item": [
-        {
-          "name": "POST /api/presencas/checkout/by-pessoa (optional)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Esse endpoint é opcional; se não existir, pode retornar 404.",
-                  "pm.test('Status is 200/201/404', function () {",
-                  "  pm.expect([200, 201, 404]).to.include(pm.response.code);",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/checkout/by-pessoa",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "checkout",
-                "by-pessoa"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/presencas/checkout (fallback by presencaId)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (!pm.collectionVariables.get('presencaId')) {",
-                  "  console.warn('presencaId vazio. Rode o checkin primeiro.');",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"presencaId\": \"{{presencaId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/checkout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "checkout"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/presencas/ocupacao/compartimentos/{{roomId}} (after checkout)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "ocupacao",
-                "compartimentos",
-                "{{roomId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    }
-  ]
+﻿{
+    "info":  {
+                 "name":  "PROCEL Ingestion - API Smoke Test",
+                 "_postman_id":  "d36efd2c-3066-43bc-a091-e6438b5625d3",
+                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries).",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "variable":  [
+                     {
+                         "key":  "baseUrl",
+                         "value":  "https://procel.servehttp.com"
+                     },
+                     {
+                         "key":  "roomId",
+                         "value":  "2"
+                     },
+                     {
+                         "key":  "sensorExternalId",
+                         "value":  "SII-001"
+                     },
+                     {
+                         "key":  "pessoaId",
+                         "value":  "api-test-user"
+                     },
+                     {
+                         "key":  "pessoaEmail",
+                         "value":  "api-test-user@procel.local"
+                     },
+                     {
+                         "key":  "fromIso",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "toIso",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "presencaId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "jwtToken",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "adminEmail",
+                         "value":  "admin@procel.local"
+                     },
+                     {
+                         "key":  "adminPassword",
+                         "value":  "admin123"
+                     },
+                     {
+                         "key":  "sensorTipoNome",
+                         "value":  "SII_SMART"
+                     },
+                     {
+                         "key":  "ruleParametroNome",
+                         "value":  "temperature_c"
+                     },
+                     {
+                         "key":  "parametroDefId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "grupoRegraId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "regraParametroId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "sensorGrupoRegraId",
+                         "value":  ""
+                     }
+                 ],
+    "auth":  {
+                 "type":  "bearer",
+                 "bearer":  [
+                                {
+                                    "key":  "token",
+                                    "value":  "{{jwtToken}}",
+                                    "type":  "string"
+                                }
+                            ]
+             },
+    "item":  [
+                 {
+                     "name":  "00 - Setup window (from/to)",
+                     "item":  [
+                                  {
+                                      "name":  "Set fromIso/toIso (last 10 minutes)",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "prerequest",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "// Define janela de consulta: Ãºltimos 10 minutos",
+                                                                                    "const to = new Date();",
+                                                                                    "const from = new Date(to.getTime() - 10*60*1000);",
+                                                                                    "pm.collectionVariables.set(\u0027toIso\u0027, to.toISOString().replace(/\\.\\d{3}Z$/, \u0027Z\u0027));",
+                                                                                    "pm.collectionVariables.set(\u0027fromIso\u0027, from.toISOString().replace(/\\.\\d{3}Z$/, \u0027Z\u0027));",
+                                                                                    "",
+                                                                                    "console.log(\u0027fromIso=\u0027, pm.collectionVariables.get(\u0027fromIso\u0027));",
+                                                                                    "console.log(\u0027toIso=\u0027, pm.collectionVariables.get(\u0027toIso\u0027));"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/actuator/health",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "actuator",
+                                                                               "health"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "01 - Auth",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/auth/login (admin bootstrap)",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "pm.test(\u0027Has accessToken\u0027, function () { pm.expect(data.accessToken).to.be.ok; });",
+                                                                                    "pm.collectionVariables.set(\u0027jwtToken\u0027, data.accessToken);",
+                                                                                    "console.log(\u0027jwtToken saved\u0027);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "auth":  {
+                                                                   "type":  "noauth"
+                                                               },
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/auth/login",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "auth",
+                                                                               "login"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "02 - Rooms \u0026 Sensors bootstrap",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/rooms/sync",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rooms/sync",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rooms",
+                                                                               "sync"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "POST /api/sensors/seed/from-resource",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/sensors/seed/from-resource",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sensors",
+                                                                               "seed",
+                                                                               "from-resource"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "03 - Pessoas",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/pessoas (create test user - may conflict)",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "// Aceita 201 Created ou 409 Conflict (jÃ¡ existe)",
+                                                                                    "pm.test(\u0027Status is 200, 201 or 409\u0027, function () {",
+                                                                                    "  pm.expect([200, 201, 409]).to.include(pm.response.code);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nome\": \"API Test User\",\n  \"email\": \"{{pessoaEmail}}\",\n  \"userId\": \"{{pessoaId}}\",\n  \"password\": \"123456\",\n  \"telefone\": \"51000000000\",\n  \"matricula\": \"TEST-API-001\",\n  \"roles\": [\"USUARIO\"]\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "GET /api/pessoas/{{pessoaId}}",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "pm.test(\u0027Has userId\u0027, function () { pm.expect(data.userId || data.id || data.pessoaId).to.be.ok; });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{pessoaId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{pessoaId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "PUT /api/pessoas/{{pessoaId}} (update)",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nome\": \"API Test User Updated\",\n  \"telefone\": \"51000000001\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{pessoaId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{pessoaId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "04 - PresenÃ§as",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/presencas/checkin",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/201\u0027, function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "pm.test(\u0027Has presenca.id\u0027, function () { pm.expect(data.id).to.be.ok; });",
+                                                                                    "pm.collectionVariables.set(\u0027presencaId\u0027, data.id);",
+                                                                                    "console.log(\u0027presencaId=\u0027, data.id);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"compartimentoId\": \"{{roomId}}\",\n  \"source\": \"api-test\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/presencas/checkin",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "presencas",
+                                                                               "checkin"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "GET /api/presencas/ocupacao/compartimentos/{{roomId}}",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "presencas",
+                                                                               "ocupacao",
+                                                                               "compartimentos",
+                                                                               "{{roomId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "GET /api/presencas/abertas/compartimentos/{{roomId}}",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/presencas/abertas/compartimentos/{{roomId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "presencas",
+                                                                               "abertas",
+                                                                               "compartimentos",
+                                                                               "{{roomId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "05 - Rules / Parameter Qualification",
+                     "item":  [
+                                  {
+                                      "name":  "GET /api/rules/parameter-defs?tipoNome",
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "const list = pm.response.json();",
+                                                                                "const param = list.find(p =\u003e p.nome === pm.collectionVariables.get(\u0027ruleParametroNome\u0027));",
+                                                                                "pm.test(\u0027Found parametroDef\u0027, function () { pm.expect(param \u0026\u0026 param.id).to.be.ok; });",
+                                                                                "pm.collectionVariables.set(\u0027parametroDefId\u0027, param.id);"
+                                                                            ]
+                                                               }
+                                                },
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rules/parameter-defs?tipoNome={{sensorTipoNome}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rules",
+                                                                               "parameter-defs"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "tipoNome",
+                                                                                    "value":  "{{sensorTipoNome}}"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "POST /api/rules/groups",
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "const data = pm.response.json();",
+                                                                                "pm.test(\u0027Has group id\u0027, function () { pm.expect(data.id).to.be.ok; });",
+                                                                                "pm.collectionVariables.set(\u0027grupoRegraId\u0027, data.id);"
+                                                                            ]
+                                                               }
+                                                },
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"nome\": \"API test DER - {{sensorExternalId}} - {{ruleParametroNome}}\",\n  \"descricao\": \"API test rule group created by Postman\",\n  \"ativo\": true\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rules/groups",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rules",
+                                                                               "groups"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "POST /api/rules/groups/{{grupoRegraId}}/rules",
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "const data = pm.response.json();",
+                                                                                "pm.test(\u0027Has rule id\u0027, function () { pm.expect(data.id).to.be.ok; });",
+                                                                                "pm.collectionVariables.set(\u0027regraParametroId\u0027, data.id);"
+                                                                            ]
+                                                               }
+                                                },
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"parametroDefId\": \"{{parametroDefId}}\",\n  \"nome\": \"API test temperature qualification\",\n  \"descricao\": \"API test rule: generated temperature above zero\",\n  \"operador\": \"GT\",\n  \"valorNumeric1\": 0,\n  \"resultado\": \"ALERTA\",\n  \"severidade\": 2,\n  \"prioridade\": 100,\n  \"ativo\": true\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rules/groups/{{grupoRegraId}}/rules",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rules",
+                                                                               "groups",
+                                                                               "{{grupoRegraId}}",
+                                                                               "rules"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "POST /api/rules/sensors/{{sensorExternalId}}/groups",
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "const data = pm.response.json();",
+                                                                                "pm.test(\u0027Has sensor-group link id\u0027, function () { pm.expect(data.id).to.be.ok; });",
+                                                                                "pm.collectionVariables.set(\u0027sensorGrupoRegraId\u0027, data.id);"
+                                                                            ]
+                                                               }
+                                                },
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"grupoRegraId\": \"{{grupoRegraId}}\",\n  \"status\": \"ATIVO\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rules/sensors/{{sensorExternalId}}/groups",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rules",
+                                                                               "sensors",
+                                                                               "{{sensorExternalId}}",
+                                                                               "groups"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "06 - Sensors ingest mock",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/sensors/ingest/mock",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/202\u0027, function () { pm.expect([200, 202]).to.include(pm.response.code); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"sensorExternalId\": \"{{sensorExternalId}}\",\n  \"minutesBack\": 10,\n  \"everySeconds\": 10,\n  \"source\": \"api-test\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/sensors/ingest/mock",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sensors",
+                                                                               "ingest",
+                                                                               "mock"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "07 - Medicoes",
+                     "item":  [
+                                  {
+                                      "name":  "GET /api/sensors/{{sensorExternalId}}/medicoes/latest",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes/latest",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sensors",
+                                                                               "{{sensorExternalId}}",
+                                                                               "medicoes",
+                                                                               "latest"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  {
+                                                    "listen":  "test",
+                                                    "script":  {
+                                                                   "type":  "text/javascript",
+                                                                   "exec":  [
+                                                                                "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });",
+                                                                                "const data = pm.response.json();",
+                                                                                "pm.test(\u0027Has temperature qualification\u0027, function () {",
+                                                                                "  pm.expect(data.qualificacoes).to.be.ok;",
+                                                                                "  pm.expect(data.qualificacoes.temperature_c).to.be.an(\u0027array\u0027).that.is.not.empty;",
+                                                                                "});"
+                                                                            ]
+                                                               }
+                                                }
+                                  },
+                                  {
+                                      "name":  "GET /api/sensors/{{sensorExternalId}}/medicoes?from\u0026to\u0026limit",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes?from={{fromIso}}\u0026to={{toIso}}\u0026limit=50",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "sensors",
+                                                                               "{{sensorExternalId}}",
+                                                                               "medicoes"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "from",
+                                                                                    "value":  "{{fromIso}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "to",
+                                                                                    "value":  "{{toIso}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "limit",
+                                                                                    "value":  "50"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "GET /api/rooms/{{roomId}}/medicoes/latest",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rooms/{{roomId}}/medicoes/latest",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rooms",
+                                                                               "{{roomId}}",
+                                                                               "medicoes",
+                                                                               "latest"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "GET /api/rooms/{{roomId}}/medicoes?from\u0026to\u0026limit",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/rooms/{{roomId}}/medicoes?from={{fromIso}}\u0026to={{toIso}}\u0026limit=50",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "rooms",
+                                                                               "{{roomId}}",
+                                                                               "medicoes"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "from",
+                                                                                    "value":  "{{fromIso}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "to",
+                                                                                    "value":  "{{toIso}}"
+                                                                                },
+                                                                                {
+                                                                                    "key":  "limit",
+                                                                                    "value":  "50"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "08 - Checkout",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/presencas/checkout/by-pessoa (optional)",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "// Esse endpoint Ã© opcional; se nÃ£o existir, pode retornar 404.",
+                                                                                    "pm.test(\u0027Status is 200/201/404\u0027, function () {",
+                                                                                    "  pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                                                                                    "});"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"pessoaId\": \"{{pessoaId}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/presencas/checkout/by-pessoa",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "presencas",
+                                                                               "checkout",
+                                                                               "by-pessoa"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "POST /api/presencas/checkout (fallback by presencaId)",
+                                      "event":  [
+                                                    {
+                                                        "listen":  "prerequest",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "if (!pm.collectionVariables.get(\u0027presencaId\u0027)) {",
+                                                                                    "  console.warn(\u0027presencaId vazio. Rode o checkin primeiro.\u0027);",
+                                                                                    "}"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ],
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  [
+                                                                     {
+                                                                         "key":  "Content-Type",
+                                                                         "value":  "application/json"
+                                                                     }
+                                                                 ],
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"presencaId\": \"{{presencaId}}\"\n}"
+                                                               },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/presencas/checkout",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "presencas",
+                                                                               "checkout"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  },
+                                  {
+                                      "name":  "GET /api/presencas/ocupacao/compartimentos/{{roomId}} (after checkout)",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "presencas",
+                                                                               "ocupacao",
+                                                                               "compartimentos",
+                                                                               "{{roomId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ]
+                                  }
+                              ]
+                 }
+             ]
 }

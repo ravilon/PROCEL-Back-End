@@ -51,6 +51,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/rooms/sync").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers(HttpMethod.POST, "/api/sensors/seed/from-resource").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/sensors/ingest/mock").hasAnyRole("ADMIN", "INGESTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/rules/**").hasAnyRole("ADMIN", "OPERADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/rules/**").hasAnyRole("ADMIN", "OPERADOR")
                         .requestMatchers(HttpMethod.GET, "/api/sensors/*/medicoes", "/api/sensors/*/medicoes/latest").hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
                         .requestMatchers(HttpMethod.GET, "/api/rooms/*/medicoes", "/api/rooms/*/medicoes/latest").hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
                         .requestMatchers(HttpMethod.GET, "/api/presencas/abertas/**").hasAnyRole("ADMIN", "OPERADOR")

@@ -1,8 +1,10 @@
 package com.procel.ingestion.dto.sensors;
 
+import com.procel.ingestion.entity.sensors.AvaliacaoResultado;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -25,7 +27,19 @@ public class MedicaoDTOs {
             @Schema(description = "Origem da medicao.", example = "mock")
             String source,
             @Schema(description = "Valores medidos, indexados pelo nome do parametro.", example = "{\"temperature_c\":24.5,\"presence\":true}")
-            Map<String, Object> valores
+            Map<String, Object> valores,
+            @Schema(description = "Qualificacoes calculadas para cada parametro medido.")
+            Map<String, List<ParametroQualificacaoResponse>> qualificacoes
+    ) {}
+
+    public record ParametroQualificacaoResponse(
+            UUID id,
+            UUID regraParametroId,
+            String regraNome,
+            AvaliacaoResultado resultado,
+            int severidade,
+            String mensagem,
+            Instant avaliadoEm
     ) {}
 
 }

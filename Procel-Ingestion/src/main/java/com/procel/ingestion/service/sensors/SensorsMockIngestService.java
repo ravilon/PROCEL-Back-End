@@ -20,17 +20,20 @@ public class SensorsMockIngestService {
     private final ParametroDefRepository defRepo;
     private final MedicaoRepository medicaoRepo;
     private final ParametroValorRepository valorRepo;
+    private final ParametroQualificacaoService qualificacaoService;
 
     public SensorsMockIngestService(
             SensorRepository sensorRepo,
             ParametroDefRepository defRepo,
             MedicaoRepository medicaoRepo,
-            ParametroValorRepository valorRepo
+            ParametroValorRepository valorRepo,
+            ParametroQualificacaoService qualificacaoService
     ) {
         this.sensorRepo = sensorRepo;
         this.defRepo = defRepo;
         this.medicaoRepo = medicaoRepo;
         this.valorRepo = valorRepo;
+        this.qualificacaoService = qualificacaoService;
     }
 
     @Transactional
@@ -65,7 +68,8 @@ public class SensorsMockIngestService {
                     case NUMERIC -> pv.setNumericValue(mockNumeric(def.getNome(), t, sensor.getExternalId()));
                 }
 
-                valorRepo.save(pv);
+                pv = valorRepo.save(pv);
+                qualificacaoService.avaliar(pv, sensor, t);
                 valCount++;
             }
         }

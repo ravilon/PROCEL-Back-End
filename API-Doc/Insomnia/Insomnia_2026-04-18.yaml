@@ -1,19 +1,19 @@
-type: collection.insomnia.rest/5.0
+﻿type: collection.insomnia.rest/5.0
 schema_version: "5.1"
-name: PROCEL Ingestion - E2E
+name: PROCEL Ingestion - API Smoke Test
 meta:
   id: wrk_1268bc4575c14d539bcbe4f241a53944
   created: 1776477181096
   modified: 1776477181096
   description: ""
 collection:
-  - name: PROCEL Ingestion - E2E
+  - name: PROCEL Ingestion - API Smoke Test
     meta:
       id: fld_c5ee36a0ef114b07be3509b52ab628b2
       created: 1776477181098
       modified: 1776553908795
       sortKey: -1776477176821
-      description: Coleção Postman baseada no script PowerShell E2E (rooms sync,
+      description: ColeÃ§Ã£o Postman baseada no script PowerShell E2E (rooms sync,
         sensors seed, pessoa CRUD, presenca checkin/checkout, ingest mock,
         medicoes queries).
     children:
@@ -37,7 +37,7 @@ collection:
             method: GET
             scripts:
               preRequest: >-
-                // Define janela de consulta: últimos 10 minutos
+                // Define janela de consulta: Ãºltimos 10 minutos
 
                 const to = new Date();
 
@@ -171,7 +171,7 @@ collection:
           description: ""
         children:
           - url: "{{baseUrl}}/api/pessoas"
-            name: POST /api/pessoas (create - may conflict)
+            name: POST /api/pessoas (create test user - may conflict)
             meta:
               id: req_a2fa8eeb54704126be8bb9caddecc6ff
               created: 1776477181108
@@ -184,12 +184,12 @@ collection:
               mimeType: text/plain
               text: |-
                 {
-                  "nome": "Ravilon Aguiar",
+                  "nome": "API Test User",
                   "email": "{{_['pessoaEmail']}}",
                   "userId": "{{_['pessoaId']}}",
                   "password": "123456",
-                  "telefone": "51999999999",
-                  "matricula": "MAT-001",
+                  "telefone": "51000000000",
+                  "matricula": "TEST-API-001",
                   "roles": ["USUARIO"]
                 }
             headers:
@@ -199,7 +199,7 @@ collection:
                 value: Bearer {{jwtToken}}
             scripts:
               afterResponse: >-
-                // Aceita 201 Created ou 409 Conflict (já existe)
+                // Aceita 201 Created ou 409 Conflict (jÃ¡ existe)
 
                 insomnia.test('Status is 200, 201 or 409', function () {
                   insomnia.expect([200, 201, 409]).to.include(insomnia.response.code);
@@ -257,8 +257,8 @@ collection:
               mimeType: text/plain
               text: |-
                 {
-                  "nome": "Ravilon A. Santos",
-                  "telefone": "51988887777"
+                  "nome": "API Test User Updated",
+                  "telefone": "51000000001"
                 }
             headers:
               - name: Content-Type
@@ -276,7 +276,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 04 - Presenças
+      - name: 04 - PresenÃ§as
         meta:
           id: fld_430bcf2fc7df4077953fc58bbcb65959
           created: 1776477181114
@@ -300,7 +300,7 @@ collection:
                 {
                   "pessoaId": "{{pessoaId}}",
                   "compartimentoId": "{{roomId}}",
-                  "source": "manual"
+                  "source": "api-test"
                 }
             headers:
               - name: Content-Type
@@ -371,7 +371,163 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 05 - Sensors ingest mock
+      - name: 05 - Rules / Parameter Qualification
+        meta:
+          id: fld_rules_parameter_qualification
+          created: 1776556000000
+          modified: 1776556000000
+          sortKey: -1776477176807.5
+          description: ""
+        children:
+          - url: "{{baseUrl}}/api/rules/parameter-defs"
+            name: GET /api/rules/parameter-defs?tipoNome
+            meta:
+              id: req_rules_parameter_defs
+              created: 1776556000001
+              modified: 1776556000001
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176807.4
+            method: GET
+            parameters:
+              - name: tipoNome
+                value: "{{sensorTipoNome}}"
+                disabled: false
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200', function () { insomnia.response.to.have.status(200); });
+                const list = insomnia.response.json();
+                const param = list.find(p => p.nome === insomnia.collectionVariables.get('ruleParametroNome'));
+                insomnia.test('Found parametroDef', function () { insomnia.expect(param && param.id).to.be.ok; });
+                insomnia.collectionVariables.set('parametroDefId', param.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/rules/groups"
+            name: POST /api/rules/groups
+            meta:
+              id: req_rules_groups_create
+              created: 1776556000002
+              modified: 1776556000002
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176807.3
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "nome": "API test DER - {{sensorExternalId}} - {{ruleParametroNome}}",
+                  "descricao": "API test rule group created by Insomnia",
+                  "ativo": true
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200', function () { insomnia.response.to.have.status(200); });
+                const data = insomnia.response.json();
+                insomnia.test('Has group id', function () { insomnia.expect(data.id).to.be.ok; });
+                insomnia.collectionVariables.set('grupoRegraId', data.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/rules/groups/{{grupoRegraId}}/rules"
+            name: POST /api/rules/groups/{{grupoRegraId}}/rules
+            meta:
+              id: req_rules_group_rule_create
+              created: 1776556000003
+              modified: 1776556000003
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176807.2
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "parametroDefId": "{{parametroDefId}}",
+                  "nome": "API test temperature qualification",
+                  "descricao": "API test rule: generated temperature above zero",
+                  "operador": "GT",
+                  "valorNumeric1": 0,
+                  "resultado": "ALERTA",
+                  "severidade": 2,
+                  "prioridade": 100,
+                  "ativo": true
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200', function () { insomnia.response.to.have.status(200); });
+                const data = insomnia.response.json();
+                insomnia.test('Has rule id', function () { insomnia.expect(data.id).to.be.ok; });
+                insomnia.collectionVariables.set('regraParametroId', data.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/rules/sensors/{{sensorExternalId}}/groups"
+            name: POST /api/rules/sensors/{{sensorExternalId}}/groups
+            meta:
+              id: req_rules_sensor_group_link
+              created: 1776556000004
+              modified: 1776556000004
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176807.1
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "grupoRegraId": "{{grupoRegraId}}",
+                  "status": "ATIVO"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200', function () { insomnia.response.to.have.status(200); });
+                const data = insomnia.response.json();
+                insomnia.test('Has sensor-group link id', function () { insomnia.expect(data.id).to.be.ok; });
+                insomnia.collectionVariables.set('sensorGrupoRegraId', data.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 06 - Sensors ingest mock
         meta:
           id: fld_e409b5de029b47e783207d9bb33cfda3
           created: 1776477181121
@@ -396,7 +552,7 @@ collection:
                   "sensorExternalId": "{{sensorExternalId}}",
                   "minutesBack": 10,
                   "everySeconds": 10,
-                  "source": "mock"
+                  "source": "api-test"
                 }
             headers:
               - name: Content-Type
@@ -415,7 +571,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 06 - Medições
+      - name: 07 - Medicoes
         meta:
           id: fld_7b9ba42fd0d34b3dbf281705c4894634
           created: 1776477181125
@@ -527,7 +683,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 07 - Checkout
+      - name: 08 - Checkout
         meta:
           id: fld_4152ef9eb16c4e6a8306bd96b66ebac7
           created: 1776477181137
@@ -558,7 +714,7 @@ collection:
                 value: Bearer {{jwtToken}}
             scripts:
               afterResponse: >-
-                // Esse endpoint é opcional; se não existir, pode retornar 404.
+                // Esse endpoint Ã© opcional; se nÃ£o existir, pode retornar 404.
 
                 insomnia.test('Status is 200/201/404', function () {
                   insomnia.expect([200, 201, 404]).to.include(insomnia.response.code);
@@ -630,14 +786,26 @@ collection:
       baseUrl: https://procel.servehttp.com
       roomId: "2"
       sensorExternalId: SII-001
-      pessoaId: ravilon
-      pessoaEmail: ravilon@exemplo.com
+      pessoaId: api-test-user
+      pessoaEmail: api-test-user@procel.local
       fromIso: ""
       toIso: ""
       presencaId: ""
       jwtToken: ""
       adminEmail: admin@procel.local
       adminPassword: admin123
+    sensorTipoNome: SII_SMART
+    ruleParametroNome: temperature_c
+    parametroDefId: ""
+    grupoRegraId: ""
+    regraParametroId: ""
+    sensorGrupoRegraId: ""
+      sensorTipoNome: SII_SMART
+      ruleParametroNome: temperature_c
+      parametroDefId: ""
+      grupoRegraId: ""
+      regraParametroId: ""
+      sensorGrupoRegraId: ""
     environmentPropertyOrder:
       "&":
         - baseUrl
@@ -651,6 +819,12 @@ collection:
         - jwtToken
         - adminEmail
         - adminPassword
+        - sensorTipoNome
+        - ruleParametroNome
+        - parametroDefId
+        - grupoRegraId
+        - regraParametroId
+        - sensorGrupoRegraId
 cookieJar:
   name: Default Jar
   meta:
@@ -668,11 +842,18 @@ environments:
     baseUrl: https://procel.servehttp.com
     roomId: "2"
     sensorExternalId: SII-001
-    pessoaId: ravilon
-    pessoaEmail: ravilon@exemplo.com
+    pessoaId: api-test-user
+    pessoaEmail: api-test-user@procel.local
     fromIso: ""
     toIso: ""
     presencaId: 7655bd02-1302-4589-9902-8aa89ccf01c6
     jwtToken: ""
     adminEmail: admin@procel.local
     adminPassword: admin123
+    sensorTipoNome: SII_SMART
+    ruleParametroNome: temperature_c
+    parametroDefId: ""
+    grupoRegraId: ""
+    regraParametroId: ""
+    sensorGrupoRegraId: ""
+

@@ -12,7 +12,7 @@ Database/
   PROCEL-Ingestion/         # DDL versionado do banco analitico
 Documentos/
   DER-BancoAnalitico/       # DER draw.io
-  ScriptsTestAPI/           # Script E2E PowerShell
+  ApiSmokeTests/            # Script PowerShell de smoke test da API
 Procel-Ingestion/           # API Spring Boot principal
 ```
 
@@ -26,6 +26,8 @@ API Spring Boot responsavel por:
 - registrar check-in/checkout de presencas;
 - gerar ingestao mockada de medicoes de sensores;
 - consultar medicoes por sensor ou compartimento;
+- cadastrar grupos/regras de qualificacao de parametros por sensor;
+- avaliar medicoes contra regras DER/Parameter Qualification;
 - expor documentacao Swagger/OpenAPI.
 
 Stack principal:
@@ -45,7 +47,7 @@ Pre-requisitos:
 
 - Java 21
 - Docker ou PostgreSQL local
-- PowerShell, se for usar o script E2E
+- PowerShell, se for usar o script de smoke test
 
 Suba o PostgreSQL local:
 
@@ -81,9 +83,10 @@ Documentacao Swagger nesse ambiente:
 
 ```text
 https://procel.servehttp.com/docs
+https://procel.servehttp.com/swagger-ui/index.html
 ```
 
-Use esse host como `baseUrl` no Insomnia, Postman ou no script E2E quando quiser testar contra o servidor remoto.
+Use esse host como `baseUrl` no Insomnia, Postman ou no script de smoke test quando quiser testar contra o servidor remoto.
 
 ## Documentacao Da API
 
@@ -91,6 +94,7 @@ Com a API em execucao:
 
 ```text
 http://localhost:8080/docs
+http://localhost:8080/swagger-ui/index.html
 ```
 
 OpenAPI bruto:
@@ -120,12 +124,22 @@ USUARIO
 INGESTOR
 ```
 
-Usuario bootstrap para desenvolvimento:
+Usuarios para desenvolvimento/testes:
 
 ```text
-email:    admin@procel.local
-password: admin123
+Admin bootstrap:
+  email:    admin@procel.local
+  password: admin123
+  role:     ADMIN
+
+Usuario criado pelo smoke test:
+  userId:   api-test-user
+  email:    api-test-user@procel.local
+  password: 123456
+  role:     USUARIO
 ```
+
+Essas credenciais existem para facilitar testes locais e no ambiente remoto de homologacao. Nao use esses valores como credenciais reais de producao.
 
 Variaveis relevantes:
 
@@ -232,12 +246,72 @@ Datas `from` e `to` devem estar em ISO-8601, por exemplo:
 2026-03-04T05:00:00Z
 ```
 
-## Teste E2E
+Regras e qualificacao de parametros:
+
+```text
+GET  /api/rules/parameter-defs?tipoNome={tipoNome}
+POST /api/rules/groups
+GET  /api/rules/groups
+POST /api/rules/groups/{grupoId}/rules
+GET  /api/rules/groups/{grupoId}/rules
+POST /api/rules/sensors/{sensorExternalId}/groups
+GET  /api/rules/sensors/{sensorExternalId}/groups
+```
+
+Esses endpoints permitem criar grupos de regras, cadastrar regras por `parametro_def`, vincular grupos a sensores e ativar uma configuracao de qualificacao. Durante a ingestao, cada `parametro_valor` medido e avaliado contra os grupos ativos do sensor. Resultados sao persistidos em `avaliacao_parametro_valor` e retornados nas consultas de medicoes no campo `qualificacoes`.
+
+Operadores suportados:
+
+```text
+NUMERIC: GT, GTE, LT, LTE, EQ, NEQ, BETWEEN, OUTSIDE
+BOOLEAN: EQ, NEQ
+TEXT:    EQ, NEQ, CONTAINS
+```
+
+Resultados possiveis:
+
+```text
+IDEAL
+NORMAL
+ALERTA
+CRITICO
+INVALIDO
+```
+
+## Smoke Test Da API
 
 Script PowerShell:
 
 ```powershell
-.\Documentos\ScriptsTestAPI\OnStart.ps1
+.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
+```
+
+Por padrao, o script usa o ambiente remoto:
+
+```powershell
+.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
+```
+
+Para executar contra a API local:
+
+```powershell
+.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1 -Target local
+```
+
+Para informar uma URL manualmente:
+
+```powershell
+.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1 -BaseUrlOverride "http://localhost:8080"
+```
+
+Tambem e possivel usar variaveis de ambiente:
+
+```powershell
+$env:PROCEL_API_TARGET = "local"
+.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
+
+$env:PROCEL_API_BASE_URL = "http://localhost:8081"
+.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
 ```
 
 O script executa:
@@ -247,7 +321,10 @@ O script executa:
 - seed de sensores;
 - criacao/busca/atualizacao de pessoa;
 - check-in;
+- criacao de grupo/regra DER para `temperature_c`;
+- vinculo do grupo de regra ao sensor `SII-001`;
 - ingestao mockada;
+- verificacao de `qualificacoes.temperature_c` na ultima medicao;
 - consultas de medicoes;
 - ocupacao/presencas abertas;
 - checkout.
@@ -255,13 +332,26 @@ O script executa:
 Antes de executar, confira no script:
 
 ```powershell
-$BaseUrl
 $RoomId
 $SensorExternalId
+$SensorTipoNome
+$RuleParametroNome
 $PessoaId
 $PessoaEmail
 $AdminEmail
 $AdminPassword
+```
+
+Depois de executar o smoke test localmente, use as queries abaixo para estudar e validar os dados gravados no PostgreSQL:
+
+```powershell
+psql -h localhost -p 5432 -U postgres -d procel_analytics -f .\Documentos\ApiSmokeTests\VerifyParameterQualification.sql
+```
+
+Arquivo:
+
+```text
+Documentos/ApiSmokeTests/VerifyParameterQualification.sql
 ```
 
 ## Documentacao De API Para Clientes
@@ -278,7 +368,7 @@ Postman:
 API-Doc/Postman/PROCEL-Ingestion/
 ```
 
-Ambos documentam o fluxo E2E com login JWT e `Authorization: Bearer {{jwtToken}}`.
+Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, DER/Parameter Qualification, ingestao mockada e consultas de medicoes com `qualificacoes`.
 
 ## Banco Analitico
 
@@ -311,6 +401,10 @@ sensor
 medicao
 parametro_def
 parametro_valor
+grupo_regra
+regra_parametro
+sensor_grupo_regra
+avaliacao_parametro_valor
 ```
 
 DER:

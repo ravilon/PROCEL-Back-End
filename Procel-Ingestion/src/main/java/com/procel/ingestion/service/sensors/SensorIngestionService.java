@@ -1,9 +1,6 @@
 package com.procel.ingestion.service.sensors;
 
-import com.procel.ingestion.entity.sensors.Medicao;
-import com.procel.ingestion.entity.sensors.ParametroDef;
-import com.procel.ingestion.entity.sensors.ParametroValor;
-import com.procel.ingestion.entity.sensors.Sensor;
+import com.procel.ingestion.entity.sensors.*;
 
 import com.procel.ingestion.repository.sensors.MedicaoRepository;
 import com.procel.ingestion.repository.sensors.ParametroDefRepository;
@@ -26,17 +23,20 @@ public class SensorIngestionService {
     private final ParametroDefRepository parametroDefRepo;
     private final MedicaoRepository medicaoRepo;
     private final ParametroValorRepository parametroValorRepo;
+    private final ParametroQualificacaoService qualificacaoService;
 
     public SensorIngestionService(
             SensorRepository sensorRepo,
             ParametroDefRepository parametroDefRepo,
             MedicaoRepository medicaoRepo,
-            ParametroValorRepository parametroValorRepo
+            ParametroValorRepository parametroValorRepo,
+            ParametroQualificacaoService qualificacaoService
     ) {
         this.sensorRepo = sensorRepo;
         this.parametroDefRepo = parametroDefRepo;
         this.medicaoRepo = medicaoRepo;
         this.parametroValorRepo = parametroValorRepo;
+        this.qualificacaoService = qualificacaoService;
     }
 
     public void ingest(RawSensorEvent event) {
@@ -46,9 +46,10 @@ public class SensorIngestionService {
                         "Sensor not found for externalId=" + event.sensorExternalId()
                 ));
 
+        Instant measuredAt = nvl(event.timestamp(), Instant.now());
         Medicao medicao = new Medicao(
                 sensor,
-                nvl(event.timestamp(), Instant.now()),
+                measuredAt,
                 event.receivedAt(),
                 event.source()
         );
@@ -83,7 +84,8 @@ public class SensorIngestionService {
                 case NUMERIC -> valor.setNumericValue(coerceNumeric(rawValue));
             }
 
-            parametroValorRepo.save(valor);
+            valor = parametroValorRepo.save(valor);
+            qualificacaoService.avaliar(valor, sensor, measuredAt);
         }
     }
 

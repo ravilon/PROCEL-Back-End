@@ -1,5 +1,5 @@
 <#
-PROCEL Ingestion - Full E2E test script (PowerShell) [UPDATED]
+PROCEL Ingestion - API smoke test script (PowerShell)
 Backend changed to accept from/to as STRING and parse with Instant.parse().
 So we can send ISO-8601 strings directly (no URL-encoding required).
 
@@ -9,6 +9,7 @@ Covers:
 - Sensors seed
 - Pessoa create/get/update
 - Presenca checkin
+- Rules / Parameter Qualification setup
 - Sensors ingest mock
 - Medicoes: latest + list by sensor + latest + list by room
 - Presenca occupancy + open presences
@@ -21,18 +22,43 @@ Assumes endpoints:
   GET /api/rooms/{compartimentoId}/medicoes/latest
 #>
 
+param(
+  [string]$Target = $env:PROCEL_API_TARGET,
+
+  [string]$BaseUrlOverride = $env:PROCEL_API_BASE_URL
+)
+
 $ErrorActionPreference = "Stop"
 
 # ---------------------------
 # Config
 # ---------------------------
-# Adjust BaseUrl for https://procel.servehttp.com or http://localhost:8080
-$BaseUrl = "https://procel.servehttp.com"
+$ApiTargets = @{
+  prod = "https://procel.servehttp.com"
+  local = "http://localhost:8080"
+}
+
+if ([string]::IsNullOrWhiteSpace($Target)) {
+  $Target = "prod"
+}
+
+if (-not $ApiTargets.ContainsKey($Target)) {
+  throw "Invalid Target '$Target'. Use one of: $($ApiTargets.Keys -join ', ')"
+}
+
+if (-not [string]::IsNullOrWhiteSpace($BaseUrlOverride)) {
+  $BaseUrl = $BaseUrlOverride.TrimEnd("/")
+} else {
+  $BaseUrl = $ApiTargets[$Target]
+}
+
 $RoomId = "2"
 $SensorExternalId = "SII-001"
+$SensorTipoNome = "SII_SMART"
+$RuleParametroNome = "temperature_c"
 
-$PessoaId = "ravilon"
-$PessoaEmail = "ravilon@exemplo.com"
+$PessoaId = "api-test-user"
+$PessoaEmail = "api-test-user@procel.local"
 
 $AdminEmail = "admin@procel.local"
 $AdminPassword = "admin123"
@@ -102,8 +128,8 @@ $from10m = $to.AddMinutes(-10)
 $FromIso = $from10m.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
 $ToIso   = $to.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
 
-Write-Host "BaseUrl: $BaseUrl" -ForegroundColor Yellow
-Write-Host "RoomId: $RoomId | SensorExternalId: $SensorExternalId | PessoaId: $PessoaId" -ForegroundColor Yellow
+Write-Host "Target: $Target | BaseUrl: $BaseUrl" -ForegroundColor Yellow
+Write-Host "RoomId: $RoomId | SensorExternalId: $SensorExternalId | TestPessoaId: $PessoaId" -ForegroundColor Yellow
 Write-Host "Window: from=$FromIso to=$ToIso" -ForegroundColor Yellow
 
 # ---------------------------
@@ -135,16 +161,16 @@ TryCall "POST /api/sensors/seed/from-resource" {
 } | Out-Null
 
 # ---------------------------
-# 4) Pessoa create (ignore conflict) + get + update
+# 4) Test pessoa create (ignore conflict) + get + update
 # ---------------------------
-SoftCall "POST /api/pessoas (create - may conflict)" {
+SoftCall "POST /api/pessoas (create test user - may conflict)" {
   InvokeApi "/api/pessoas" -Method POST -Body @{
-    nome="Ravilon Aguiar"
+    nome="API Test User"
     email=$PessoaEmail
     userId=$PessoaId
     password="123456"
-    telefone="51999999999"
-    matricula="MAT-001"
+    telefone="51000000000"
+    matricula="TEST-API-001"
     roles=@("USUARIO")
   }
 } | Out-Null
@@ -156,8 +182,8 @@ PrintJson "Pessoa (GET)" $pessoa
 
 $pessoaUpd = TryCall "PUT /api/pessoas/$PessoaId (update)" {
   InvokeApi "/api/pessoas/$PessoaId" -Method PUT -Body @{
-    nome="Ravilon A. Santos"
-    telefone="51988887777"
+    nome="API Test User Updated"
+    telefone="51000000001"
   }
 }
 PrintJson "Pessoa (PUT)" $pessoaUpd
@@ -169,7 +195,7 @@ $presenca = TryCall "POST /api/presencas/checkin" {
   InvokeApi "/api/presencas/checkin" -Method POST -Body @{
     pessoaId=$PessoaId
     compartimentoId=$RoomId
-    source="manual"
+    source="api-test"
   }
 }
 PrintJson "Presenca checkin" $presenca
@@ -178,14 +204,59 @@ $presencaId = $presenca.id
 if (-not $presencaId) { throw "No presenca.id returned from checkin." }
 
 # ---------------------------
-# 6) Ingest mock (generate Medicoes)
+# 6) DER Parameter Qualification setup
+# ---------------------------
+$paramDefs = TryCall "GET /api/rules/parameter-defs?tipoNome=$SensorTipoNome" {
+  InvokeApi "/api/rules/parameter-defs?tipoNome=$SensorTipoNome" -Method GET
+}
+PrintJson "Parameter defs ($SensorTipoNome)" $paramDefs
+
+$ruleParam = @($paramDefs | Where-Object { $_.nome -eq $RuleParametroNome } | Select-Object -First 1)
+if ($null -eq $ruleParam -or [string]::IsNullOrWhiteSpace($ruleParam.id)) {
+  throw "ParametroDef not found for tipoNome=$SensorTipoNome nome=$RuleParametroNome"
+}
+
+$ruleGroup = TryCall "POST /api/rules/groups" {
+  InvokeApi "/api/rules/groups" -Method POST -Body @{
+    nome="API test DER - $SensorExternalId - $RuleParametroNome"
+    descricao="API test rule group created by OnStart.ps1"
+    ativo=$true
+  }
+}
+PrintJson "DER rule group" $ruleGroup
+
+$rule = TryCall "POST /api/rules/groups/$($ruleGroup.id)/rules" {
+  InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules" -Method POST -Body @{
+    parametroDefId=$ruleParam.id
+    nome="API test temperature qualification"
+    descricao="API test rule: generated temperature above zero"
+    operador="GT"
+    valorNumeric1=0
+    resultado="ALERTA"
+    severidade=2
+    prioridade=100
+    ativo=$true
+  }
+}
+PrintJson "DER parameter rule" $rule
+
+$sensorRuleLink = TryCall "POST /api/rules/sensors/$SensorExternalId/groups" {
+  InvokeApi "/api/rules/sensors/$SensorExternalId/groups" -Method POST -Body @{
+    grupoRegraId=$ruleGroup.id
+    status="ATIVO"
+  }
+}
+PrintJson "DER sensor-rule link" $sensorRuleLink
+
+# ---------------------------
+# 7) Ingest mock (generate Medicoes)
 # ---------------------------
 $ingestRes = TryCall "POST /api/sensors/ingest/mock" {
   InvokeApi "/api/sensors/ingest/mock" -Method POST -Body @{
     sensorExternalId=$SensorExternalId
     minutesBack=10
     everySeconds=10
-    source="mock"
+    source="api-test"
   }
 }
 PrintJson "Sensors ingest mock" $ingestRes
@@ -193,12 +264,21 @@ PrintJson "Sensors ingest mock" $ingestRes
 Start-Sleep -Seconds 1
 
 # ---------------------------
-# 7) Medicoes queries
+# 8) Medicoes queries
 # ---------------------------
 $latestSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes/latest" {
   InvokeApi "/api/sensors/$SensorExternalId/medicoes/latest" -Method GET
 }
 PrintJson "Medicao latest (sensor)" $latestSensor
+
+$temperatureQualifications = @()
+if ($latestSensor -and $latestSensor.qualificacoes -and $latestSensor.qualificacoes.temperature_c) {
+  $temperatureQualifications = @($latestSensor.qualificacoes.temperature_c)
+}
+if ($temperatureQualifications.Count -lt 1) {
+  throw "DER Parameter Qualification failed: latest sensor measurement has no qualification for temperature_c."
+}
+Write-Host "[OK] DER Parameter Qualification generated for temperature_c ($($temperatureQualifications.Count) result(s))." -ForegroundColor Green
 
 $listSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes?from&to&limit" {
   InvokeApi "/api/sensors/$SensorExternalId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
@@ -216,7 +296,7 @@ $listRoom = TryCall "GET /api/rooms/$RoomId/medicoes?from&to&limit" {
 PrintJson "Medicoes list (room, last 10m)" $listRoom
 
 # ---------------------------
-# 8) Presenca occupancy + open list
+# 9) Presenca occupancy + open list
 # ---------------------------
 $ocup = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId" {
   InvokeApi "/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
@@ -229,10 +309,10 @@ $abertas = TryCall "GET /api/presencas/abertas/compartimentos/$RoomId" {
 PrintJson "Presencas abertas" $abertas
 
 # ---------------------------
-# 9) Gamification summary (console) using latestRoom.valores
+# 10) API test summary (console) using latestRoom.valores
 # ---------------------------
 Write-Host ""
-Write-Host "=== GAMIFICATION SUMMARY (Room $RoomId) ===" -ForegroundColor Cyan
+Write-Host "=== API TEST SUMMARY (Room $RoomId) ===" -ForegroundColor Cyan
 
 if ($ocup) {
   Write-Host ("Ocupacao atual: {0} pessoa(s)" -f $ocup.pessoasPresentes)
@@ -252,7 +332,7 @@ if ($latestRoom -and $latestRoom.valores) {
   $acOn = $v.ac_status
   $lightOn = $v.light_status
 
-  if ($null -ne $temp) { Write-Host ("Temp: {0} °C" -f $temp) }
+  if ($null -ne $temp) { Write-Host ("Temp: {0} C" -f $temp) }
   if ($null -ne $presence) { Write-Host ("Presence sensor: {0}" -f $presence) }
   if ($null -ne $energyTotal) { Write-Host ("Energy total (room): {0} kWh(?)" -f $energyTotal) }
   if ($null -ne $acOn) { Write-Host ("AC status: {0}" -f $acOn) }
@@ -264,7 +344,7 @@ if ($latestRoom -and $latestRoom.valores) {
 }
 
 # ---------------------------
-# 10) Checkout (by pessoa if available; fallback by presencaId)
+# 11) Checkout (by pessoa if available; fallback by presencaId)
 # ---------------------------
 $checkoutByPessoa = SoftCall "POST /api/presencas/checkout/by-pessoa (optional)" {
   InvokeApi "/api/presencas/checkout/by-pessoa" -Method POST -Body @{
@@ -284,7 +364,7 @@ if ($null -eq $checkoutByPessoa) {
 }
 
 # ---------------------------
-# 11) Occupancy after checkout
+# 12) Occupancy after checkout
 # ---------------------------
 $ocup2 = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId (after checkout)" {
   InvokeApi "/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
@@ -292,4 +372,4 @@ $ocup2 = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId (after chec
 PrintJson "Ocupacao after checkout" $ocup2
 
 Write-Host ""
-Write-Host "✅ Full E2E test finished successfully." -ForegroundColor Green
+Write-Host "API smoke test finished successfully." -ForegroundColor Green
