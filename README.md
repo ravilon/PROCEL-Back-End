@@ -71,6 +71,51 @@ User:       postgres
 Password:   postgres
 ```
 
+O banco local usa o volume Docker `postgres_data`, entao os dados persistem entre reinicios normais. Para manter os dados, pare os containers com:
+
+```powershell
+docker compose down
+```
+
+Nao use `docker compose down -v` se quiser preservar o banco, porque `-v` remove o volume do PostgreSQL.
+
+Por padrao, o Hibernate esta configurado para atualizar o schema sem apagar os dados:
+
+```yaml
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+```
+
+## CORS E Front-End
+
+A API habilita CORS para permitir chamadas feitas por navegadores a partir de outro origin, por exemplo um front-end rodando no computador de um desenvolvedor enquanto a API esta publicada em um servidor.
+
+Configuracao principal:
+
+```yaml
+procel:
+  cors:
+    allowed-origin-patterns: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}
+```
+
+Com essa configuracao, um front-end local como `http://localhost:5173` ou `http://127.0.0.1:3000` pode chamar uma API publicada, por exemplo `https://seu-dominio.com/api/...`.
+
+Para producao, restrinja a variavel ao dominio real do front-end:
+
+```powershell
+$env:PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS = "https://seu-front-end.com"
+```
+
+Se o front-end de desenvolvimento usar HTTPS local, adicione tambem:
+
+```powershell
+$env:PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS = "http://localhost:*,http://127.0.0.1:*,https://localhost:*,https://127.0.0.1:*"
+```
+
+No front-end, use sempre a URL completa da API publicada. `localhost` no navegador do usuario aponta para o proprio computador do usuario, nao para o servidor.
+
 ## Servidor De Testes
 
 Tambem existe uma instancia publicada via Coolify para testes sem rodar o backend localmente:
@@ -385,13 +430,17 @@ DDL versionado:
 Database/PROCEL-Ingestion/createAnaliticalDB.sql
 ```
 
-Esse arquivo foi alinhado com o DDL gerado pelo Hibernate em:
+Esse arquivo deve ser mantido como referencia versionada do schema analitico. A aplicacao usa `spring.jpa.hibernate.ddl-auto=update` por padrao, para nao recriar o banco a cada deploy.
+
+Em ambientes com dados importantes, prefira evoluir o banco por migrations versionadas antes de alterar entidades JPA em producao. O projeto ainda nao usa Flyway/Liquibase.
+
+Historicamente, o DDL tambem podia ser gerado pelo Hibernate em:
 
 ```text
 Procel-Ingestion/target/schema.sql
 ```
 
-O arquivo `target/schema.sql` e gerado automaticamente e nao deve ser tratado como fonte versionada.
+O arquivo `target/schema.sql`, quando existir, e artefato de build e nao deve ser tratado como fonte versionada.
 
 Modelo atual inclui:
 
