@@ -48,15 +48,24 @@ create table parametro_valor (
 );
 
 create table missao (
-    completed_at timestamp(6) with time zone,
+    ativo boolean not null,
     created_at timestamp(6) with time zone not null,
-    started_at timestamp(6) with time zone,
     id uuid not null,
-    status varchar(30) not null check ((status in ('PENDENTE','EM_ANDAMENTO','CONCLUIDA','CANCELADA'))),
-    pessoa_id varchar(80) not null,
     titulo varchar(160) not null,
     descricao varchar(1000),
     primary key (id)
+);
+
+create table pessoa_missao (
+    assigned_at timestamp(6) with time zone not null,
+    completed_at timestamp(6) with time zone,
+    started_at timestamp(6) with time zone,
+    id uuid not null,
+    missao_id uuid not null,
+    status varchar(30) not null check ((status in ('PENDENTE','EM_ANDAMENTO','CONCLUIDA','CANCELADA'))),
+    pessoa_id varchar(80) not null,
+    primary key (id),
+    constraint uk_pessoa_missao unique (pessoa_id, missao_id)
 );
 
 create table pessoa (
@@ -133,11 +142,20 @@ create index idx_valor_medicao_id
 create index idx_valor_param_def_id
    on parametro_valor (parametro_def_id);
 
-create index ix_missao_pessoa_status
-   on missao (pessoa_id, status);
+create index ix_missao_ativo
+   on missao (ativo);
 
 create index ix_missao_created_at
    on missao (created_at);
+
+create index ix_pessoa_missao_pessoa_status
+   on pessoa_missao (pessoa_id, status);
+
+create index ix_pessoa_missao_missao
+   on pessoa_missao (missao_id);
+
+create index ix_pessoa_missao_assigned_at
+   on pessoa_missao (assigned_at);
 
 create index ix_pessoa_email
    on pessoa (email);
@@ -193,13 +211,18 @@ alter table if exists parametro_valor
    foreign key (parametro_def_id)
    references parametro_def;
 
-alter table if exists missao
-   add constraint fk_missao_pessoa
+alter table if exists pessoa_role
+   add constraint FK564cscnwy2u9k96997q3x3ugy
    foreign key (pessoa_id)
    references pessoa;
 
-alter table if exists pessoa_role
-   add constraint FK564cscnwy2u9k96997q3x3ugy
+alter table if exists pessoa_missao
+   add constraint fk_pessoa_missao_missao
+   foreign key (missao_id)
+   references missao;
+
+alter table if exists pessoa_missao
+   add constraint fk_pessoa_missao_pessoa
    foreign key (pessoa_id)
    references pessoa;
 

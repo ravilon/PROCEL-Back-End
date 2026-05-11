@@ -14,7 +14,7 @@ collection:
       modified: 1776553908795
       sortKey: -1776477176821
       description: ColeÃ§Ã£o Postman baseada no script PowerShell E2E (rooms sync,
-        sensors seed, pessoa CRUD, missoes por pessoa, presenca checkin/checkout, ingest mock,
+        sensors seed, pessoa CRUD, catalogo de missoes, atividades pessoa-missao, presenca checkin/checkout, ingest mock,
         medicoes queries).
     children:
       - name: 00 - Setup window (from/to)
@@ -276,18 +276,18 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 04 - Missoes
+      - name: 04 - Missoes e Atividades
         meta:
-          id: fld_missoes_admin_seed
+          id: fld_missoes_atividades_admin_seed
           created: 1776558000000
           modified: 1776558000000
           sortKey: -1776477176811.5
-          description: Missoes vinculadas ao usuario admin para popular e testar o sistema.
+          description: Modelos de missao e atividades pessoa-missao vinculadas ao usuario admin.
         children:
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
-            name: POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - pendente)
+          - url: "{{baseUrl}}/api/missoes"
+            name: POST /api/missoes (seed modelo - ocupacao)
             meta:
-              id: req_missoes_admin_seed_pendente
+              id: req_missoes_catalog_seed_ocupacao
               created: 1776558000001
               modified: 1776558000001
               isPrivate: false
@@ -299,8 +299,8 @@ collection:
               text: |-
                 {
                   "titulo": "Validar ocupacao inicial",
-                  "descricao": "Missao seed vinculada ao usuario admin para uso no sistema.",
-                  "status": "PENDENTE"
+                  "descricao": "Modelo de missao seed para uso no sistema.",
+                  "ativo": true
                 }
             headers:
               - name: Content-Type
@@ -323,10 +323,10 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
-            name: POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - andamento)
+          - url: "{{baseUrl}}/api/missoes"
+            name: POST /api/missoes (seed modelo - sensores)
             meta:
-              id: req_missoes_admin_seed_andamento
+              id: req_missoes_catalog_seed_sensores
               created: 1776558000002
               modified: 1776558000002
               isPrivate: false
@@ -338,8 +338,8 @@ collection:
               text: |-
                 {
                   "titulo": "Acompanhar sensores ativos",
-                  "descricao": "Missao seed para acompanhar medicoes e qualificacoes do ambiente.",
-                  "status": "EM_ANDAMENTO"
+                  "descricao": "Modelo de missao seed para acompanhar medicoes e qualificacoes do ambiente.",
+                  "ativo": true
                 }
             headers:
               - name: Content-Type
@@ -359,10 +359,10 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
-            name: POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - concluida)
+          - url: "{{baseUrl}}/api/missoes"
+            name: POST /api/missoes (seed modelo - dashboard)
             meta:
-              id: req_missoes_admin_seed_concluida
+              id: req_missoes_catalog_seed_dashboard
               created: 1776558000003
               modified: 1776558000003
               isPrivate: false
@@ -374,8 +374,8 @@ collection:
               text: |-
                 {
                   "titulo": "Revisar dashboard operacional",
-                  "descricao": "Missao seed concluida para popular historico do usuario admin.",
-                  "status": "CONCLUIDA"
+                  "descricao": "Modelo de missao seed para popular o catalogo.",
+                  "ativo": true
                 }
             headers:
               - name: Content-Type
@@ -395,15 +395,43 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
-            name: GET /api/pessoas/{{adminPessoaId}}/missoes
+          - url: "{{baseUrl}}/api/missoes"
+            name: GET /api/missoes?ativo=true
             meta:
-              id: req_missoes_admin_list
+              id: req_missoes_catalog_list_active
               created: 1776558000004
               modified: 1776558000004
               isPrivate: false
               description: ""
               sortKey: -1776477176811.1
+            method: GET
+            parameters:
+              - name: ativo
+                value: "true"
+                disabled: false
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/missoes/{{missaoId}}"
+            name: GET /api/missoes/{{missaoId}}
+            meta:
+              id: req_missoes_catalog_get
+              created: 1776558000005
+              modified: 1776558000005
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.05
             method: GET
             headers:
               - name: Authorization
@@ -419,15 +447,111 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
-            name: GET /api/pessoas/{{adminPessoaId}}/missoes?status=PENDENTE
+          - url: "{{baseUrl}}/api/missoes/{{missaoId}}"
+            name: PUT /api/missoes/{{missaoId}}
             meta:
-              id: req_missoes_admin_filter_pendente
-              created: 1776558000005
-              modified: 1776558000005
+              id: req_missoes_catalog_update
+              created: 1776558000006
+              modified: 1776558000006
               isPrivate: false
               description: ""
-              sortKey: -1776477176811.05
+              sortKey: -1776477176811.04
+            method: PUT
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "titulo": "Validar ocupacao inicial - atualizado",
+                  "descricao": "Modelo de missao atualizado pela collection Insomnia.",
+                  "ativo": true
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades"
+            name: POST /api/pessoas/{{adminPessoaId}}/atividades (atribuir missao)
+            meta:
+              id: req_atividades_admin_assign
+              created: 1776558000007
+              modified: 1776558000007
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.03
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "missaoId": "{{missaoId}}",
+                  "status": "PENDENTE"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200/201', function () {
+                  insomnia.expect([200, 201]).to.include(insomnia.response.code);
+                });
+                const data = insomnia.response.json();
+                insomnia.test('Has atividade.id', function () { insomnia.expect(data.id).to.be.ok; });
+                insomnia.collectionVariables.set('atividadeId', data.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades"
+            name: GET /api/pessoas/{{adminPessoaId}}/atividades
+            meta:
+              id: req_atividades_admin_list
+              created: 1776558000008
+              modified: 1776558000008
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.02
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades"
+            name: GET /api/pessoas/{{adminPessoaId}}/atividades?status=PENDENTE
+            meta:
+              id: req_atividades_admin_filter
+              created: 1776558000009
+              modified: 1776558000009
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.01
             method: GET
             parameters:
               - name: status
@@ -447,15 +571,15 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}"
-            name: GET /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}"
+            name: GET /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}
             meta:
-              id: req_missoes_admin_get
-              created: 1776558000006
-              modified: 1776558000006
+              id: req_atividades_admin_get
+              created: 1776558000010
+              modified: 1776558000010
               isPrivate: false
               description: ""
-              sortKey: -1776477176811.04
+              sortKey: -1776477176811
             method: GET
             headers:
               - name: Authorization
@@ -471,22 +595,20 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}"
-            name: PUT /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}"
+            name: PUT /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}} (concluir)
             meta:
-              id: req_missoes_admin_update
-              created: 1776558000007
-              modified: 1776558000007
+              id: req_atividades_admin_complete
+              created: 1776558000011
+              modified: 1776558000011
               isPrivate: false
               description: ""
-              sortKey: -1776477176811.03
+              sortKey: -1776477176810.99
             method: PUT
             body:
               mimeType: text/plain
               text: |-
                 {
-                  "titulo": "Validar ocupacao inicial - atualizado",
-                  "descricao": "Missao atualizada pela collection Insomnia.",
                   "status": "CONCLUIDA"
                 }
             headers:
@@ -505,15 +627,15 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}"
-            name: DELETE /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}} (cleanup optional)
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}"
+            name: DELETE /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}} (cleanup optional)
             meta:
-              id: req_missoes_admin_delete
-              created: 1776558000008
-              modified: 1776558000008
+              id: req_atividades_admin_delete
+              created: 1776558000012
+              modified: 1776558000012
               isPrivate: false
               description: ""
-              sortKey: -1776477176811.02
+              sortKey: -1776477176810.98
             method: DELETE
             headers:
               - name: Authorization
@@ -522,6 +644,32 @@ collection:
               afterResponse: >-
                 insomnia.test('Status 200/204/404', function () {
                 insomnia.expect([200, 204, 404]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/missoes/{{missaoId}}"
+            name: DELETE /api/missoes/{{missaoId}} (cleanup optional)
+            meta:
+              id: req_missoes_catalog_delete
+              created: 1776558000013
+              modified: 1776558000013
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176810.97
+            method: DELETE
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: >-
+                insomnia.test('Status 200/204/404/409', function () {
+                insomnia.expect([200, 204, 404, 409]).to.include(insomnia.response.code);
                 });
             settings:
               renderRequestBody: true
@@ -1045,6 +1193,7 @@ collection:
       pessoaEmail: api-test-user@procel.local
       adminPessoaId: admin
       missaoId: ""
+      atividadeId: ""
       fromIso: ""
       toIso: ""
       presencaId: ""
@@ -1066,6 +1215,7 @@ collection:
         - pessoaEmail
         - adminPessoaId
         - missaoId
+        - atividadeId
         - fromIso
         - toIso
         - presencaId
@@ -1099,6 +1249,7 @@ environments:
     pessoaEmail: api-test-user@procel.local
     adminPessoaId: admin
     missaoId: ""
+    atividadeId: ""
     fromIso: ""
     toIso: ""
     presencaId: 7655bd02-1302-4589-9902-8aa89ccf01c6
@@ -1111,4 +1262,6 @@ environments:
     grupoRegraId: ""
     regraParametroId: ""
     sensorGrupoRegraId: ""
+
+
 

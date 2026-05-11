@@ -24,7 +24,7 @@ API Spring Boot responsavel por:
 - carregar seed de sensores;
 - cadastrar e autenticar pessoas;
 - registrar check-in/checkout de presencas;
-- cadastrar e acompanhar missoes vinculadas a pessoas;
+- cadastrar modelos de missoes e acompanhar atividades pessoa-missao;
 - gerar ingestao mockada de medicoes de sensores;
 - consultar medicoes por sensor ou compartimento;
 - cadastrar grupos/regras de qualificacao de parametros por sensor;
@@ -272,21 +272,32 @@ GET  /api/presencas/abertas/compartimentos/{compartimentoId}
 Missoes:
 
 ```text
-POST   /api/pessoas/{pessoaId}/missoes
-GET    /api/pessoas/{pessoaId}/missoes
-GET    /api/pessoas/{pessoaId}/missoes?status={status}
-GET    /api/pessoas/{pessoaId}/missoes/{missaoId}
-PUT    /api/pessoas/{pessoaId}/missoes/{missaoId}
-DELETE /api/pessoas/{pessoaId}/missoes/{missaoId}
+POST   /api/missoes
+GET    /api/missoes
+GET    /api/missoes?ativo=true
+GET    /api/missoes/{missaoId}
+PUT    /api/missoes/{missaoId}
+DELETE /api/missoes/{missaoId}
 ```
 
-Status suportados para missoes:
+Atividades pessoa-missao:
+
+```text
+POST   /api/pessoas/{pessoaId}/atividades
+GET    /api/pessoas/{pessoaId}/atividades
+GET    /api/pessoas/{pessoaId}/atividades?status={status}
+GET    /api/pessoas/{pessoaId}/atividades/{atividadeId}
+PUT    /api/pessoas/{pessoaId}/atividades/{atividadeId}
+DELETE /api/pessoas/{pessoaId}/atividades/{atividadeId}
+```
+
+Status suportados para atividades:
 
 ```text
 PENDENTE, EM_ANDAMENTO, CONCLUIDA, CANCELADA
 ```
 
-ADMIN e OPERADOR podem gerenciar missoes de qualquer pessoa. USUARIO comum pode gerenciar apenas as missoes vinculadas ao proprio `userId` do token.
+`missao` e o modelo/catalogo. Completar uma missao significa atualizar a relacao `pessoa_missao` criada quando a missao e atribuida a uma pessoa. ADMIN e OPERADOR podem gerenciar modelos e atividades de qualquer pessoa. USUARIO comum pode gerenciar apenas as proprias atividades.
 
 Salas e sensores:
 

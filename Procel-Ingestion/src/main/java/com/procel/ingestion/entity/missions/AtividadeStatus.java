@@ -1,6 +1,6 @@
 package com.procel.ingestion.entity.missions;
 
-public enum MissaoStatus {
+public enum AtividadeStatus {
     PENDENTE,
     EM_ANDAMENTO,
     CONCLUIDA,

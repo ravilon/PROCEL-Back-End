@@ -8,7 +8,8 @@ Covers:
 - Rooms sync
 - Sensors seed
 - Pessoa create/get/update
-- Missoes create/list/get/update/filter/delete by pessoa
+- Missoes catalog create/list/get/update/delete
+- Atividades pessoa-missao create/list/get/update/filter/delete
 - Presenca checkin
 - Rules / Parameter Qualification setup
 - Sensors ingest mock
@@ -17,11 +18,16 @@ Covers:
 - Presenca checkout (by pessoa if available; fallback by presencaId)
 
 Assumes endpoints:
-  POST /api/pessoas/{pessoaId}/missoes
-  GET /api/pessoas/{pessoaId}/missoes
-  GET /api/pessoas/{pessoaId}/missoes/{missaoId}
-  PUT /api/pessoas/{pessoaId}/missoes/{missaoId}
-  DELETE /api/pessoas/{pessoaId}/missoes/{missaoId}
+  POST /api/missoes
+  GET /api/missoes
+  GET /api/missoes/{missaoId}
+  PUT /api/missoes/{missaoId}
+  DELETE /api/missoes/{missaoId}
+  POST /api/pessoas/{pessoaId}/atividades
+  GET /api/pessoas/{pessoaId}/atividades
+  GET /api/pessoas/{pessoaId}/atividades/{atividadeId}
+  PUT /api/pessoas/{pessoaId}/atividades/{atividadeId}
+  DELETE /api/pessoas/{pessoaId}/atividades/{atividadeId}
   GET /api/sensors/{sensorExternalId}/medicoes?from=&to=&limit=
   GET /api/sensors/{sensorExternalId}/medicoes/latest
   GET /api/rooms/{compartimentoId}/medicoes?from=&to=&limit=
@@ -195,46 +201,78 @@ $pessoaUpd = TryCall "PUT /api/pessoas/$PessoaId (update)" {
 PrintJson "Pessoa (PUT)" $pessoaUpd
 
 # ---------------------------
-# 5) Missoes by pessoa
+# 5) Missoes catalog + atividades by pessoa
 # ---------------------------
-$missao = TryCall "POST /api/pessoas/$PessoaId/missoes" {
-  InvokeApi "/api/pessoas/$PessoaId/missoes" -Method POST -Body @{
+$missao = TryCall "POST /api/missoes" {
+  InvokeApi "/api/missoes" -Method POST -Body @{
     titulo="API smoke test mission"
-    descricao="Mission created by ApiSmokeTest.ps1"
-    status="PENDENTE"
+    descricao="Mission model created by ApiSmokeTest.ps1"
+    ativo=$true
   }
 }
-PrintJson "Missao create" $missao
+PrintJson "Missao catalog create" $missao
 
 $missaoId = $missao.id
 if (-not $missaoId) { throw "No missao.id returned from create." }
 
-$missoes = TryCall "GET /api/pessoas/$PessoaId/missoes" {
-  InvokeApi "/api/pessoas/$PessoaId/missoes" -Method GET
+$missoes = TryCall "GET /api/missoes?ativo=true" {
+  InvokeApi "/api/missoes?ativo=true" -Method GET
 }
-PrintJson "Missoes list" $missoes
+PrintJson "Missoes catalog list" $missoes
 
-$missaoGet = TryCall "GET /api/pessoas/$PessoaId/missoes/$missaoId" {
-  InvokeApi "/api/pessoas/$PessoaId/missoes/$missaoId" -Method GET
+$missaoGet = TryCall "GET /api/missoes/$missaoId" {
+  InvokeApi "/api/missoes/$missaoId" -Method GET
 }
-PrintJson "Missao get" $missaoGet
+PrintJson "Missao catalog get" $missaoGet
 
-$missaoUpd = TryCall "PUT /api/pessoas/$PessoaId/missoes/$missaoId" {
-  InvokeApi "/api/pessoas/$PessoaId/missoes/$missaoId" -Method PUT -Body @{
+$missaoUpd = TryCall "PUT /api/missoes/$missaoId" {
+  InvokeApi "/api/missoes/$missaoId" -Method PUT -Body @{
     titulo="API smoke test mission updated"
-    descricao="Mission updated by ApiSmokeTest.ps1"
+    descricao="Mission model updated by ApiSmokeTest.ps1"
+    ativo=$true
+  }
+}
+PrintJson "Missao catalog update" $missaoUpd
+
+$atividade = TryCall "POST /api/pessoas/$PessoaId/atividades" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{
+    missaoId=$missaoId
+    status="PENDENTE"
+  }
+}
+PrintJson "Atividade create" $atividade
+
+$atividadeId = $atividade.id
+if (-not $atividadeId) { throw "No atividade.id returned from create." }
+
+$atividades = TryCall "GET /api/pessoas/$PessoaId/atividades" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades" -Method GET
+}
+PrintJson "Atividades list" $atividades
+
+$atividadeGet = TryCall "GET /api/pessoas/$PessoaId/atividades/$atividadeId" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method GET
+}
+PrintJson "Atividade get" $atividadeGet
+
+$atividadeUpd = TryCall "PUT /api/pessoas/$PessoaId/atividades/$atividadeId" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method PUT -Body @{
     status="CONCLUIDA"
   }
 }
-PrintJson "Missao update" $missaoUpd
+PrintJson "Atividade update CONCLUIDA" $atividadeUpd
 
-$missoesConcluidas = TryCall "GET /api/pessoas/$PessoaId/missoes?status=CONCLUIDA" {
-  InvokeApi "/api/pessoas/$PessoaId/missoes?status=CONCLUIDA" -Method GET
+$atividadesConcluidas = TryCall "GET /api/pessoas/$PessoaId/atividades?status=CONCLUIDA" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades?status=CONCLUIDA" -Method GET
 }
-PrintJson "Missoes filter CONCLUIDA" $missoesConcluidas
+PrintJson "Atividades filter CONCLUIDA" $atividadesConcluidas
 
-TryCall "DELETE /api/pessoas/$PessoaId/missoes/$missaoId" {
-  InvokeApi "/api/pessoas/$PessoaId/missoes/$missaoId" -Method DELETE
+TryCall "DELETE /api/pessoas/$PessoaId/atividades/$atividadeId" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method DELETE
+} | Out-Null
+
+TryCall "DELETE /api/missoes/$missaoId" {
+  InvokeApi "/api/missoes/$missaoId" -Method DELETE
 } | Out-Null
 
 # ---------------------------

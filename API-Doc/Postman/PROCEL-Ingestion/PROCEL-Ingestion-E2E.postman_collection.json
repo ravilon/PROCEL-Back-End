@@ -2,7 +2,7 @@
     "info":  {
                  "name":  "PROCEL Ingestion - API Smoke Test",
                  "_postman_id":  "d36efd2c-3066-43bc-a091-e6438b5625d3",
-                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, missoes por pessoa, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries). Regra de cardinalidade: um ParametroDef pode ter varias RegraParametro globalmente, mas um sensor nao pode ter mais de uma regra ativa/agendada sobreposta para o mesmo ParametroDef do seu TipoDeSensor. Para execucao repetida contra a mesma base, prefira o script ApiSmokeTest.ps1, que reutiliza o grupo/regra/vinculo de teste quando ja existem.",
+                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, catalogo de missoes, atividades pessoa-missao, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries).",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -80,6 +80,10 @@
                      },
                      {
                          "key":  "missaoId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "atividadeId",
                          "value":  ""
                      }
                  ],
@@ -370,10 +374,10 @@
                               ]
                  },
                  {
-                     "name":  "04 - Missoes",
+                     "name":  "04 - Missoes e Atividades",
                      "item":  [
                                   {
-                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - pendente)",
+                                      "name":  "POST /api/missoes (seed modelo - ocupacao)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  {
@@ -381,20 +385,18 @@
                                                                      "value":  "application/json"
                                                                  },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "raw":  "{{baseUrl}}/api/missoes",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "api",
-                                                                               "pessoas",
-                                                                               "{{adminPessoaId}}",
                                                                                "missoes"
                                                                            ]
                                                               },
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"titulo\": \"Validar ocupacao inicial\",\n  \"descricao\": \"Missao seed vinculada ao usuario admin para uso no sistema.\",\n  \"status\": \"PENDENTE\"\n}"
+                                                                   "raw":  "{\n  \"titulo\": \"Validar ocupacao inicial\",\n  \"descricao\": \"Modelo de missao seed para uso no sistema.\",\n  \"ativo\": true\n}"
                                                                }
                                                   },
                                       "response":  [
@@ -416,7 +418,7 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - andamento)",
+                                      "name":  "POST /api/missoes (seed modelo - sensores)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  {
@@ -424,20 +426,18 @@
                                                                      "value":  "application/json"
                                                                  },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "raw":  "{{baseUrl}}/api/missoes",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "api",
-                                                                               "pessoas",
-                                                                               "{{adminPessoaId}}",
                                                                                "missoes"
                                                                            ]
                                                               },
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"titulo\": \"Acompanhar sensores ativos\",\n  \"descricao\": \"Missao seed para acompanhar medicoes e qualificacoes do ambiente.\",\n  \"status\": \"EM_ANDAMENTO\"\n}"
+                                                                   "raw":  "{\n  \"titulo\": \"Acompanhar sensores ativos\",\n  \"descricao\": \"Modelo de missao seed para acompanhar medicoes e qualificacoes do ambiente.\",\n  \"ativo\": true\n}"
                                                                }
                                                   },
                                       "response":  [
@@ -456,7 +456,7 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - concluida)",
+                                      "name":  "POST /api/missoes (seed modelo - dashboard)",
                                       "request":  {
                                                       "method":  "POST",
                                                       "header":  {
@@ -464,20 +464,18 @@
                                                                      "value":  "application/json"
                                                                  },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "raw":  "{{baseUrl}}/api/missoes",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "api",
-                                                                               "pessoas",
-                                                                               "{{adminPessoaId}}",
                                                                                "missoes"
                                                                            ]
                                                               },
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"titulo\": \"Revisar dashboard operacional\",\n  \"descricao\": \"Missao seed concluida para popular historico do usuario admin.\",\n  \"status\": \"CONCLUIDA\"\n}"
+                                                                   "raw":  "{\n  \"titulo\": \"Revisar dashboard operacional\",\n  \"descricao\": \"Modelo de missao seed para popular o catalogo.\",\n  \"ativo\": true\n}"
                                                                }
                                                   },
                                       "response":  [
@@ -496,22 +494,60 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/missoes",
+                                      "name":  "GET /api/missoes?ativo=true",
                                       "request":  {
                                                       "method":  "GET",
                                                       "header":  [
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "raw":  "{{baseUrl}}/api/missoes?ativo=true",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
                                                                   "path":  [
                                                                                "api",
-                                                                               "pessoas",
-                                                                               "{{adminPessoaId}}",
                                                                                "missoes"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "ativo",
+                                                                                    "value":  "true"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "GET /api/missoes/{{missaoId}}",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/missoes/{{missaoId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "missoes",
+                                                                               "{{missaoId}}"
                                                                            ]
                                                               }
                                                   },
@@ -531,14 +567,54 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/missoes?status=PENDENTE",
+                                      "name":  "PUT /api/missoes/{{missaoId}}",
                                       "request":  {
-                                                      "method":  "GET",
-                                                      "header":  [
-
-                                                                 ],
+                                                      "method":  "PUT",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes?status=PENDENTE",
+                                                                  "raw":  "{{baseUrl}}/api/missoes/{{missaoId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "missoes",
+                                                                               "{{missaoId}}"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"titulo\": \"Validar ocupacao inicial - atualizado\",\n  \"descricao\": \"Modelo de missao atualizado pela collection Postman.\",\n  \"ativo\": true\n}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/atividades (atribuir missao)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -546,7 +622,84 @@
                                                                                "api",
                                                                                "pessoas",
                                                                                "{{adminPessoaId}}",
-                                                                               "missoes"
+                                                                               "atividades"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"missaoId\": \"{{missaoId}}\",\n  \"status\": \"PENDENTE\"\n}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/201\u0027, function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "pm.test(\u0027Has atividade.id\u0027, function () { pm.expect(data.id).to.be.ok; });",
+                                                                                    "pm.collectionVariables.set(\u0027atividadeId\u0027, data.id);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/atividades",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "atividades"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/atividades?status=PENDENTE",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades?status=PENDENTE",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "atividades"
                                                                            ],
                                                                   "query":  [
                                                                                 {
@@ -572,14 +725,14 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
                                       "request":  {
                                                       "method":  "GET",
                                                       "header":  [
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -587,8 +740,8 @@
                                                                                "api",
                                                                                "pessoas",
                                                                                "{{adminPessoaId}}",
-                                                                               "missoes",
-                                                                               "{{missaoId}}"
+                                                                               "atividades",
+                                                                               "{{atividadeId}}"
                                                                            ]
                                                               }
                                                   },
@@ -608,7 +761,7 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "PUT /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                      "name":  "PUT /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}} (concluir)",
                                       "request":  {
                                                       "method":  "PUT",
                                                       "header":  {
@@ -616,7 +769,7 @@
                                                                      "value":  "application/json"
                                                                  },
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -624,13 +777,13 @@
                                                                                "api",
                                                                                "pessoas",
                                                                                "{{adminPessoaId}}",
-                                                                               "missoes",
-                                                                               "{{missaoId}}"
+                                                                               "atividades",
+                                                                               "{{atividadeId}}"
                                                                            ]
                                                               },
                                                       "body":  {
                                                                    "mode":  "raw",
-                                                                   "raw":  "{\n  \"titulo\": \"Validar ocupacao inicial - atualizado\",\n  \"descricao\": \"Missao atualizada pela collection Postman.\",\n  \"status\": \"CONCLUIDA\"\n}"
+                                                                   "raw":  "{\n  \"status\": \"CONCLUIDA\"\n}"
                                                                }
                                                   },
                                       "response":  [
@@ -649,14 +802,14 @@
                                                 ]
                                   },
                                   {
-                                      "name":  "DELETE /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}} (cleanup optional)",
+                                      "name":  "DELETE /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}} (cleanup optional)",
                                       "request":  {
                                                       "method":  "DELETE",
                                                       "header":  [
 
                                                                  ],
                                                       "url":  {
-                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
                                                                   "host":  [
                                                                                "{{baseUrl}}"
                                                                            ],
@@ -664,6 +817,40 @@
                                                                                "api",
                                                                                "pessoas",
                                                                                "{{adminPessoaId}}",
+                                                                               "atividades",
+                                                                               "{{atividadeId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/204/404\u0027, function () { pm.expect([200, 204, 404]).to.include(pm.response.code); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "DELETE /api/missoes/{{missaoId}} (cleanup optional)",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/missoes/{{missaoId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
                                                                                "missoes",
                                                                                "{{missaoId}}"
                                                                            ]
@@ -678,7 +865,7 @@
                                                         "script":  {
                                                                        "type":  "text/javascript",
                                                                        "exec":  [
-                                                                                    "pm.test(\u0027Status 200/204/404\u0027, function () { pm.expect([200, 204, 404]).to.include(pm.response.code); });"
+                                                                                    "pm.test(\u0027Status 200/204/404/409\u0027, function () { pm.expect([200, 204, 404, 409]).to.include(pm.response.code); });"
                                                                                 ]
                                                                    }
                                                     }
