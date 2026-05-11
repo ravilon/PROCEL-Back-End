@@ -14,7 +14,7 @@ collection:
       modified: 1776553908795
       sortKey: -1776477176821
       description: ColeÃ§Ã£o Postman baseada no script PowerShell E2E (rooms sync,
-        sensors seed, pessoa CRUD, presenca checkin/checkout, ingest mock,
+        sensors seed, pessoa CRUD, missoes por pessoa, presenca checkin/checkout, ingest mock,
         medicoes queries).
     children:
       - name: 00 - Setup window (from/to)
@@ -276,7 +276,262 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 04 - PresenÃ§as
+      - name: 04 - Missoes
+        meta:
+          id: fld_missoes_admin_seed
+          created: 1776558000000
+          modified: 1776558000000
+          sortKey: -1776477176811.5
+          description: Missoes vinculadas ao usuario admin para popular e testar o sistema.
+        children:
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
+            name: POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - pendente)
+            meta:
+              id: req_missoes_admin_seed_pendente
+              created: 1776558000001
+              modified: 1776558000001
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.4
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "titulo": "Validar ocupacao inicial",
+                  "descricao": "Missao seed vinculada ao usuario admin para uso no sistema.",
+                  "status": "PENDENTE"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200/201', function () {
+                  insomnia.expect([200, 201]).to.include(insomnia.response.code);
+                });
+                const data = insomnia.response.json();
+                insomnia.test('Has missao.id', function () { insomnia.expect(data.id).to.be.ok; });
+                insomnia.collectionVariables.set('missaoId', data.id);
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
+            name: POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - andamento)
+            meta:
+              id: req_missoes_admin_seed_andamento
+              created: 1776558000002
+              modified: 1776558000002
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.3
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "titulo": "Acompanhar sensores ativos",
+                  "descricao": "Missao seed para acompanhar medicoes e qualificacoes do ambiente.",
+                  "status": "EM_ANDAMENTO"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200/201', function () {
+                  insomnia.expect([200, 201]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
+            name: POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - concluida)
+            meta:
+              id: req_missoes_admin_seed_concluida
+              created: 1776558000003
+              modified: 1776558000003
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.2
+            method: POST
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "titulo": "Revisar dashboard operacional",
+                  "descricao": "Missao seed concluida para popular historico do usuario admin.",
+                  "status": "CONCLUIDA"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: |-
+                insomnia.test('Status 200/201', function () {
+                  insomnia.expect([200, 201]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
+            name: GET /api/pessoas/{{adminPessoaId}}/missoes
+            meta:
+              id: req_missoes_admin_list
+              created: 1776558000004
+              modified: 1776558000004
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.1
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes"
+            name: GET /api/pessoas/{{adminPessoaId}}/missoes?status=PENDENTE
+            meta:
+              id: req_missoes_admin_filter_pendente
+              created: 1776558000005
+              modified: 1776558000005
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.05
+            method: GET
+            parameters:
+              - name: status
+                value: PENDENTE
+                disabled: false
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}"
+            name: GET /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}
+            meta:
+              id: req_missoes_admin_get
+              created: 1776558000006
+              modified: 1776558000006
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.04
+            method: GET
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}"
+            name: PUT /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}
+            meta:
+              id: req_missoes_admin_update
+              created: 1776558000007
+              modified: 1776558000007
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.03
+            method: PUT
+            body:
+              mimeType: text/plain
+              text: |-
+                {
+                  "titulo": "Validar ocupacao inicial - atualizado",
+                  "descricao": "Missao atualizada pela collection Insomnia.",
+                  "status": "CONCLUIDA"
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: insomnia.test('Status 200', function () {
+                insomnia.response.to.have.status(200); });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+          - url: "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}"
+            name: DELETE /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}} (cleanup optional)
+            meta:
+              id: req_missoes_admin_delete
+              created: 1776558000008
+              modified: 1776558000008
+              isPrivate: false
+              description: ""
+              sortKey: -1776477176811.02
+            method: DELETE
+            headers:
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+            scripts:
+              afterResponse: >-
+                insomnia.test('Status 200/204/404', function () {
+                insomnia.expect([200, 204, 404]).to.include(insomnia.response.code);
+                });
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
+      - name: 05 - Presencas
         meta:
           id: fld_430bcf2fc7df4077953fc58bbcb65959
           created: 1776477181114
@@ -371,7 +626,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 05 - Rules / Parameter Qualification
+      - name: 06 - Rules / Parameter Qualification
         meta:
           id: fld_rules_parameter_qualification
           created: 1776556000000
@@ -527,7 +782,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 06 - Sensors ingest mock
+      - name: 07 - Sensors ingest mock
         meta:
           id: fld_e409b5de029b47e783207d9bb33cfda3
           created: 1776477181121
@@ -571,7 +826,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 07 - Medicoes
+      - name: 08 - Medicoes
         meta:
           id: fld_7b9ba42fd0d34b3dbf281705c4894634
           created: 1776477181125
@@ -683,7 +938,7 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
-      - name: 08 - Checkout
+      - name: 09 - Checkout
         meta:
           id: fld_4152ef9eb16c4e6a8306bd96b66ebac7
           created: 1776477181137
@@ -788,18 +1043,14 @@ collection:
       sensorExternalId: SII-001
       pessoaId: api-test-user
       pessoaEmail: api-test-user@procel.local
+      adminPessoaId: admin
+      missaoId: ""
       fromIso: ""
       toIso: ""
       presencaId: ""
       jwtToken: ""
       adminEmail: admin@procel.local
       adminPassword: admin123
-    sensorTipoNome: SII_SMART
-    ruleParametroNome: temperature_c
-    parametroDefId: ""
-    grupoRegraId: ""
-    regraParametroId: ""
-    sensorGrupoRegraId: ""
       sensorTipoNome: SII_SMART
       ruleParametroNome: temperature_c
       parametroDefId: ""
@@ -813,6 +1064,8 @@ collection:
         - sensorExternalId
         - pessoaId
         - pessoaEmail
+        - adminPessoaId
+        - missaoId
         - fromIso
         - toIso
         - presencaId
@@ -844,6 +1097,8 @@ environments:
     sensorExternalId: SII-001
     pessoaId: api-test-user
     pessoaEmail: api-test-user@procel.local
+    adminPessoaId: admin
+    missaoId: ""
     fromIso: ""
     toIso: ""
     presencaId: 7655bd02-1302-4589-9902-8aa89ccf01c6

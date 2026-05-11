@@ -8,6 +8,7 @@ Covers:
 - Rooms sync
 - Sensors seed
 - Pessoa create/get/update
+- Missoes create/list/get/update/filter/delete by pessoa
 - Presenca checkin
 - Rules / Parameter Qualification setup
 - Sensors ingest mock
@@ -16,6 +17,11 @@ Covers:
 - Presenca checkout (by pessoa if available; fallback by presencaId)
 
 Assumes endpoints:
+  POST /api/pessoas/{pessoaId}/missoes
+  GET /api/pessoas/{pessoaId}/missoes
+  GET /api/pessoas/{pessoaId}/missoes/{missaoId}
+  PUT /api/pessoas/{pessoaId}/missoes/{missaoId}
+  DELETE /api/pessoas/{pessoaId}/missoes/{missaoId}
   GET /api/sensors/{sensorExternalId}/medicoes?from=&to=&limit=
   GET /api/sensors/{sensorExternalId}/medicoes/latest
   GET /api/rooms/{compartimentoId}/medicoes?from=&to=&limit=
@@ -189,7 +195,50 @@ $pessoaUpd = TryCall "PUT /api/pessoas/$PessoaId (update)" {
 PrintJson "Pessoa (PUT)" $pessoaUpd
 
 # ---------------------------
-# 5) Presenca checkin
+# 5) Missoes by pessoa
+# ---------------------------
+$missao = TryCall "POST /api/pessoas/$PessoaId/missoes" {
+  InvokeApi "/api/pessoas/$PessoaId/missoes" -Method POST -Body @{
+    titulo="API smoke test mission"
+    descricao="Mission created by ApiSmokeTest.ps1"
+    status="PENDENTE"
+  }
+}
+PrintJson "Missao create" $missao
+
+$missaoId = $missao.id
+if (-not $missaoId) { throw "No missao.id returned from create." }
+
+$missoes = TryCall "GET /api/pessoas/$PessoaId/missoes" {
+  InvokeApi "/api/pessoas/$PessoaId/missoes" -Method GET
+}
+PrintJson "Missoes list" $missoes
+
+$missaoGet = TryCall "GET /api/pessoas/$PessoaId/missoes/$missaoId" {
+  InvokeApi "/api/pessoas/$PessoaId/missoes/$missaoId" -Method GET
+}
+PrintJson "Missao get" $missaoGet
+
+$missaoUpd = TryCall "PUT /api/pessoas/$PessoaId/missoes/$missaoId" {
+  InvokeApi "/api/pessoas/$PessoaId/missoes/$missaoId" -Method PUT -Body @{
+    titulo="API smoke test mission updated"
+    descricao="Mission updated by ApiSmokeTest.ps1"
+    status="CONCLUIDA"
+  }
+}
+PrintJson "Missao update" $missaoUpd
+
+$missoesConcluidas = TryCall "GET /api/pessoas/$PessoaId/missoes?status=CONCLUIDA" {
+  InvokeApi "/api/pessoas/$PessoaId/missoes?status=CONCLUIDA" -Method GET
+}
+PrintJson "Missoes filter CONCLUIDA" $missoesConcluidas
+
+TryCall "DELETE /api/pessoas/$PessoaId/missoes/$missaoId" {
+  InvokeApi "/api/pessoas/$PessoaId/missoes/$missaoId" -Method DELETE
+} | Out-Null
+
+# ---------------------------
+# 6) Presenca checkin
 # ---------------------------
 $presenca = TryCall "POST /api/presencas/checkin" {
   InvokeApi "/api/presencas/checkin" -Method POST -Body @{
@@ -204,7 +253,7 @@ $presencaId = $presenca.id
 if (-not $presencaId) { throw "No presenca.id returned from checkin." }
 
 # ---------------------------
-# 6) DER Parameter Qualification setup
+# 7) DER Parameter Qualification setup
 # ---------------------------
 # The API enforces one active/scheduled rule per sensor + ParametroDef.
 # Reuse existing API test group/rule/link so this smoke test can run more than once
@@ -286,7 +335,7 @@ if ($null -eq $sensorRuleLink -or [string]::IsNullOrWhiteSpace($sensorRuleLink.i
 PrintJson "DER sensor-rule link" $sensorRuleLink
 
 # ---------------------------
-# 7) Ingest mock (generate Medicoes)
+# 8) Ingest mock (generate Medicoes)
 # ---------------------------
 $ingestRes = TryCall "POST /api/sensors/ingest/mock" {
   InvokeApi "/api/sensors/ingest/mock" -Method POST -Body @{
@@ -301,7 +350,7 @@ PrintJson "Sensors ingest mock" $ingestRes
 Start-Sleep -Seconds 1
 
 # ---------------------------
-# 8) Medicoes queries
+# 9) Medicoes queries
 # ---------------------------
 $latestSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes/latest" {
   InvokeApi "/api/sensors/$SensorExternalId/medicoes/latest" -Method GET
@@ -333,7 +382,7 @@ $listRoom = TryCall "GET /api/rooms/$RoomId/medicoes?from&to&limit" {
 PrintJson "Medicoes list (room, last 10m)" $listRoom
 
 # ---------------------------
-# 9) Presenca occupancy + open list
+# 10) Presenca occupancy + open list
 # ---------------------------
 $ocup = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId" {
   InvokeApi "/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET
@@ -346,7 +395,7 @@ $abertas = TryCall "GET /api/presencas/abertas/compartimentos/$RoomId" {
 PrintJson "Presencas abertas" $abertas
 
 # ---------------------------
-# 10) API test summary (console) using latestRoom.valores
+# 11) API test summary (console) using latestRoom.valores
 # ---------------------------
 Write-Host ""
 Write-Host "=== API TEST SUMMARY (Room $RoomId) ===" -ForegroundColor Cyan
@@ -381,7 +430,7 @@ if ($latestRoom -and $latestRoom.valores) {
 }
 
 # ---------------------------
-# 11) Checkout (by pessoa if available; fallback by presencaId)
+# 12) Checkout (by pessoa if available; fallback by presencaId)
 # ---------------------------
 $checkoutByPessoa = SoftCall "POST /api/presencas/checkout/by-pessoa (optional)" {
   InvokeApi "/api/presencas/checkout/by-pessoa" -Method POST -Body @{
@@ -401,7 +450,7 @@ if ($null -eq $checkoutByPessoa) {
 }
 
 # ---------------------------
-# 12) Occupancy after checkout
+# 13) Occupancy after checkout
 # ---------------------------
 $ocup2 = TryCall "GET /api/presencas/ocupacao/compartimentos/$RoomId (after checkout)" {
   InvokeApi "/api/presencas/ocupacao/compartimentos/$RoomId" -Method GET

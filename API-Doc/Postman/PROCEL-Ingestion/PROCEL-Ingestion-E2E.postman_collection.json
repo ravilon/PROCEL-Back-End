@@ -2,7 +2,7 @@
     "info":  {
                  "name":  "PROCEL Ingestion - API Smoke Test",
                  "_postman_id":  "d36efd2c-3066-43bc-a091-e6438b5625d3",
-                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries). Regra de cardinalidade: um ParametroDef pode ter varias RegraParametro globalmente, mas um sensor nao pode ter mais de uma regra ativa/agendada sobreposta para o mesmo ParametroDef do seu TipoDeSensor. Para execucao repetida contra a mesma base, prefira o script ApiSmokeTest.ps1, que reutiliza o grupo/regra/vinculo de teste quando ja existem.",
+                 "description":  "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, missoes por pessoa, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries). Regra de cardinalidade: um ParametroDef pode ter varias RegraParametro globalmente, mas um sensor nao pode ter mais de uma regra ativa/agendada sobreposta para o mesmo ParametroDef do seu TipoDeSensor. Para execucao repetida contra a mesma base, prefira o script ApiSmokeTest.ps1, que reutiliza o grupo/regra/vinculo de teste quando ja existem.",
                  "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
              },
     "variable":  [
@@ -72,6 +72,14 @@
                      },
                      {
                          "key":  "sensorGrupoRegraId",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "adminPessoaId",
+                         "value":  "admin"
+                     },
+                     {
+                         "key":  "missaoId",
                          "value":  ""
                      }
                  ],
@@ -362,7 +370,324 @@
                               ]
                  },
                  {
-                     "name":  "04 - PresenÃ§as",
+                     "name":  "04 - Missoes",
+                     "item":  [
+                                  {
+                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - pendente)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"titulo\": \"Validar ocupacao inicial\",\n  \"descricao\": \"Missao seed vinculada ao usuario admin para uso no sistema.\",\n  \"status\": \"PENDENTE\"\n}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/201\u0027, function () { pm.expect([200, 201]).to.include(pm.response.code); });",
+                                                                                    "const data = pm.response.json();",
+                                                                                    "pm.test(\u0027Has missao.id\u0027, function () { pm.expect(data.id).to.be.ok; });",
+                                                                                    "pm.collectionVariables.set(\u0027missaoId\u0027, data.id);"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - andamento)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"titulo\": \"Acompanhar sensores ativos\",\n  \"descricao\": \"Missao seed para acompanhar medicoes e qualificacoes do ambiente.\",\n  \"status\": \"EM_ANDAMENTO\"\n}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/201\u0027, function () { pm.expect([200, 201]).to.include(pm.response.code); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "POST /api/pessoas/{{adminPessoaId}}/missoes (seed admin - concluida)",
+                                      "request":  {
+                                                      "method":  "POST",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"titulo\": \"Revisar dashboard operacional\",\n  \"descricao\": \"Missao seed concluida para popular historico do usuario admin.\",\n  \"status\": \"CONCLUIDA\"\n}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/201\u0027, function () { pm.expect([200, 201]).to.include(pm.response.code); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/missoes",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/missoes?status=PENDENTE",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes?status=PENDENTE",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes"
+                                                                           ],
+                                                                  "query":  [
+                                                                                {
+                                                                                    "key":  "status",
+                                                                                    "value":  "PENDENTE"
+                                                                                }
+                                                                            ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "GET /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                      "request":  {
+                                                      "method":  "GET",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes",
+                                                                               "{{missaoId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "PUT /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                      "request":  {
+                                                      "method":  "PUT",
+                                                      "header":  {
+                                                                     "key":  "Content-Type",
+                                                                     "value":  "application/json"
+                                                                 },
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes",
+                                                                               "{{missaoId}}"
+                                                                           ]
+                                                              },
+                                                      "body":  {
+                                                                   "mode":  "raw",
+                                                                   "raw":  "{\n  \"titulo\": \"Validar ocupacao inicial - atualizado\",\n  \"descricao\": \"Missao atualizada pela collection Postman.\",\n  \"status\": \"CONCLUIDA\"\n}"
+                                                               }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200\u0027, function () { pm.response.to.have.status(200); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  },
+                                  {
+                                      "name":  "DELETE /api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}} (cleanup optional)",
+                                      "request":  {
+                                                      "method":  "DELETE",
+                                                      "header":  [
+
+                                                                 ],
+                                                      "url":  {
+                                                                  "raw":  "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/missoes/{{missaoId}}",
+                                                                  "host":  [
+                                                                               "{{baseUrl}}"
+                                                                           ],
+                                                                  "path":  [
+                                                                               "api",
+                                                                               "pessoas",
+                                                                               "{{adminPessoaId}}",
+                                                                               "missoes",
+                                                                               "{{missaoId}}"
+                                                                           ]
+                                                              }
+                                                  },
+                                      "response":  [
+
+                                                   ],
+                                      "event":  [
+                                                    {
+                                                        "listen":  "test",
+                                                        "script":  {
+                                                                       "type":  "text/javascript",
+                                                                       "exec":  [
+                                                                                    "pm.test(\u0027Status 200/204/404\u0027, function () { pm.expect([200, 204, 404]).to.include(pm.response.code); });"
+                                                                                ]
+                                                                   }
+                                                    }
+                                                ]
+                                  }
+                              ]
+                 },
+                 {
+                     "name":  "05 - Presencas",
                      "item":  [
                                   {
                                       "name":  "POST /api/presencas/checkin",
@@ -462,7 +787,7 @@
                               ]
                  },
                  {
-                     "name":  "05 - Rules / Parameter Qualification",
+                     "name":  "06 - Rules / Parameter Qualification",
                      "item":  [
                                   {
                                       "name":  "GET /api/rules/parameter-defs?tipoNome",
@@ -634,7 +959,7 @@
                      "description":  "Configura DER Parameter Qualification. A API rejeita duas regras ativas/agendadas sobrepostas para o mesmo sensor + ParametroDef. Esta pasta mostra o fluxo basico de criacao; para reruns idempotentes use Documentos/ApiSmokeTests/ApiSmokeTest.ps1."
                  },
                  {
-                     "name":  "06 - Sensors ingest mock",
+                     "name":  "07 - Sensors ingest mock",
                      "item":  [
                                   {
                                       "name":  "POST /api/sensors/ingest/mock",
@@ -681,7 +1006,7 @@
                               ]
                  },
                  {
-                     "name":  "07 - Medicoes",
+                     "name":  "08 - Medicoes",
                      "item":  [
                                   {
                                       "name":  "GET /api/sensors/{{sensorExternalId}}/medicoes/latest",
@@ -826,7 +1151,7 @@
                               ]
                  },
                  {
-                     "name":  "08 - Checkout",
+                     "name":  "09 - Checkout",
                      "item":  [
                                   {
                                       "name":  "POST /api/presencas/checkout/by-pessoa (optional)",

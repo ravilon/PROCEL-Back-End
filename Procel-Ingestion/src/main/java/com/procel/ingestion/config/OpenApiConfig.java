@@ -26,7 +26,7 @@ public class OpenApiConfig {
                         .version("0.0.1")
                         .description("""
                                 API para sincronizacao de salas, cadastro de pessoas, controle de presencas,
-                                ingestao mockada de sensores e consulta de medicoes.
+                                acompanhamento de missoes, ingestao mockada de sensores e consulta de medicoes.
 
                                 Autenticacao: use POST /api/auth/login para obter um accessToken e informe
                                 o valor no botao Authorize como Bearer JWT.

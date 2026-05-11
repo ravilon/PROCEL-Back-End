@@ -24,6 +24,7 @@ API Spring Boot responsavel por:
 - carregar seed de sensores;
 - cadastrar e autenticar pessoas;
 - registrar check-in/checkout de presencas;
+- cadastrar e acompanhar missoes vinculadas a pessoas;
 - gerar ingestao mockada de medicoes de sensores;
 - consultar medicoes por sensor ou compartimento;
 - cadastrar grupos/regras de qualificacao de parametros por sensor;
@@ -267,6 +268,25 @@ POST /api/presencas/checkout/by-pessoa
 GET  /api/presencas/ocupacao/compartimentos/{compartimentoId}
 GET  /api/presencas/abertas/compartimentos/{compartimentoId}
 ```
+
+Missoes:
+
+```text
+POST   /api/pessoas/{pessoaId}/missoes
+GET    /api/pessoas/{pessoaId}/missoes
+GET    /api/pessoas/{pessoaId}/missoes?status={status}
+GET    /api/pessoas/{pessoaId}/missoes/{missaoId}
+PUT    /api/pessoas/{pessoaId}/missoes/{missaoId}
+DELETE /api/pessoas/{pessoaId}/missoes/{missaoId}
+```
+
+Status suportados para missoes:
+
+```text
+PENDENTE, EM_ANDAMENTO, CONCLUIDA, CANCELADA
+```
+
+ADMIN e OPERADOR podem gerenciar missoes de qualquer pessoa. USUARIO comum pode gerenciar apenas as missoes vinculadas ao proprio `userId` do token.
 
 Salas e sensores:
 

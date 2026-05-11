@@ -47,6 +47,18 @@ create table parametro_valor (
     constraint ux_valor_medicao_param unique (medicao_id, parametro_def_id)
 );
 
+create table missao (
+    completed_at timestamp(6) with time zone,
+    created_at timestamp(6) with time zone not null,
+    started_at timestamp(6) with time zone,
+    id uuid not null,
+    status varchar(30) not null check ((status in ('PENDENTE','EM_ANDAMENTO','CONCLUIDA','CANCELADA'))),
+    pessoa_id varchar(80) not null,
+    titulo varchar(160) not null,
+    descricao varchar(1000),
+    primary key (id)
+);
+
 create table pessoa (
     created_at timestamp(6) with time zone not null,
     telefone varchar(40),
@@ -121,6 +133,12 @@ create index idx_valor_medicao_id
 create index idx_valor_param_def_id
    on parametro_valor (parametro_def_id);
 
+create index ix_missao_pessoa_status
+   on missao (pessoa_id, status);
+
+create index ix_missao_created_at
+   on missao (created_at);
+
 create index ix_pessoa_email
    on pessoa (email);
 
@@ -174,6 +192,11 @@ alter table if exists parametro_valor
    add constraint FKgdv56t6gj6ucpw10c72rw3agt
    foreign key (parametro_def_id)
    references parametro_def;
+
+alter table if exists missao
+   add constraint fk_missao_pessoa
+   foreign key (pessoa_id)
+   references pessoa;
 
 alter table if exists pessoa_role
    add constraint FK564cscnwy2u9k96997q3x3ugy
