@@ -900,6 +900,8 @@ collection:
                 {
                   "titulo": "Validar ocupacao inicial",
                   "descricao": "Modelo de missao seed para uso no sistema.",
+                  "tipo": "Individual",
+                  "value": 20,
                   "ativo": true
                 }
             headers:
@@ -947,6 +949,8 @@ collection:
                 {
                   "titulo": "Acompanhar sensores ativos",
                   "descricao": "Modelo de missao seed para acompanhar medicoes e qualificacoes do ambiente.",
+                  "tipo": "Individual",
+                  "value": 20,
                   "ativo": true
                 }
             headers:
@@ -987,6 +991,8 @@ collection:
                 {
                   "titulo": "Revisar dashboard operacional",
                   "descricao": "Modelo de missao seed para popular o catalogo.",
+                  "tipo": "Individual",
+                  "value": 20,
                   "ativo": true
                 }
             headers:
@@ -1084,6 +1090,8 @@ collection:
                 {
                   "titulo": "Validar ocupacao inicial - atualizado",
                   "descricao": "Modelo de missao atualizado pela collection Insomnia.",
+                  "tipo": "Individual",
+                  "value": 20,
                   "ativo": true
                 }
             headers:

@@ -36,7 +36,7 @@ public class MissaoService {
         if (req.titulo() == null || req.titulo().isBlank()) throw new IllegalArgumentException("titulo is required");
 
         boolean ativo = req.ativo() == null || req.ativo();
-        Missao missao = new Missao(req.titulo().trim(), req.descricao(), ativo);
+        Missao missao = new Missao(req.titulo().trim(), req.descricao(), req.tipo(), req.value(), ativo);
         return toMissaoResponse(missaoRepo.save(missao));
     }
 
@@ -60,6 +60,8 @@ public class MissaoService {
 
         if (req.titulo() != null && !req.titulo().isBlank()) missao.setTitulo(req.titulo().trim());
         if (req.descricao() != null) missao.setDescricao(req.descricao());
+        if (req.tipo() != null) missao.setTipo(req.tipo());
+        if (req.value() != null) missao.setValue(req.value());
         if (req.ativo() != null) missao.setAtivo(req.ativo());
 
         return toMissaoResponse(missao);
@@ -203,6 +205,8 @@ public class MissaoService {
                 missao.getId(),
                 missao.getTitulo(),
                 missao.getDescricao(),
+                missao.getTipo(),
+                missao.getValue(),
                 missao.isAtivo(),
                 missao.getCreatedAt()
         );

@@ -85,7 +85,7 @@ public class MissoesController {
 
     @PostMapping("/api/pessoas/{pessoaId}/atividades")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Atribui missao a uma pessoa", description = "Cria uma atividade para a pessoa. Completar uma missao atualiza esta atividade, nao o modelo de missao.")
+    @Operation(summary = "Atribui missao a uma pessoa", description = "Cria uma atividade para a pessoa. Completar uma missao atualiza esta atividade, nao o modelo de missao. ADMIN e OPERADOR podem atribuir para qualquer pessoa; USUARIO comum so pode atribuir para si mesmo.")
     @ApiResponse(responseCode = "200", description = "Atividade criada.")
     @ApiResponse(responseCode = "400", description = "Dados obrigatorios ausentes ou invalidos.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
@@ -101,7 +101,7 @@ public class MissoesController {
 
     @GetMapping("/api/pessoas/{pessoaId}/atividades")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Lista atividades de uma pessoa", description = "Lista atividades, com filtro opcional por status.")
+    @Operation(summary = "Lista atividades de uma pessoa", description = "Lista atividades, com filtro opcional por status. ADMIN e OPERADOR podem consultar qualquer pessoa; USUARIO comum so pode consultar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Lista retornada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao para consultar atividades de outra pessoa.")
@@ -115,7 +115,7 @@ public class MissoesController {
 
     @GetMapping("/api/pessoas/{pessoaId}/atividades/resumo")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Resumo de atividades de uma pessoa", description = "Retorna contagens por status, incluindo missoes concluidas e expiradas.")
+    @Operation(summary = "Resumo de atividades de uma pessoa", description = "Retorna contagens por status, incluindo missoes concluidas e expiradas. ADMIN e OPERADOR podem consultar qualquer pessoa; USUARIO comum so pode consultar o proprio resumo.")
     @ApiResponse(responseCode = "200", description = "Resumo retornado.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao para consultar atividades de outra pessoa.")
@@ -128,7 +128,7 @@ public class MissoesController {
 
     @GetMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Busca atividade de uma pessoa")
+    @Operation(summary = "Busca atividade de uma pessoa", description = "ADMIN e OPERADOR podem consultar qualquer pessoa; USUARIO comum so pode consultar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Atividade encontrada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao para consultar atividade de outra pessoa.")
@@ -142,7 +142,7 @@ public class MissoesController {
 
     @PutMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Atualiza atividade de uma pessoa", description = "Use este endpoint para iniciar, concluir ou cancelar uma missao atribuida.")
+    @Operation(summary = "Atualiza atividade de uma pessoa", description = "Use este endpoint para iniciar, concluir ou cancelar uma missao atribuida. Atividades nao sao deletadas fisicamente: elas permanecem no historico como CONCLUIDA, EXPIRADA ou CANCELADA. ADMIN e OPERADOR podem atualizar qualquer pessoa; USUARIO comum so pode atualizar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Atividade atualizada.")
     @ApiResponse(responseCode = "400", description = "Dados invalidos.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
@@ -158,7 +158,7 @@ public class MissoesController {
 
     @DeleteMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Expira atividade de uma pessoa", description = "Marca a atividade como EXPIRADA sem remover o historico.")
+    @Operation(summary = "Expira atividade de uma pessoa", description = "Marca a atividade como EXPIRADA sem remover o historico. Este endpoint e delete logico: a atividade continua disponivel para consulta e contagem no resumo. ADMIN e OPERADOR podem expirar atividade de qualquer pessoa; USUARIO comum so pode expirar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Atividade expirada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao para remover atividade de outra pessoa.")

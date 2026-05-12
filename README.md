@@ -99,7 +99,7 @@ As migrations ficam em:
 Procel-Ingestion/src/main/resources/db/migration/
 ```
 
-`V2__mission_catalog_and_activity_expiration.sql` registra as 30 missoes padrao e atualiza o status `EXPIRADA` para atividades. `V3__rename_legacy_activity_table.sql` renomeia bancos existentes para a tabela canonica `atividade`.
+`V2__mission_catalog_and_activity_expiration.sql` registra as 30 missoes padrao como tipo `Individual`, com `value` numerico de XP, e atualiza o status `EXPIRADA` para atividades. `V3__rename_legacy_activity_table.sql` renomeia bancos existentes para a tabela canonica `atividade`. `V4__mission_type_individual_seed.sql` garante `missao.tipo = Individual` em bancos que ja tinham recebido o seed antes desse campo. `V5__mission_seed_xp_values.sql` garante os valores de XP das missoes seed em bancos existentes.
 
 O Hibernate ainda esta configurado para atualizar ajustes de schema durante desenvolvimento:
 
@@ -302,6 +302,8 @@ DELETE /api/missoes/{missaoId}
 ```
 
 `DELETE /api/missoes/{missaoId}` nao remove a linha. Ele depreca a missao, marcando `ativo=false`, e expira atividades abertas dessa missao.
+
+Modelos de missao possuem `tipo` e `value`. O seed padrao usa `tipo = Individual` e grava em `value` apenas o numero de XP recomendado.
 
 Atividades:
 

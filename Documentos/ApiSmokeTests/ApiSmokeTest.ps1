@@ -75,6 +75,8 @@ $PessoaEmail = "api-test-user@procel.local"
 $AdminEmail = "admin@procel.local"
 $AdminPassword = "admin123"
 $JwtToken = $null
+$AdminJwtToken = $null
+$UserJwtToken = $null
 
 # ---------------------------
 # Helpers
@@ -190,6 +192,7 @@ $login = TryCall "POST /api/auth/login (admin bootstrap)" {
 
 $JwtToken = $login.accessToken
 if ([string]::IsNullOrWhiteSpace($JwtToken)) { throw "No accessToken returned from login." }
+$AdminJwtToken = $JwtToken
 Write-Host "[OK] JWT token acquired. ExpiresAt: $($login.expiresAt)" -ForegroundColor Green
 
 # ---------------------------
@@ -234,6 +237,17 @@ $pessoaUpd = TryCall "PUT /api/pessoas/$PessoaId (update)" {
 }
 PrintJson "Pessoa (PUT)" $pessoaUpd
 
+$userLogin = TryCall "POST /api/auth/login (test user)" {
+  InvokeApi "/api/auth/login" -Method POST -NoAuth -Body @{
+    email=$PessoaEmail
+    password="123456"
+  }
+}
+
+$UserJwtToken = $userLogin.accessToken
+if ([string]::IsNullOrWhiteSpace($UserJwtToken)) { throw "No accessToken returned from test user login." }
+Write-Host "[OK] Test user JWT token acquired. ExpiresAt: $($userLogin.expiresAt)" -ForegroundColor Green
+
 # ---------------------------
 # 5) Missoes catalog + atividades by pessoa
 # ---------------------------
@@ -243,6 +257,8 @@ $missao = TryCall "POST /api/missoes" {
   InvokeApi "/api/missoes" -Method POST -Body @{
     titulo="API smoke test mission $MissionRunId"
     descricao="Mission model created by ApiSmokeTest.ps1 run $MissionRunId"
+    tipo="Individual"
+    value=20
     ativo=$true
   }
 }
@@ -251,11 +267,15 @@ PrintJson "Missao catalog create" $missao
 $missaoId = $missao.id
 if (-not $missaoId) { throw "No missao.id returned from create." }
 AssertSmoke "POST /api/missoes returns active mission" ($missao.ativo -eq $true -and $missao.titulo -like "*$MissionRunId") "created mission does not match request."
+AssertSmoke "POST /api/missoes returns Individual type" ($missao.tipo -eq "Individual") "created mission type should be Individual."
+AssertSmoke "POST /api/missoes returns numeric XP value" ($missao.value -eq 20) "created mission value should be 20."
 
 $missaoInativa = TryCall "POST /api/missoes (inactive)" {
   InvokeApi "/api/missoes" -Method POST -Body @{
     titulo="API smoke test inactive mission $MissionRunId"
     descricao="Inactive mission used to validate assignment conflict."
+    tipo="Individual"
+    value=15
     ativo=$false
   }
 }
@@ -263,6 +283,8 @@ PrintJson "Missao inactive create" $missaoInativa
 
 $missaoInativaId = $missaoInativa.id
 if (-not $missaoInativaId) { throw "No inactive missao.id returned from create." }
+AssertSmoke "POST /api/missoes inactive returns Individual type" ($missaoInativa.tipo -eq "Individual") "inactive mission type should be Individual."
+AssertSmoke "POST /api/missoes inactive returns numeric XP value" ($missaoInativa.value -eq 15) "inactive mission value should be 15."
 
 $missoes = TryCall "GET /api/missoes?ativo=true" {
   InvokeApi "/api/missoes?ativo=true" -Method GET
@@ -289,16 +311,22 @@ $missaoGet = TryCall "GET /api/missoes/$missaoId" {
 }
 PrintJson "Missao catalog get" $missaoGet
 AssertSmoke "GET /api/missoes/{missaoId} returns requested mission" ("$($missaoGet.id)" -eq "$missaoId") "GET returned a different mission id."
+AssertSmoke "GET /api/missoes/{missaoId} returns Individual type" ($missaoGet.tipo -eq "Individual") "mission type should be Individual."
+AssertSmoke "GET /api/missoes/{missaoId} returns numeric XP value" ($missaoGet.value -eq 20) "mission value should be 20."
 
 $missaoUpd = TryCall "PUT /api/missoes/$missaoId" {
   InvokeApi "/api/missoes/$missaoId" -Method PUT -Body @{
     titulo="API smoke test mission updated $MissionRunId"
     descricao="Mission model updated by ApiSmokeTest.ps1 run $MissionRunId"
+    tipo="Individual"
+    value=25
     ativo=$true
   }
 }
 PrintJson "Missao catalog update" $missaoUpd
 AssertSmoke "PUT /api/missoes/{missaoId} updates title" ($missaoUpd.titulo -eq "API smoke test mission updated $MissionRunId") "updated title was not returned."
+AssertSmoke "PUT /api/missoes/{missaoId} keeps Individual type" ($missaoUpd.tipo -eq "Individual") "updated mission type should be Individual."
+AssertSmoke "PUT /api/missoes/{missaoId} updates numeric XP value" ($missaoUpd.value -eq 25) "updated mission value should be 25."
 
 ExpectFailure "POST /api/pessoas/$PessoaId/atividades rejects inactive missao" {
   InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{
@@ -345,6 +373,29 @@ $atividadeGet = TryCall "GET /api/pessoas/$PessoaId/atividades/$atividadeId" {
 PrintJson "Atividade get" $atividadeGet
 AssertSmoke "GET /api/pessoas/{pessoaId}/atividades/{atividadeId} returns requested activity" ("$($atividadeGet.id)" -eq "$atividadeId") "GET returned a different activity id."
 
+$JwtToken = $UserJwtToken
+$atividadesOwnUser = TryCall "GET /api/pessoas/$PessoaId/atividades as own USUARIO" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades" -Method GET
+}
+PrintJson "Atividades list as own user" $atividadesOwnUser
+AssertSmoke "USUARIO can list own atividades" (@($atividadesOwnUser | Where-Object { "$($_.id)" -eq "$atividadeId" }).Count -eq 1) "own user could not list own activity."
+
+$atividadeOwnUser = TryCall "GET /api/pessoas/$PessoaId/atividades/$atividadeId as own USUARIO" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method GET
+}
+AssertSmoke "USUARIO can get own atividade" ("$($atividadeOwnUser.id)" -eq "$atividadeId") "own user could not get own activity."
+
+$resumoOwnUser = TryCall "GET /api/pessoas/$PessoaId/atividades/resumo as own USUARIO" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/resumo" -Method GET
+}
+PrintJson "Atividades resumo as own user" $resumoOwnUser
+
+ExpectFailure "GET /api/pessoas/admin/atividades rejects another pessoa for USUARIO" {
+  InvokeApi "/api/pessoas/admin/atividades" -Method GET
+} @(403)
+
+$JwtToken = $AdminJwtToken
+
 $atividadeAndamento = TryCall "PUT /api/pessoas/$PessoaId/atividades/$atividadeId (EM_ANDAMENTO)" {
   InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method PUT -Body @{
     status="EM_ANDAMENTO"
@@ -373,6 +424,8 @@ $missaoExpiravel = TryCall "POST /api/missoes (expirable activity)" {
   InvokeApi "/api/missoes" -Method POST -Body @{
     titulo="API smoke test expirable mission $MissionRunId"
     descricao="Mission used by ApiSmokeTest.ps1 to validate EXPIRADA status."
+    tipo="Individual"
+    value=30
     ativo=$true
   }
 }

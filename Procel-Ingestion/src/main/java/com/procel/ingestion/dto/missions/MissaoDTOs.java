@@ -14,6 +14,10 @@ public class MissaoDTOs {
             String titulo,
             @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.")
             String descricao,
+            @Schema(description = "Tipo da missao. Se omitido, usa Individual.", example = "Individual")
+            String tipo,
+            @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20")
+            Integer value,
             @Schema(description = "Indica se a missao pode ser atribuida a pessoas. Se omitido, usa true.", example = "true")
             Boolean ativo
     ) {}
@@ -24,6 +28,10 @@ public class MissaoDTOs {
             String titulo,
             @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.")
             String descricao,
+            @Schema(description = "Tipo da missao.", example = "Individual")
+            String tipo,
+            @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20")
+            Integer value,
             @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true")
             Boolean ativo
     ) {}
@@ -36,6 +44,10 @@ public class MissaoDTOs {
             String titulo,
             @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.")
             String descricao,
+            @Schema(description = "Tipo da missao.", example = "Individual")
+            String tipo,
+            @Schema(description = "Pontuacao de XP da missao.", example = "20")
+            int value,
             @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true")
             boolean ativo,
             @Schema(description = "Instante de criacao.", example = "2026-05-11T21:30:00Z")

@@ -1,4 +1,4 @@
-﻿{
+{
   "info": {
     "name": "PROCEL Ingestion - API Smoke Test",
     "_postman_id": "d36efd2c-3066-43bc-a091-e6438b5625d3",
@@ -374,7 +374,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Validar ocupacao inicial\",\n  \"descricao\": \"Modelo de missao seed para uso no sistema.\",\n  \"ativo\": true\n}"
+              "raw": "{\n  \"titulo\": \"Validar ocupacao inicial\",\n  \"descricao\": \"Modelo de missao seed para uso no sistema.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 20\n}"
             }
           },
           "response": [],
@@ -413,7 +413,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Acompanhar sensores ativos\",\n  \"descricao\": \"Modelo de missao seed para acompanhar medicoes e qualificacoes do ambiente.\",\n  \"ativo\": true\n}"
+              "raw": "{\n  \"titulo\": \"Acompanhar sensores ativos\",\n  \"descricao\": \"Modelo de missao seed para acompanhar medicoes e qualificacoes do ambiente.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 25\n}"
             }
           },
           "response": [],
@@ -449,7 +449,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Revisar dashboard operacional\",\n  \"descricao\": \"Modelo de missao seed para popular o catalogo.\",\n  \"ativo\": true\n}"
+              "raw": "{\n  \"titulo\": \"Revisar dashboard operacional\",\n  \"descricao\": \"Modelo de missao seed para popular o catalogo.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 30\n}"
             }
           },
           "response": [],
@@ -551,7 +551,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Validar ocupacao inicial - atualizado\",\n  \"descricao\": \"Modelo de missao atualizado pela collection Postman.\",\n  \"ativo\": true\n}"
+              "raw": "{\n  \"titulo\": \"Validar ocupacao inicial - atualizado\",\n  \"descricao\": \"Modelo de missao atualizado pela collection Postman.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 25\n}"
             }
           },
           "response": [],
@@ -1458,4 +1458,3 @@
     }
   ]
 }
-

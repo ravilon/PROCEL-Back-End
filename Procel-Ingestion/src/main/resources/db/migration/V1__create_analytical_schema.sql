@@ -53,6 +53,8 @@ create table missao (
     ativo boolean not null,
     created_at timestamp(6) with time zone not null,
     id uuid not null,
+    tipo varchar(40) not null default 'Individual',
+    value integer not null default 0 check (value >= 0),
     titulo varchar(160) not null,
     descricao varchar(1000),
     primary key (id)
