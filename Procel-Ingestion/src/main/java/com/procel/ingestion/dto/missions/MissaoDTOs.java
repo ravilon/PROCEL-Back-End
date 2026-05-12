@@ -64,7 +64,7 @@ public class MissaoDTOs {
 
     @Schema(description = "Atividade de uma pessoa gerada pela atribuicao de uma missao.")
     public record AtividadeResponse(
-            @Schema(description = "Identificador da atividade pessoa-missao.", example = "7655bd02-1302-4589-9902-8aa89ccf01c6")
+            @Schema(description = "Identificador da atividade.", example = "7655bd02-1302-4589-9902-8aa89ccf01c6")
             UUID id,
             @Schema(description = "Identificador da pessoa.", example = "ravilon")
             String pessoaId,
@@ -84,5 +84,21 @@ public class MissaoDTOs {
             Instant startedAt,
             @Schema(description = "Instante de conclusao.", example = "2026-05-11T23:00:00Z")
             Instant completedAt
+    ) {}
+
+    @Schema(description = "Resumo quantitativo das atividades de uma pessoa por status.")
+    public record AtividadesResumoResponse(
+            @Schema(description = "Total de atividades da pessoa.", example = "12")
+            long total,
+            @Schema(description = "Atividades pendentes.", example = "4")
+            long pendentes,
+            @Schema(description = "Atividades em andamento.", example = "2")
+            long emAndamento,
+            @Schema(description = "Atividades concluidas.", example = "5")
+            long concluidas,
+            @Schema(description = "Atividades expiradas.", example = "1")
+            long expiradas,
+            @Schema(description = "Atividades canceladas.", example = "0")
+            long canceladas
     ) {}
 }

@@ -26,8 +26,17 @@ public class OpenApiConfig {
                         .version("0.0.1")
                         .description("""
                                 API para sincronizacao de salas, cadastro de pessoas, controle de presencas,
-                                catalogo de missoes, atividades pessoa-missao, ingestao mockada de sensores
-                                e consulta de medicoes.
+                                catalogo de missoes, atividades, ingestao mockada de sensores,
+                                consulta de medicoes e qualificacao de parametros.
+
+                                Missoes sao catalogo versionado: remover uma missao depreca o modelo
+                                (ativo=false) sem apagar historico. Atividades tambem preservam
+                                historico: remover uma atividade marca status EXPIRADA. Use o resumo de
+                                atividades para acompanhar quantas foram concluidas, expiradas, canceladas
+                                ou ainda estao abertas.
+
+                                O schema e os seeds de catalogo sao aplicados automaticamente por Flyway
+                                em classpath:db/migration.
 
                                 Autenticacao: use POST /api/auth/login para obter um accessToken e informe
                                 o valor no botao Authorize como Bearer JWT.

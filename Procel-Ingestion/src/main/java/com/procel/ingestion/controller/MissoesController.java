@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@Tag(name = "Missoes", description = "Catalogo de missoes e atividades pessoa-missao.")
+@Tag(name = "Missoes", description = "Catalogo de missoes e atividades.")
 public class MissoesController {
 
     private final MissaoService service;
@@ -72,8 +72,8 @@ public class MissoesController {
 
     @DeleteMapping("/api/missoes/{missaoId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
-    @Operation(summary = "Remove modelo de missao")
-    @ApiResponse(responseCode = "200", description = "Missao removida.")
+    @Operation(summary = "Depreca modelo de missao", description = "Desativa a missao sem remover o historico. Atividades pendentes ou em andamento desta missao sao expiradas.")
+    @ApiResponse(responseCode = "200", description = "Missao deprecada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao.")
     @ApiResponse(responseCode = "404", description = "Missao nao encontrada.")
@@ -85,7 +85,7 @@ public class MissoesController {
 
     @PostMapping("/api/pessoas/{pessoaId}/atividades")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Atribui missao a uma pessoa", description = "Cria a atividade pessoa-missao. Completar uma missao atualiza esta relacao, nao o modelo de missao.")
+    @Operation(summary = "Atribui missao a uma pessoa", description = "Cria uma atividade para a pessoa. Completar uma missao atualiza esta atividade, nao o modelo de missao.")
     @ApiResponse(responseCode = "200", description = "Atividade criada.")
     @ApiResponse(responseCode = "400", description = "Dados obrigatorios ausentes ou invalidos.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
@@ -101,7 +101,7 @@ public class MissoesController {
 
     @GetMapping("/api/pessoas/{pessoaId}/atividades")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Lista atividades de uma pessoa", description = "Lista relacoes pessoa-missao, com filtro opcional por status.")
+    @Operation(summary = "Lista atividades de uma pessoa", description = "Lista atividades, com filtro opcional por status.")
     @ApiResponse(responseCode = "200", description = "Lista retornada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao para consultar atividades de outra pessoa.")
@@ -111,6 +111,19 @@ public class MissoesController {
             @Parameter(description = "Filtro opcional por status.", example = "PENDENTE") @RequestParam(required = false) AtividadeStatus status
     ) {
         return service.listAtividades(pessoaId, status);
+    }
+
+    @GetMapping("/api/pessoas/{pessoaId}/atividades/resumo")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
+    @Operation(summary = "Resumo de atividades de uma pessoa", description = "Retorna contagens por status, incluindo missoes concluidas e expiradas.")
+    @ApiResponse(responseCode = "200", description = "Resumo retornado.")
+    @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
+    @ApiResponse(responseCode = "403", description = "Sem permissao para consultar atividades de outra pessoa.")
+    @ApiResponse(responseCode = "404", description = "Pessoa nao encontrada.")
+    public MissaoDTOs.AtividadesResumoResponse resumoAtividades(
+            @Parameter(description = "ID da pessoa.", example = "ravilon") @PathVariable String pessoaId
+    ) {
+        return service.resumoAtividades(pessoaId);
     }
 
     @GetMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
@@ -145,8 +158,8 @@ public class MissoesController {
 
     @DeleteMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
-    @Operation(summary = "Remove atividade de uma pessoa")
-    @ApiResponse(responseCode = "200", description = "Atividade removida.")
+    @Operation(summary = "Expira atividade de uma pessoa", description = "Marca a atividade como EXPIRADA sem remover o historico.")
+    @ApiResponse(responseCode = "200", description = "Atividade expirada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
     @ApiResponse(responseCode = "403", description = "Sem permissao para remover atividade de outra pessoa.")
     @ApiResponse(responseCode = "404", description = "Atividade nao encontrada.")

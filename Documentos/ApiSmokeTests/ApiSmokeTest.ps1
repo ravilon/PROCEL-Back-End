@@ -9,7 +9,7 @@ Covers:
 - Sensors seed
 - Pessoa create/get/update
 - Missoes catalog create/list/get/update/delete
-- Atividades pessoa-missao create/list/get/update/filter/delete
+- Atividades create/list/get/update/filter/expire
 - Presenca checkin
 - Rules / Parameter Qualification setup
 - Sensors ingest mock
@@ -99,6 +99,40 @@ function SoftCall($name, [ScriptBlock]$fn) {
     Write-Host "[WARN] $name -> $($_.Exception.Message)" -ForegroundColor Yellow
     return $null
   }
+}
+
+function ExpectFailure($name, [ScriptBlock]$fn, [int[]]$ExpectedStatusCodes = @()) {
+  $succeeded = $false
+  try {
+    & $fn | Out-Null
+    $succeeded = $true
+  } catch {
+    $statusCode = $null
+    if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+      $statusCode = [int]$_.Exception.Response.StatusCode
+    }
+
+    if ($ExpectedStatusCodes.Count -gt 0 -and ($null -eq $statusCode -or $ExpectedStatusCodes -notcontains $statusCode)) {
+      throw "Expected HTTP status $($ExpectedStatusCodes -join ', ') but got '$statusCode'. Error: $($_.Exception.Message)"
+    }
+
+    if ($null -eq $statusCode) {
+      Write-Host "[OK] $name failed as expected" -ForegroundColor Green
+    } else {
+      Write-Host "[OK] $name failed as expected (HTTP $statusCode)" -ForegroundColor Green
+    }
+  }
+
+  if ($succeeded) {
+    throw "$name assertion failed: expected failure but request succeeded."
+  }
+}
+
+function AssertSmoke($name, [bool]$Condition, [string]$Message) {
+  if (-not $Condition) {
+    throw "$name assertion failed: $Message"
+  }
+  Write-Host "[OK] $name" -ForegroundColor Green
 }
 
 function PrintJson($title, $obj) {
@@ -203,10 +237,12 @@ PrintJson "Pessoa (PUT)" $pessoaUpd
 # ---------------------------
 # 5) Missoes catalog + atividades by pessoa
 # ---------------------------
+$MissionRunId = [Guid]::NewGuid().ToString("N").Substring(0, 8)
+
 $missao = TryCall "POST /api/missoes" {
   InvokeApi "/api/missoes" -Method POST -Body @{
-    titulo="API smoke test mission"
-    descricao="Mission model created by ApiSmokeTest.ps1"
+    titulo="API smoke test mission $MissionRunId"
+    descricao="Mission model created by ApiSmokeTest.ps1 run $MissionRunId"
     ativo=$true
   }
 }
@@ -214,66 +250,196 @@ PrintJson "Missao catalog create" $missao
 
 $missaoId = $missao.id
 if (-not $missaoId) { throw "No missao.id returned from create." }
+AssertSmoke "POST /api/missoes returns active mission" ($missao.ativo -eq $true -and $missao.titulo -like "*$MissionRunId") "created mission does not match request."
+
+$missaoInativa = TryCall "POST /api/missoes (inactive)" {
+  InvokeApi "/api/missoes" -Method POST -Body @{
+    titulo="API smoke test inactive mission $MissionRunId"
+    descricao="Inactive mission used to validate assignment conflict."
+    ativo=$false
+  }
+}
+PrintJson "Missao inactive create" $missaoInativa
+
+$missaoInativaId = $missaoInativa.id
+if (-not $missaoInativaId) { throw "No inactive missao.id returned from create." }
 
 $missoes = TryCall "GET /api/missoes?ativo=true" {
   InvokeApi "/api/missoes?ativo=true" -Method GET
 }
 PrintJson "Missoes catalog list" $missoes
+AssertSmoke "GET /api/missoes?ativo=true includes created mission" (@($missoes | Where-Object { "$($_.id)" -eq "$missaoId" }).Count -eq 1) "created active mission was not returned by ativo=true filter."
+
+$missoesInativas = TryCall "GET /api/missoes?ativo=false" {
+  InvokeApi "/api/missoes?ativo=false" -Method GET
+}
+PrintJson "Missoes inactive list" $missoesInativas
+AssertSmoke "GET /api/missoes?ativo=false includes inactive mission" (@($missoesInativas | Where-Object { "$($_.id)" -eq "$missaoInativaId" }).Count -eq 1) "created inactive mission was not returned by ativo=false filter."
+
+$missoesAll = TryCall "GET /api/missoes" {
+  InvokeApi "/api/missoes" -Method GET
+}
+PrintJson "Missoes catalog list all" $missoesAll
+AssertSmoke "GET /api/missoes includes active and inactive missions" (
+  @($missoesAll | Where-Object { "$($_.id)" -eq "$missaoId" -or "$($_.id)" -eq "$missaoInativaId" }).Count -eq 2
+) "unfiltered list did not include both missions created by this smoke test."
 
 $missaoGet = TryCall "GET /api/missoes/$missaoId" {
   InvokeApi "/api/missoes/$missaoId" -Method GET
 }
 PrintJson "Missao catalog get" $missaoGet
+AssertSmoke "GET /api/missoes/{missaoId} returns requested mission" ("$($missaoGet.id)" -eq "$missaoId") "GET returned a different mission id."
 
 $missaoUpd = TryCall "PUT /api/missoes/$missaoId" {
   InvokeApi "/api/missoes/$missaoId" -Method PUT -Body @{
-    titulo="API smoke test mission updated"
-    descricao="Mission model updated by ApiSmokeTest.ps1"
+    titulo="API smoke test mission updated $MissionRunId"
+    descricao="Mission model updated by ApiSmokeTest.ps1 run $MissionRunId"
     ativo=$true
   }
 }
 PrintJson "Missao catalog update" $missaoUpd
+AssertSmoke "PUT /api/missoes/{missaoId} updates title" ($missaoUpd.titulo -eq "API smoke test mission updated $MissionRunId") "updated title was not returned."
+
+ExpectFailure "POST /api/pessoas/$PessoaId/atividades rejects inactive missao" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{
+    missaoId=$missaoInativaId
+    status="PENDENTE"
+  }
+} @(409)
 
 $atividade = TryCall "POST /api/pessoas/$PessoaId/atividades" {
   InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{
     missaoId=$missaoId
     status="PENDENTE"
+    startedAt=$FromIso
   }
 }
 PrintJson "Atividade create" $atividade
 
 $atividadeId = $atividade.id
 if (-not $atividadeId) { throw "No atividade.id returned from create." }
+AssertSmoke "POST /api/pessoas/{pessoaId}/atividades returns PENDENTE activity" ($atividade.status -eq "PENDENTE" -and "$($atividade.missaoId)" -eq "$missaoId") "created activity does not match mission/status."
+
+ExpectFailure "POST /api/pessoas/$PessoaId/atividades rejects duplicate missao" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{
+    missaoId=$missaoId
+    status="PENDENTE"
+  }
+} @(409)
 
 $atividades = TryCall "GET /api/pessoas/$PessoaId/atividades" {
   InvokeApi "/api/pessoas/$PessoaId/atividades" -Method GET
 }
 PrintJson "Atividades list" $atividades
+AssertSmoke "GET /api/pessoas/{pessoaId}/atividades includes created activity" (@($atividades | Where-Object { "$($_.id)" -eq "$atividadeId" }).Count -eq 1) "created activity was not returned."
+
+$atividadesPendentes = TryCall "GET /api/pessoas/$PessoaId/atividades?status=PENDENTE" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades?status=PENDENTE" -Method GET
+}
+PrintJson "Atividades filter PENDENTE" $atividadesPendentes
+AssertSmoke "GET /api/pessoas/{pessoaId}/atividades?status=PENDENTE includes created activity" (@($atividadesPendentes | Where-Object { "$($_.id)" -eq "$atividadeId" }).Count -eq 1) "PENDENTE filter did not return created activity."
 
 $atividadeGet = TryCall "GET /api/pessoas/$PessoaId/atividades/$atividadeId" {
   InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method GET
 }
 PrintJson "Atividade get" $atividadeGet
+AssertSmoke "GET /api/pessoas/{pessoaId}/atividades/{atividadeId} returns requested activity" ("$($atividadeGet.id)" -eq "$atividadeId") "GET returned a different activity id."
+
+$atividadeAndamento = TryCall "PUT /api/pessoas/$PessoaId/atividades/$atividadeId (EM_ANDAMENTO)" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method PUT -Body @{
+    status="EM_ANDAMENTO"
+    startedAt=$FromIso
+  }
+}
+PrintJson "Atividade update EM_ANDAMENTO" $atividadeAndamento
+AssertSmoke "PUT atividade sets EM_ANDAMENTO" ($atividadeAndamento.status -eq "EM_ANDAMENTO" -and $null -ne $atividadeAndamento.startedAt) "activity was not moved to EM_ANDAMENTO with startedAt."
 
 $atividadeUpd = TryCall "PUT /api/pessoas/$PessoaId/atividades/$atividadeId" {
   InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method PUT -Body @{
     status="CONCLUIDA"
+    completedAt=$ToIso
   }
 }
 PrintJson "Atividade update CONCLUIDA" $atividadeUpd
+AssertSmoke "PUT atividade sets CONCLUIDA" ($atividadeUpd.status -eq "CONCLUIDA" -and $null -ne $atividadeUpd.completedAt) "activity was not completed."
 
 $atividadesConcluidas = TryCall "GET /api/pessoas/$PessoaId/atividades?status=CONCLUIDA" {
   InvokeApi "/api/pessoas/$PessoaId/atividades?status=CONCLUIDA" -Method GET
 }
 PrintJson "Atividades filter CONCLUIDA" $atividadesConcluidas
+AssertSmoke "GET /api/pessoas/{pessoaId}/atividades?status=CONCLUIDA includes completed activity" (@($atividadesConcluidas | Where-Object { "$($_.id)" -eq "$atividadeId" }).Count -eq 1) "CONCLUIDA filter did not return completed activity."
 
-TryCall "DELETE /api/pessoas/$PessoaId/atividades/$atividadeId" {
-  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeId" -Method DELETE
+$missaoExpiravel = TryCall "POST /api/missoes (expirable activity)" {
+  InvokeApi "/api/missoes" -Method POST -Body @{
+    titulo="API smoke test expirable mission $MissionRunId"
+    descricao="Mission used by ApiSmokeTest.ps1 to validate EXPIRADA status."
+    ativo=$true
+  }
+}
+PrintJson "Missao expirable create" $missaoExpiravel
+
+$missaoExpiravelId = $missaoExpiravel.id
+if (-not $missaoExpiravelId) { throw "No expirable missao.id returned from create." }
+
+$atividadeExpiravel = TryCall "POST /api/pessoas/$PessoaId/atividades (to expire)" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{
+    missaoId=$missaoExpiravelId
+    status="PENDENTE"
+  }
+}
+PrintJson "Atividade expirable create" $atividadeExpiravel
+
+$atividadeExpiravelId = $atividadeExpiravel.id
+if (-not $atividadeExpiravelId) { throw "No expirable atividade.id returned from create." }
+
+TryCall "DELETE /api/pessoas/$PessoaId/atividades/$atividadeExpiravelId (expires)" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeExpiravelId" -Method DELETE
 } | Out-Null
+
+$atividadeExpirada = TryCall "GET expired atividade still exists" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/$atividadeExpiravelId" -Method GET
+}
+PrintJson "Atividade expired get" $atividadeExpirada
+AssertSmoke "DELETE atividade marks EXPIRADA" ($atividadeExpirada.status -eq "EXPIRADA" -and $null -ne $atividadeExpirada.completedAt) "activity was not marked EXPIRADA."
+
+$atividadesExpiradas = TryCall "GET /api/pessoas/$PessoaId/atividades?status=EXPIRADA" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades?status=EXPIRADA" -Method GET
+}
+PrintJson "Atividades filter EXPIRADA" $atividadesExpiradas
+AssertSmoke "GET /api/pessoas/{pessoaId}/atividades?status=EXPIRADA includes expired activity" (@($atividadesExpiradas | Where-Object { "$($_.id)" -eq "$atividadeExpiravelId" }).Count -eq 1) "EXPIRADA filter did not return expired activity."
+
+$atividadesResumo = TryCall "GET /api/pessoas/$PessoaId/atividades/resumo" {
+  InvokeApi "/api/pessoas/$PessoaId/atividades/resumo" -Method GET
+}
+PrintJson "Atividades resumo" $atividadesResumo
+AssertSmoke "Atividades resumo counts CONCLUIDA and EXPIRADA" ($atividadesResumo.concluidas -ge 1 -and $atividadesResumo.expiradas -ge 1) "summary did not count completed and expired activities."
+
+TryCall "DELETE /api/missoes/$missaoInativaId" {
+  InvokeApi "/api/missoes/$missaoInativaId" -Method DELETE
+} | Out-Null
+
+$missaoInativaDeprecated = TryCall "GET deprecated inactive missao still exists" {
+  InvokeApi "/api/missoes/$missaoInativaId" -Method GET
+}
+AssertSmoke "DELETE inactive missao keeps row and sets ativo=false" ($missaoInativaDeprecated.ativo -eq $false) "inactive mission was not kept as deprecated."
+
+TryCall "DELETE /api/missoes/$missaoExpiravelId" {
+  InvokeApi "/api/missoes/$missaoExpiravelId" -Method DELETE
+} | Out-Null
+
+$missaoExpiravelDeprecated = TryCall "GET deprecated expirable missao still exists" {
+  InvokeApi "/api/missoes/$missaoExpiravelId" -Method GET
+}
+AssertSmoke "DELETE expirable missao keeps row and sets ativo=false" ($missaoExpiravelDeprecated.ativo -eq $false) "expirable mission was not kept as deprecated."
 
 TryCall "DELETE /api/missoes/$missaoId" {
   InvokeApi "/api/missoes/$missaoId" -Method DELETE
 } | Out-Null
+
+$missaoDeprecated = TryCall "GET deprecated missao still exists" {
+  InvokeApi "/api/missoes/$missaoId" -Method GET
+}
+AssertSmoke "DELETE missao keeps row and sets ativo=false" ($missaoDeprecated.ativo -eq $false) "mission was not kept as deprecated."
 
 # ---------------------------
 # 6) Presenca checkin

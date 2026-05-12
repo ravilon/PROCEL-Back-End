@@ -4,5 +4,6 @@ public enum AtividadeStatus {
     PENDENTE,
     EM_ANDAMENTO,
     CONCLUIDA,
+    EXPIRADA,
     CANCELADA
 }

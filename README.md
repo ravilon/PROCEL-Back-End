@@ -24,7 +24,7 @@ API Spring Boot responsavel por:
 - carregar seed de sensores;
 - cadastrar e autenticar pessoas;
 - registrar check-in/checkout de presencas;
-- cadastrar modelos de missoes e acompanhar atividades pessoa-missao;
+- cadastrar modelos de missoes e acompanhar atividades;
 - gerar ingestao mockada de medicoes de sensores;
 - consultar medicoes por sensor ou compartimento;
 - cadastrar grupos/regras de qualificacao de parametros por sensor;
@@ -40,6 +40,7 @@ Stack principal:
 - Spring Security
 - JWT stateless
 - PostgreSQL
+- Flyway
 - springdoc-openapi/Swagger UI
 
 ## Como Rodar Localmente
@@ -80,7 +81,27 @@ docker compose down
 
 Nao use `docker compose down -v` se quiser preservar o banco, porque `-v` remove o volume do PostgreSQL.
 
-Por padrao, o Hibernate esta configurado para atualizar o schema sem apagar os dados:
+O schema e seeds versionados sao aplicados automaticamente pelo Flyway:
+
+```yaml
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 1
+    encoding: UTF-8
+```
+
+As migrations ficam em:
+
+```text
+Procel-Ingestion/src/main/resources/db/migration/
+```
+
+`V2__mission_catalog_and_activity_expiration.sql` registra as 30 missoes padrao e atualiza o status `EXPIRADA` para atividades. `V3__rename_legacy_activity_table.sql` renomeia bancos existentes para a tabela canonica `atividade`.
+
+O Hibernate ainda esta configurado para atualizar ajustes de schema durante desenvolvimento:
 
 ```yaml
 spring:
@@ -280,12 +301,15 @@ PUT    /api/missoes/{missaoId}
 DELETE /api/missoes/{missaoId}
 ```
 
-Atividades pessoa-missao:
+`DELETE /api/missoes/{missaoId}` nao remove a linha. Ele depreca a missao, marcando `ativo=false`, e expira atividades abertas dessa missao.
+
+Atividades:
 
 ```text
 POST   /api/pessoas/{pessoaId}/atividades
 GET    /api/pessoas/{pessoaId}/atividades
 GET    /api/pessoas/{pessoaId}/atividades?status={status}
+GET    /api/pessoas/{pessoaId}/atividades/resumo
 GET    /api/pessoas/{pessoaId}/atividades/{atividadeId}
 PUT    /api/pessoas/{pessoaId}/atividades/{atividadeId}
 DELETE /api/pessoas/{pessoaId}/atividades/{atividadeId}
@@ -294,10 +318,10 @@ DELETE /api/pessoas/{pessoaId}/atividades/{atividadeId}
 Status suportados para atividades:
 
 ```text
-PENDENTE, EM_ANDAMENTO, CONCLUIDA, CANCELADA
+PENDENTE, EM_ANDAMENTO, CONCLUIDA, EXPIRADA, CANCELADA
 ```
 
-`missao` e o modelo/catalogo. Completar uma missao significa atualizar a relacao `pessoa_missao` criada quando a missao e atribuida a uma pessoa. ADMIN e OPERADOR podem gerenciar modelos e atividades de qualquer pessoa. USUARIO comum pode gerenciar apenas as proprias atividades.
+`missao` e o modelo/catalogo. `atividade` e a atribuicao de uma missao a uma pessoa, com status e datas proprias. Completar uma missao significa atualizar a atividade criada quando a missao e atribuida a uma pessoa. Atividades nao sao apagadas; o delete logico marca `EXPIRADA`, permitindo contar historico de missoes concluidas e expiradas em `/atividades/resumo`. ADMIN e OPERADOR podem gerenciar modelos e atividades de qualquer pessoa. USUARIO comum pode gerenciar apenas as proprias atividades.
 
 Salas e sensores:
 
@@ -403,6 +427,7 @@ O script executa:
 - sync de salas;
 - seed de sensores;
 - criacao/busca/atualizacao de pessoa;
+- catalogo de missoes, atividades, resumo por status e expiracao/deprecacao logica;
 - check-in;
 - criacao de grupo/regra DER para `temperature_c`;
 - vinculo do grupo de regra ao sensor `SII-001`;
@@ -442,7 +467,7 @@ Documentos/ApiSmokeTests/VerifyParameterQualification.sql
 Insomnia:
 
 ```text
-API-Doc/Insomnia/Insomnia_2026-04-18.yaml
+API-Doc/Insomnia/Insomnia_2026-05-12.yaml
 ```
 
 Postman:
@@ -451,7 +476,7 @@ Postman:
 API-Doc/Postman/PROCEL-Ingestion/
 ```
 
-Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, DER/Parameter Qualification, ingestao mockada e consultas de medicoes com `qualificacoes`.
+Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, catalogo de missoes, atividades com `CONCLUIDA`/`EXPIRADA`, resumo por status, DER/Parameter Qualification, ingestao mockada e consultas de medicoes com `qualificacoes`.
 
 ## Banco Analitico
 
@@ -461,9 +486,7 @@ DDL versionado:
 Database/PROCEL-Ingestion/createAnaliticalDB.sql
 ```
 
-Esse arquivo deve ser mantido como referencia versionada do schema analitico. A aplicacao usa `spring.jpa.hibernate.ddl-auto=update` por padrao, para nao recriar o banco a cada deploy.
-
-Em ambientes com dados importantes, prefira evoluir o banco por migrations versionadas antes de alterar entidades JPA em producao. O projeto ainda nao usa Flyway/Liquibase.
+Esse arquivo deve ser mantido como referencia do schema analitico. A fonte automatica de evolucao do banco agora sao as migrations Flyway em `Procel-Ingestion/src/main/resources/db/migration`.
 
 Historicamente, o DDL tambem podia ser gerado pelo Hibernate em:
 
@@ -488,6 +511,8 @@ sensor
 medicao
 parametro_def
 parametro_valor
+missao
+atividade
 grupo_regra
 regra_parametro
 sensor_grupo_regra
