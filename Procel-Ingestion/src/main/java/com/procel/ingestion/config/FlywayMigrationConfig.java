@@ -16,8 +16,7 @@ public class FlywayMigrationConfig {
     @Bean
     FlywayMigrationStrategy procelFlywayMigrationStrategy() {
         return flyway -> {
-            System.out.println("[FlywayMigrationConfig] Running Flyway migrations from: "
-                    + String.join(",", flyway.getConfiguration().getLocationsAsStrings()));
+            System.out.println("[FlywayMigrationConfig] Running Flyway migrations");
             flyway.migrate();
         };
     }
