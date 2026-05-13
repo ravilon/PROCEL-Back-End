@@ -32,8 +32,10 @@ public class MissaoService {
 
     @Transactional
     public MissaoDTOs.MissaoResponse createMissao(MissaoDTOs.CreateMissaoRequest req) {
-        if (req == null) throw new IllegalArgumentException("body is required");
-        if (req.titulo() == null || req.titulo().isBlank()) throw new IllegalArgumentException("titulo is required");
+        if (req == null)
+            throw new IllegalArgumentException("body is required");
+        if (req.titulo() == null || req.titulo().isBlank())
+            throw new IllegalArgumentException("titulo is required");
 
         boolean ativo = req.ativo() == null || req.ativo();
         Missao missao = new Missao(req.titulo().trim(), req.descricao(), req.tipo(), req.value(), ativo);
@@ -55,14 +57,20 @@ public class MissaoService {
 
     @Transactional
     public MissaoDTOs.MissaoResponse updateMissao(UUID missaoId, MissaoDTOs.UpdateMissaoRequest req) {
-        if (req == null) throw new IllegalArgumentException("body is required");
+        if (req == null)
+            throw new IllegalArgumentException("body is required");
         Missao missao = findMissao(missaoId);
 
-        if (req.titulo() != null && !req.titulo().isBlank()) missao.setTitulo(req.titulo().trim());
-        if (req.descricao() != null) missao.setDescricao(req.descricao());
-        if (req.tipo() != null) missao.setTipo(req.tipo());
-        if (req.value() != null) missao.setValue(req.value());
-        if (req.ativo() != null) missao.setAtivo(req.ativo());
+        if (req.titulo() != null && !req.titulo().isBlank())
+            missao.setTitulo(req.titulo().trim());
+        if (req.descricao() != null)
+            missao.setDescricao(req.descricao());
+        if (req.tipo() != null)
+            missao.setTipo(req.tipo());
+        if (req.value() != null)
+            missao.setValue(req.value());
+        if (req.ativo() != null)
+            missao.setAtivo(req.ativo());
 
         return toMissaoResponse(missao);
     }
@@ -74,28 +82,32 @@ public class MissaoService {
 
         List<Atividade> atividadesAbertas = atividadeRepo.findByMissaoIdAndStatusIn(
                 missaoId,
-                List.of(AtividadeStatus.PENDENTE, AtividadeStatus.EM_ANDAMENTO)
-        );
+                List.of(AtividadeStatus.PENDENTE, AtividadeStatus.EM_ANDAMENTO));
         atividadesAbertas.forEach(MissaoService::expireAtividade);
     }
 
     @Transactional
     public MissaoDTOs.AtividadeResponse atribuir(String pessoaId, MissaoDTOs.AtribuirMissaoRequest req) {
-        if (req == null) throw new IllegalArgumentException("body is required");
-        if (req.missaoId() == null) throw new IllegalArgumentException("missaoId is required");
-        if (pessoaId == null || pessoaId.isBlank()) throw new IllegalArgumentException("pessoaId is required");
+        if (req == null)
+            throw new IllegalArgumentException("body is required");
+        if (req.missaoId() == null)
+            throw new IllegalArgumentException("missaoId is required");
+        if (pessoaId == null || pessoaId.isBlank())
+            throw new IllegalArgumentException("pessoaId is required");
 
         String normalizedPessoaId = pessoaId.trim();
         Pessoa pessoa = pessoaRepo.findById(normalizedPessoaId)
                 .orElseThrow(() -> new NotFoundException("Pessoa not found id=" + normalizedPessoaId));
         Missao missao = findMissao(req.missaoId());
-        if (!missao.isAtivo()) throw new ConflictException("Missao is inactive id=" + req.missaoId());
+        if (!missao.isAtivo())
+            throw new ConflictException("Missao is inactive id=" + req.missaoId());
         if (atividadeRepo.existsByPessoaIdAndMissaoId(normalizedPessoaId, req.missaoId())) {
             throw new ConflictException("Pessoa already has activity for missaoId=" + req.missaoId());
         }
 
         Atividade atividade = new Atividade(pessoa, missao, req.status());
-        if (req.startedAt() != null) atividade.setStartedAt(req.startedAt());
+        if (req.startedAt() != null)
+            atividade.setStartedAt(req.startedAt());
         normalizeStatusTimestamps(atividade);
 
         return toAtividadeResponse(atividadeRepo.save(atividade));
@@ -103,7 +115,8 @@ public class MissaoService {
 
     @Transactional(readOnly = true)
     public List<MissaoDTOs.AtividadeResponse> listAtividades(String pessoaId, AtividadeStatus status) {
-        if (pessoaId == null || pessoaId.isBlank()) throw new IllegalArgumentException("pessoaId is required");
+        if (pessoaId == null || pessoaId.isBlank())
+            throw new IllegalArgumentException("pessoaId is required");
         String normalizedPessoaId = pessoaId.trim();
 
         if (!pessoaRepo.existsById(normalizedPessoaId)) {
@@ -118,7 +131,8 @@ public class MissaoService {
 
     @Transactional(readOnly = true)
     public MissaoDTOs.AtividadesResumoResponse resumoAtividades(String pessoaId) {
-        if (pessoaId == null || pessoaId.isBlank()) throw new IllegalArgumentException("pessoaId is required");
+        if (pessoaId == null || pessoaId.isBlank())
+            throw new IllegalArgumentException("pessoaId is required");
         String normalizedPessoaId = pessoaId.trim();
 
         if (!pessoaRepo.existsById(normalizedPessoaId)) {
@@ -132,8 +146,7 @@ public class MissaoService {
                 countStatus(atividades, AtividadeStatus.EM_ANDAMENTO),
                 countStatus(atividades, AtividadeStatus.CONCLUIDA),
                 countStatus(atividades, AtividadeStatus.EXPIRADA),
-                countStatus(atividades, AtividadeStatus.CANCELADA)
-        );
+                countStatus(atividades, AtividadeStatus.CANCELADA));
     }
 
     @Transactional(readOnly = true)
@@ -142,13 +155,18 @@ public class MissaoService {
     }
 
     @Transactional
-    public MissaoDTOs.AtividadeResponse updateAtividade(String pessoaId, UUID atividadeId, MissaoDTOs.UpdateAtividadeRequest req) {
-        if (req == null) throw new IllegalArgumentException("body is required");
+    public MissaoDTOs.AtividadeResponse updateAtividade(String pessoaId, UUID atividadeId,
+            MissaoDTOs.UpdateAtividadeRequest req) {
+        if (req == null)
+            throw new IllegalArgumentException("body is required");
         Atividade atividade = findAtividadeForPessoa(pessoaId, atividadeId);
 
-        if (req.startedAt() != null) atividade.setStartedAt(req.startedAt());
-        if (req.completedAt() != null) atividade.setCompletedAt(req.completedAt());
-        if (req.status() != null) atividade.setStatus(req.status());
+        if (req.startedAt() != null)
+            atividade.setStartedAt(req.startedAt());
+        if (req.completedAt() != null)
+            atividade.setCompletedAt(req.completedAt());
+        if (req.status() != null)
+            atividade.setStatus(req.status());
         normalizeStatusTimestamps(atividade);
 
         return toAtividadeResponse(atividade);
@@ -161,18 +179,22 @@ public class MissaoService {
     }
 
     private Missao findMissao(UUID missaoId) {
-        if (missaoId == null) throw new IllegalArgumentException("missaoId is required");
+        if (missaoId == null)
+            throw new IllegalArgumentException("missaoId is required");
         return missaoRepo.findById(missaoId)
                 .orElseThrow(() -> new NotFoundException("Missao not found id=" + missaoId));
     }
 
     private Atividade findAtividadeForPessoa(String pessoaId, UUID atividadeId) {
-        if (pessoaId == null || pessoaId.isBlank()) throw new IllegalArgumentException("pessoaId is required");
-        if (atividadeId == null) throw new IllegalArgumentException("atividadeId is required");
+        if (pessoaId == null || pessoaId.isBlank())
+            throw new IllegalArgumentException("pessoaId is required");
+        if (atividadeId == null)
+            throw new IllegalArgumentException("atividadeId is required");
 
         String normalizedPessoaId = pessoaId.trim();
         return atividadeRepo.findByIdAndPessoaId(atividadeId, normalizedPessoaId)
-                .orElseThrow(() -> new NotFoundException("Atividade not found id=" + atividadeId + " for pessoaId=" + normalizedPessoaId));
+                .orElseThrow(() -> new NotFoundException(
+                        "Atividade not found id=" + atividadeId + " for pessoaId=" + normalizedPessoaId));
     }
 
     private static void normalizeStatusTimestamps(Atividade atividade) {
@@ -186,7 +208,8 @@ public class MissaoService {
     }
 
     private static void expireAtividade(Atividade atividade) {
-        if (atividade.getStatus() == AtividadeStatus.CONCLUIDA) return;
+        if (atividade.getStatus() == AtividadeStatus.CONCLUIDA)
+            return;
 
         atividade.setStatus(AtividadeStatus.EXPIRADA);
         if (atividade.getCompletedAt() == null) {
@@ -208,8 +231,7 @@ public class MissaoService {
                 missao.getTipo(),
                 missao.getValue(),
                 missao.isAtivo(),
-                missao.getCreatedAt()
-        );
+                missao.getCreatedAt());
     }
 
     private static MissaoDTOs.AtividadeResponse toAtividadeResponse(Atividade atividade) {
@@ -220,10 +242,11 @@ public class MissaoService {
                 atividade.getMissao().getId(),
                 atividade.getMissao().getTitulo(),
                 atividade.getMissao().getDescricao(),
+                atividade.getMissao().getTipo(),
+                atividade.getMissao().getValue(),
                 atividade.getStatus(),
                 atividade.getAssignedAt(),
                 atividade.getStartedAt(),
-                atividade.getCompletedAt()
-        );
+                atividade.getCompletedAt());
     }
 }
