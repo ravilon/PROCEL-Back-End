@@ -73,6 +73,16 @@ User:       postgres
 Password:   postgres
 ```
 
+Em deploy, sobrescreva esses valores por variaveis de ambiente. Em bancos gerenciados
+que exigem TLS/SSL, como costuma ocorrer em hospedagens externas, inclua
+`sslmode=require` na URL JDBC:
+
+```text
+SPRING_DATASOURCE_URL=jdbc:postgresql://HOST:PORTA/NOME_DO_BANCO?sslmode=require
+SPRING_DATASOURCE_USERNAME=USUARIO_DO_BANCO
+SPRING_DATASOURCE_PASSWORD=SENHA_DO_BANCO
+```
+
 O banco local usa o volume Docker `postgres_data`, entao os dados persistem entre reinicios normais. Para manter os dados, pare os containers com:
 
 ```powershell
