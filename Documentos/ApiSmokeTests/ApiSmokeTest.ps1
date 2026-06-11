@@ -6,6 +6,7 @@ So we can send ISO-8601 strings directly (no URL-encoding required).
 Covers:
 - Auth login (JWT)
 - Rooms sync
+- Classroom schedules sync
 - Sensors seed
 - Pessoa create/get/update
 - Missoes catalog create/list/get/update/delete
@@ -32,6 +33,8 @@ Assumes endpoints:
   GET /api/sensors/{sensorExternalId}/medicoes/latest
   GET /api/rooms/{compartimentoId}/medicoes?from=&to=&limit=
   GET /api/rooms/{compartimentoId}/medicoes/latest
+  POST /api/rooms/aulas/sync?weekStart={yyyy-MM-dd}
+  GET /api/rooms/aulas/sync/{jobId}
 #>
 
 param(
@@ -175,9 +178,11 @@ $from10m = $to.AddMinutes(-10)
 # e.g. 2026-03-04T05:00:00Z
 $FromIso = $from10m.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
 $ToIso   = $to.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
+$ClassScheduleWeekStart = [DateTime]::Today.AddDays(-[int][DateTime]::Today.DayOfWeek).ToString("yyyy-MM-dd")
 
 Write-Host "Target: $Target | BaseUrl: $BaseUrl" -ForegroundColor Yellow
 Write-Host "RoomId: $RoomId | SensorExternalId: $SensorExternalId | TestPessoaId: $PessoaId" -ForegroundColor Yellow
+Write-Host "ClassScheduleWeekStart: $ClassScheduleWeekStart" -ForegroundColor Yellow
 Write-Host "Window: from=$FromIso to=$ToIso" -ForegroundColor Yellow
 
 # ---------------------------
@@ -203,14 +208,35 @@ TryCall "POST /api/rooms/sync" {
 } | Out-Null
 
 # ---------------------------
-# 3) Sensors seed
+# 3) Classroom schedules sync
+# ---------------------------
+$classScheduleSync = TryCall "POST /api/rooms/aulas/sync (all rooms, async)" {
+  InvokeApi "/api/rooms/aulas/sync?weekStart=$ClassScheduleWeekStart" -Method POST
+}
+PrintJson "Classroom schedules async job" $classScheduleSync
+AssertSmoke "Classroom schedules sync returned a job" (
+  -not [string]::IsNullOrWhiteSpace($classScheduleSync.jobId) -and
+  @("PENDING", "RUNNING", "COMPLETED") -contains $classScheduleSync.status
+) "schedule sync did not return a valid asynchronous job."
+
+$classScheduleJob = TryCall "GET /api/rooms/aulas/sync/$($classScheduleSync.jobId)" {
+  InvokeApi "/api/rooms/aulas/sync/$($classScheduleSync.jobId)" -Method GET
+}
+PrintJson "Classroom schedules job status" $classScheduleJob
+AssertSmoke "Classroom schedules job is available" (
+  "$($classScheduleJob.jobId)" -eq "$($classScheduleSync.jobId)" -and
+  $classScheduleJob.status -ne "FAILED"
+) "schedule sync job was not found or failed immediately."
+
+# ---------------------------
+# 4) Sensors seed
 # ---------------------------
 TryCall "POST /api/sensors/seed/from-resource" {
   InvokeApi "/api/sensors/seed/from-resource" -Method POST
 } | Out-Null
 
 # ---------------------------
-# 4) Test pessoa create (ignore conflict) + get + update
+# 5) Test pessoa create (ignore conflict) + get + update
 # ---------------------------
 SoftCall "POST /api/pessoas (create test user - may conflict)" {
   InvokeApi "/api/pessoas" -Method POST -Body @{

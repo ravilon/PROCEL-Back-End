@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class CobaltoProperties {
 
     private String url;
+    private String scheduleUrl;
     private int timeoutMs = 10000;
     private String phpSessid;
     private Integer pageSize = 800;
@@ -15,6 +16,9 @@ public class CobaltoProperties {
 
     public String getUrl() { return url; }
     public void setUrl(String url) { this.url = url; }
+
+    public String getScheduleUrl() { return scheduleUrl; }
+    public void setScheduleUrl(String scheduleUrl) { this.scheduleUrl = scheduleUrl; }
 
     public int getTimeoutMs() { return timeoutMs; }
     public void setTimeoutMs(int timeoutMs) { this.timeoutMs = timeoutMs; }

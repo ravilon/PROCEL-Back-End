@@ -55,6 +55,7 @@ procel:
   cobalto:
     rooms:
       url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaSalas/
+      schedule-url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaCompartimentosTurmasHorariosTurno/
       timeout-ms: 60000
       page-size: 800
       php-sessid: ""   # opcional (se precisar)
