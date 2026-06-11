@@ -104,19 +104,7 @@ public class CobaltoAulasSource implements AulasSource {
 
         for (int attempt = 1; attempt <= 3; attempt++) {
             try {
-                String url = UriComponentsBuilder
-                        .fromUriString(properties.getScheduleUrl())
-                        .queryParam("turno", turno)
-                        .queryParam("dataDaSemana", API_DATE.format(weekStart))
-                        .queryParam("compartimentoId", compartimentoId)
-                        .queryParam("_search", false)
-                        .queryParam("rows", -1)
-                        .queryParam("page", 1)
-                        .queryParam("sord", "ASC")
-                        .queryParam("apenasSalasDeAula", "S")
-                        .build()
-                        .encode()
-                        .toUriString();
+                String url = buildScheduleUrl(compartimentoId, weekStart, turno);
 
                 String body = restClient.get()
                         .uri(url)
@@ -125,6 +113,7 @@ public class CobaltoAulasSource implements AulasSource {
                         .retrieve()
                         .body(String.class);
 
+                validateJsonResponse(body, compartimentoId, turno);
                 return objectMapper.readTree(body);
             } catch (Exception ex) {
                 lastFailure = new IllegalStateException(
@@ -137,6 +126,41 @@ public class CobaltoAulasSource implements AulasSource {
         }
 
         throw lastFailure;
+    }
+
+    String buildScheduleUrl(String compartimentoId, LocalDate weekStart, int turno) {
+        return UriComponentsBuilder
+                .fromUriString(properties.getScheduleUrl())
+                .queryParam("turno", turno)
+                .queryParam("dataDaSemana", API_DATE.format(weekStart))
+                .queryParam("compartimentoId", compartimentoId)
+                .queryParam("_search", false)
+                .queryParam("rows", -1)
+                .queryParam("page", 1)
+                .queryParam("sidx", "periodo")
+                .queryParam("sord", "ASC")
+                .queryParam("apenasSalasDeAula", "S")
+                .build()
+                .encode()
+                .toUriString();
+    }
+
+    private void validateJsonResponse(String body, String compartimentoId, int turno) {
+        if (body == null || body.isBlank()) {
+            throw new IllegalStateException(
+                    "Cobalto returned an empty schedule response for room=" +
+                            compartimentoId + ", turno=" + turno
+            );
+        }
+
+        String stripped = body.stripLeading();
+        if (!stripped.startsWith("{") && !stripped.startsWith("[")) {
+            String responseType = stripped.startsWith("<") ? "HTML" : "non-JSON content";
+            throw new IllegalStateException(
+                    "Cobalto returned " + responseType + " instead of JSON for room=" +
+                            compartimentoId + ", turno=" + turno
+            );
+        }
     }
 
     void parseRow(

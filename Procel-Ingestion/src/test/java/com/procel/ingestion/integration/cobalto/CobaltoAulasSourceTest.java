@@ -75,6 +75,21 @@ class CobaltoAulasSourceTest {
         assertThat(record.descricao()).contains("Sala para aplicar prova");
     }
 
+    @Test
+    void includesCobaltoSortFieldInScheduleRequest() {
+        String url = source().buildScheduleUrl(
+                "1000",
+                LocalDate.of(2026, 6, 7),
+                1
+        );
+
+        assertThat(url)
+                .contains("compartimentoId=1000")
+                .contains("turno=1")
+                .contains("sidx=periodo")
+                .contains("sord=ASC");
+    }
+
     private CobaltoAulasSource source() {
         CobaltoProperties properties = new CobaltoProperties();
         properties.setScheduleUrl("https://example.test/schedule");
