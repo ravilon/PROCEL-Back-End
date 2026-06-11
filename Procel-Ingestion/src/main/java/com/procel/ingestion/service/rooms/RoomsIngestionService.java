@@ -23,6 +23,7 @@ import java.util.Map;
 public class RoomsIngestionService {
 
     private static final Logger log = LoggerFactory.getLogger(RoomsIngestionService.class);
+    private static final String UNKNOWN_BUILDING_NAME = "N/A";
 
     private final CampusRepository campusRepo;
     private final PredioRepository predioRepo;
@@ -72,13 +73,16 @@ public class RoomsIngestionService {
             }
 
             String campusNome = TextNorm.norm(r.campusNome());
-            String predioNome = TextNorm.norm(r.predioNome());
+            String normalizedPredioNome = TextNorm.norm(r.predioNome());
+            String predioNome = normalizedPredioNome == null || normalizedPredioNome.isBlank()
+                    ? UNKNOWN_BUILDING_NAME
+                    : normalizedPredioNome;
             String unidadeNome = TextNorm.norm(r.unidadeNome());
             String compNome = TextNorm.norm(r.compartimentoNome());
             String tipo = TextNorm.norm(r.tipo());
             String lotacaoRaw = TextNorm.norm(r.lotacaoRaw());
 
-            if (campusNome == null || predioNome == null || unidadeNome == null || compNome == null) {
+            if (campusNome == null || unidadeNome == null || compNome == null) {
                 skipped++;
                 continue;
             }
