@@ -100,8 +100,6 @@ public class CobaltoAulasSource implements AulasSource {
     }
 
     private JsonNode fetchTurno(String compartimentoId, LocalDate weekStart, int turno) {
-        RuntimeException lastFailure = null;
-
         for (int attempt = 1; attempt <= 3; attempt++) {
             try {
                 String url = buildScheduleUrl(compartimentoId, weekStart, turno);
@@ -116,16 +114,19 @@ public class CobaltoAulasSource implements AulasSource {
                 validateJsonResponse(body, compartimentoId, turno);
                 return objectMapper.readTree(body);
             } catch (Exception ex) {
-                lastFailure = new IllegalStateException(
+                IllegalStateException failure = new IllegalStateException(
                         "Failed to fetch schedule for room=" + compartimentoId +
                                 ", turno=" + turno + ", attempt=" + attempt,
                         ex
                 );
+                if (attempt == 3) {
+                    throw failure;
+                }
                 sleepBeforeRetry(attempt);
             }
         }
 
-        throw lastFailure;
+        throw new IllegalStateException("Cobalto schedule retry loop completed unexpectedly");
     }
 
     String buildScheduleUrl(String compartimentoId, LocalDate weekStart, int turno) {
