@@ -40,7 +40,7 @@ public class CobaltoRoomsSource implements RoomsSource {
 
         final int pageSize = (properties.getPageSize() != null && properties.getPageSize() > 0)
                 ? properties.getPageSize()
-                : 500;
+                : 800;
 
         int page = 0;
         int totalPages = Integer.MAX_VALUE;

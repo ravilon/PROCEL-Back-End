@@ -8,7 +8,7 @@ public class CobaltoProperties {
     private String url;
     private int timeoutMs = 10000;
     private String phpSessid;
-    private Integer pageSize = 1000;
+    private Integer pageSize = 800;
 
     public Integer getPageSize() { return pageSize; }
     public void setPageSize(Integer pageSize) { this.pageSize = pageSize; }
