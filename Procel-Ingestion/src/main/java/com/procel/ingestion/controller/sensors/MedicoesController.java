@@ -38,11 +38,12 @@ public class MedicoesController {
             @Parameter(description = "ID externo do sensor.", example = "SII-001") @PathVariable String sensorExternalId,
             @Parameter(description = "Inicio da janela em ISO-8601.", example = "2026-03-04T05:00:00Z") @RequestParam(required = false) String from,
             @Parameter(description = "Fim da janela em ISO-8601.", example = "2026-03-04T05:10:00Z") @RequestParam(required = false) String to,
+            @Parameter(description = "Pagina, iniciando em zero.", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Limite de registros.", example = "50") @RequestParam(defaultValue = "200") int limit
     ) {
         Instant fromTs = parseInstantOrNull(from, "from");
         Instant toTs = parseInstantOrNull(to, "to");
-        return ResponseEntity.ok(service.listarPorSensor(sensorExternalId, fromTs, toTs, limit));
+        return ResponseEntity.ok(service.listarPorSensor(sensorExternalId, fromTs, toTs, page, limit));
     }
 
     // GET /api/sensors/{sensorExternalId}/medicoes/latest
@@ -75,11 +76,12 @@ public class MedicoesController {
             @Parameter(description = "ID do compartimento.", example = "2") @PathVariable String compartimentoId,
             @Parameter(description = "Inicio da janela em ISO-8601.", example = "2026-03-04T05:00:00Z") @RequestParam(required = false) String from,
             @Parameter(description = "Fim da janela em ISO-8601.", example = "2026-03-04T05:10:00Z") @RequestParam(required = false) String to,
+            @Parameter(description = "Pagina, iniciando em zero.", example = "0") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Limite de registros.", example = "50") @RequestParam(defaultValue = "200") int limit
     ) {
         Instant fromTs = parseInstantOrNull(from, "from");
         Instant toTs = parseInstantOrNull(to, "to");
-        return ResponseEntity.ok(service.listarPorCompartimento(compartimentoId, fromTs, toTs, limit));
+        return ResponseEntity.ok(service.listarPorCompartimento(compartimentoId, fromTs, toTs, page, limit));
     }
 
     // GET /api/rooms/{compartimentoId}/medicoes/latest

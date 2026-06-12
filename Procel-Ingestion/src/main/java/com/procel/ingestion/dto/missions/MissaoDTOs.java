@@ -14,7 +14,8 @@ public class MissaoDTOs {
                         @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String descricao,
                         @Schema(description = "Tipo da missao. Se omitido, usa Individual.", example = "Individual") String tipo,
                         @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
-                        @Schema(description = "Indica se a missao pode ser atribuida a pessoas. Se omitido, usa true.", example = "true") Boolean ativo) {
+                        @Schema(description = "Indica se a missao pode ser atribuida a pessoas. Se omitido, usa true.", example = "true") Boolean ativo,
+                        @Schema(description = "Missao pai opcional.") UUID parentId) {
         }
 
         @Schema(description = "Dados para atualizacao de um modelo de missao.")
@@ -23,7 +24,8 @@ public class MissaoDTOs {
                         @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String descricao,
                         @Schema(description = "Tipo da missao.", example = "Individual") String tipo,
                         @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
-                        @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") Boolean ativo) {
+                        @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") Boolean ativo,
+                        @Schema(description = "Missao pai opcional. Envie null para manter o pai atual.") UUID parentId) {
         }
 
         @Schema(description = "Modelo de missao disponivel no sistema.")
@@ -34,7 +36,9 @@ public class MissaoDTOs {
                         @Schema(description = "Tipo da missao.", example = "Individual") String tipo,
                         @Schema(description = "Pontuacao de XP da missao.", example = "20") int value,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") boolean ativo,
-                        @Schema(description = "Instante de criacao.", example = "2026-05-11T21:30:00Z") Instant createdAt) {
+                        @Schema(description = "Instante de criacao.", example = "2026-05-11T21:30:00Z") Instant createdAt,
+                        @Schema(description = "Identificador da missao pai.") UUID parentId,
+                        @Schema(description = "Titulo da missao pai.") String parentTitulo) {
         }
 
         @Schema(description = "Dados para atribuir uma missao a uma pessoa como atividade.")

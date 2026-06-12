@@ -51,6 +51,7 @@ create table missao (
     ativo boolean not null,
     created_at timestamp(6) with time zone not null,
     id uuid not null,
+    parent_id uuid,
     tipo varchar(40) not null default 'Individual',
     value integer not null default 0 check (value >= 0),
     titulo varchar(160) not null,
@@ -221,6 +222,11 @@ alter table if exists pessoa_role
 alter table if exists atividade
    add constraint fk_atividade_missao
    foreign key (missao_id)
+   references missao;
+
+alter table if exists missao
+   add constraint fk_missao_parent
+   foreign key (parent_id)
    references missao;
 
 alter table if exists atividade

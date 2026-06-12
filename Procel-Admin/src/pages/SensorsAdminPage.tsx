@@ -7,6 +7,7 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   FormControl,
   InputLabel,
   MenuItem,
@@ -33,6 +34,25 @@ import type {
 
 function ErrorMessage({ error }: { error: Error | null }) {
   return error ? <Alert severity="error">{error.message}</Alert> : null;
+}
+
+const operatorLabels: Record<string, string> = {
+  GT: "> maior que",
+  GTE: "≥ maior ou igual",
+  LT: "< menor que",
+  LTE: "≤ menor ou igual",
+  EQ: "= igual a",
+  NEQ: "≠ diferente de",
+  BETWEEN: "entre",
+  OUTSIDE: "fora do intervalo",
+  CONTAINS: "contém",
+};
+
+function ruleExpression(rule: RegraParametro) {
+  const firstValue = rule.valorNumeric1 ?? rule.valorText ?? rule.valorBoolean;
+  return `${rule.parametroNome} ${operatorLabels[rule.operador] ?? rule.operador} ${
+    firstValue ?? ""
+  }${rule.valorNumeric2 != null ? ` e ${rule.valorNumeric2}` : ""}`;
 }
 
 export function SensorsAdminPage() {
@@ -398,9 +418,19 @@ function RuleGroupsPanel() {
               {rules.data?.map((item) => (
                 <Box key={item.id} sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1 }}>
                   <Typography fontWeight={600}>{item.nome}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {item.parametroNome} · {item.operador} · {item.resultado}
-                  </Typography>
+                  <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                    <Typography variant="body2">{ruleExpression(item)}</Typography>
+                    <Typography color="text.secondary">→</Typography>
+                    <Chip
+                      label={item.resultado}
+                      size="small"
+                      color={
+                        ["ALERTA", "CRITICO", "INVALIDO"].includes(item.resultado)
+                          ? "error"
+                          : "success"
+                      }
+                    />
+                  </Stack>
                 </Box>
               ))}
               {rules.data?.length === 0 && (
@@ -420,7 +450,8 @@ function RuleGroupsPanel() {
           >
             <Typography variant="h6">Adicionar regra</Typography>
             <Stack spacing={2} sx={{ mt: 2 }}>
-              <FormControl required>
+              <Stack direction={{ xs: "column", lg: "row" }} spacing={1.5}>
+              <FormControl required sx={{ minWidth: 180 }}>
                 <InputLabel>Tipo de sensor</InputLabel>
                 <Select
                   label="Tipo de sensor"
@@ -435,7 +466,7 @@ function RuleGroupsPanel() {
                   ))}
                 </Select>
               </FormControl>
-              <FormControl required>
+              <FormControl required sx={{ minWidth: 220, flexGrow: 1 }}>
                 <InputLabel>Parâmetro</InputLabel>
                 <Select
                   label="Parâmetro"
@@ -449,6 +480,7 @@ function RuleGroupsPanel() {
                   ))}
                 </Select>
               </FormControl>
+              </Stack>
               <TextField
                 label="Nome da regra"
                 value={rule.nome}
@@ -460,7 +492,16 @@ function RuleGroupsPanel() {
                 value={rule.descricao}
                 onChange={(event) => setRule({ ...rule, descricao: event.target.value })}
               />
-              <FormControl required>
+              <Stack
+                direction={{ xs: "column", md: "row" }}
+                spacing={1.5}
+                alignItems={{ md: "center" }}
+                sx={{ p: 2, bgcolor: "grey.50", borderRadius: 1 }}
+              >
+              <Typography fontWeight={600} sx={{ minWidth: 140 }}>
+                {selectedParameter?.nome || "Parâmetro"}
+              </Typography>
+              <FormControl required sx={{ minWidth: 190 }}>
                 <InputLabel>Operador</InputLabel>
                 <Select
                   label="Operador"
@@ -468,7 +509,9 @@ function RuleGroupsPanel() {
                   onChange={(event) => setRule({ ...rule, operador: event.target.value })}
                 >
                   {operators.map((operator) => (
-                    <MenuItem key={operator} value={operator}>{operator}</MenuItem>
+                    <MenuItem key={operator} value={operator}>
+                      {operatorLabels[operator] ?? operator}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -501,7 +544,8 @@ function RuleGroupsPanel() {
                   required
                 />
               )}
-              <FormControl>
+              <Typography color="text.secondary">→</Typography>
+              <FormControl sx={{ minWidth: 150 }}>
                 <InputLabel>Resultado</InputLabel>
                 <Select
                   label="Resultado"
@@ -513,6 +557,7 @@ function RuleGroupsPanel() {
                   ))}
                 </Select>
               </FormControl>
+              </Stack>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <TextField
                   label="Severidade"

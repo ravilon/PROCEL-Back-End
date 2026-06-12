@@ -352,7 +352,7 @@ Status suportados para atividades:
 PENDENTE, EM_ANDAMENTO, CONCLUIDA, EXPIRADA, CANCELADA
 ```
 
-`missao` e o modelo/catalogo. `atividade` e a atribuicao de uma missao a uma pessoa, com status e datas proprias. Completar uma missao significa atualizar a atividade criada quando a missao e atribuida a uma pessoa. Atividades nao sao apagadas; o delete logico marca `EXPIRADA`, permitindo contar historico de missoes concluidas e expiradas em `/atividades/resumo`. ADMIN e OPERADOR podem gerenciar modelos e atividades de qualquer pessoa. USUARIO comum pode gerenciar apenas as proprias atividades.
+`missao` e o modelo/catalogo. Uma missao pode informar `parentId` para formar uma arvore de objetivos e etapas filhas; ciclos e autorreferencia sao rejeitados. `atividade` e a atribuicao de uma missao a uma pessoa, com status e datas proprias. Completar uma missao significa atualizar a atividade criada quando a missao e atribuida a uma pessoa. Atividades nao sao apagadas; o delete logico marca `EXPIRADA`, permitindo contar historico de missoes concluidas e expiradas em `/atividades/resumo`. ADMIN e OPERADOR podem gerenciar modelos e atividades de qualquer pessoa. USUARIO comum pode gerenciar apenas as proprias atividades.
 
 Salas e sensores:
 
@@ -360,15 +360,19 @@ Salas e sensores:
 POST /api/rooms/sync
 POST /api/sensors/seed/from-resource
 POST /api/sensors/ingest/mock
+GET  /api/sensor-admin/types
+POST /api/sensor-admin/types
+POST /api/sensor-admin/types/{tipoNome}/parameters
+POST /api/sensor-admin/sensors
 ```
 
 Medicoes:
 
 ```text
 GET /api/sensors/{sensorExternalId}/medicoes/latest
-GET /api/sensors/{sensorExternalId}/medicoes?from={fromIso}&to={toIso}&limit=50
+GET /api/sensors/{sensorExternalId}/medicoes?from={fromIso}&to={toIso}&page=0&limit=50
 GET /api/rooms/{compartimentoId}/medicoes/latest
-GET /api/rooms/{compartimentoId}/medicoes?from={fromIso}&to={toIso}&limit=50
+GET /api/rooms/{compartimentoId}/medicoes?from={fromIso}&to={toIso}&page=0&limit=50
 ```
 
 Datas `from` e `to` devem estar em ISO-8601, por exemplo:
@@ -376,6 +380,8 @@ Datas `from` e `to` devem estar em ISO-8601, por exemplo:
 ```text
 2026-03-04T05:00:00Z
 ```
+
+`page` inicia em zero e `limit` aceita ate 1000 registros. As qualificacoes `IDEAL` e `NORMAL` podem ser apresentadas como aprovadas; `ALERTA`, `CRITICO` e `INVALIDO` como reprovadas. Ausencia de qualificacao significa que nenhuma regra ativa foi disparada para o parametro, nao uma aprovacao implicita.
 
 Regras e qualificacao de parametros:
 
@@ -507,7 +513,7 @@ Postman:
 API-Doc/Postman/PROCEL-Ingestion/
 ```
 
-Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, catalogo de missoes, atividades com `CONCLUIDA`/`EXPIRADA`, resumo por status, DER/Parameter Qualification, ingestao mockada e consultas de medicoes com `qualificacoes`.
+Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, catalogo e hierarquia de missoes via `parentId`, atividades com `CONCLUIDA`/`EXPIRADA`, administracao de tipos de sensor e parametros, DER/Parameter Qualification, ingestao mockada e consultas paginadas de medicoes com `qualificacoes`.
 
 ## Banco Analitico
 

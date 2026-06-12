@@ -1,6 +1,9 @@
 import {
   ApartmentOutlined,
   AddOutlined,
+  CheckCircleOutlined,
+  ErrorOutline,
+  HelpOutline,
   MenuBookOutlined,
   PersonSearchOutlined,
   SensorsOutlined,
@@ -52,6 +55,30 @@ import type {
   TipoSensor,
 } from "../types";
 
+type MeasurementStatus = "ALL" | "APPROVED" | "REJECTED" | "UNCLASSIFIED";
+
+function toDateTimeLocal(date: Date) {
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
+function measurementStatus(measurement: Medicao): Exclude<MeasurementStatus, "ALL"> {
+  const results = Object.values(measurement.qualificacoes).flat().map((item) => item.resultado);
+  if (results.some((result) => ["ALERTA", "CRITICO", "INVALIDO"].includes(result))) {
+    return "REJECTED";
+  }
+  if (results.some((result) => ["IDEAL", "NORMAL"].includes(result))) {
+    return "APPROVED";
+  }
+  return "UNCLASSIFIED";
+}
+
+const measurementStatusConfig = {
+  APPROVED: { label: "Aprovada", color: "success" as const, icon: <CheckCircleOutlined /> },
+  REJECTED: { label: "Reprovada", color: "error" as const, icon: <ErrorOutline /> },
+  UNCLASSIFIED: { label: "Sem classificação", color: "default" as const, icon: <HelpOutline /> },
+};
+
 function ErrorAlert({ error }: { error: Error | null }) {
   return error ? <Alert severity="error">{error.message}</Alert> : null;
 }
@@ -71,6 +98,14 @@ function CompartimentosTree() {
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
   const [newSensor, setNewSensor] = useState({ externalId: "", nome: "", tipoNome: "" });
+  const [measurementFrom, setMeasurementFrom] = useState(() =>
+    toDateTimeLocal(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+  );
+  const [measurementTo, setMeasurementTo] = useState(() => toDateTimeLocal(new Date()));
+  const [measurementStatusFilter, setMeasurementStatusFilter] =
+    useState<MeasurementStatus>("ALL");
+  const [measurementPage, setMeasurementPage] = useState(0);
+  const measurementLimit = 24;
   const queryClient = useQueryClient();
 
   const rooms = useQuery({
@@ -106,21 +141,40 @@ function CompartimentosTree() {
   });
 
   const measurements = useQuery({
-    queryKey: ["measurements", selectedSensor?.externalId],
+    queryKey: [
+      "measurements",
+      selectedSensor?.externalId,
+      measurementFrom,
+      measurementTo,
+      measurementPage,
+    ],
     queryFn: () =>
       apiRequest<Medicao[]>(
-        `/api/sensors/${selectedSensor!.externalId}/medicoes?limit=50`,
+        `/api/sensors/${selectedSensor!.externalId}/medicoes?from=${encodeURIComponent(
+          new Date(measurementFrom).toISOString(),
+        )}&to=${encodeURIComponent(new Date(measurementTo).toISOString())}&page=${
+          measurementPage
+        }&limit=${measurementLimit}`,
         {},
         session,
       ),
-    enabled: Boolean(selectedSensor),
+    enabled: Boolean(selectedSensor && measurementFrom && measurementTo),
   });
 
   const sensorTypes = useQuery({
     queryKey: ["sensor-admin", "types"],
     queryFn: () => apiRequest<TipoSensor[]>("/api/sensor-admin/types", {}, session),
-    enabled: sensorDialogOpen,
+    enabled: sensorDialogOpen || Boolean(selectedSensor),
   });
+
+  const visibleMeasurements = measurements.data?.filter(
+    (measurement) =>
+      measurementStatusFilter === "ALL"
+      || measurementStatus(measurement) === measurementStatusFilter,
+  );
+  const selectedSensorType = sensorTypes.data?.find(
+    (type) => type.nome === selectedSensor?.tipoNome,
+  );
 
   const createSensor = useMutation({
     mutationFn: () =>
@@ -225,20 +279,50 @@ function CompartimentosTree() {
                     </Stack>
                   </Box>
                   <Divider />
-                  <List dense>
+                  <Box
+                    sx={{
+                      p: 2,
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        md: "repeat(2, minmax(0, 1fr))",
+                        xl: "repeat(3, minmax(0, 1fr))",
+                      },
+                      gap: 1.5,
+                    }}
+                  >
                     {sensors.data?.map((sensor) => (
-                      <ListItemButton
+                      <Paper
                         key={sensor.externalId}
-                        selected={selectedSensor?.externalId === sensor.externalId}
-                        onClick={() => setSelectedSensor(sensor)}
+                        variant="outlined"
+                        onClick={() => {
+                          setSelectedSensor(sensor);
+                          setMeasurementPage(0);
+                        }}
+                        sx={{
+                          p: 2,
+                          cursor: "pointer",
+                          borderColor:
+                            selectedSensor?.externalId === sensor.externalId
+                              ? "primary.main"
+                              : "divider",
+                          bgcolor:
+                            selectedSensor?.externalId === sensor.externalId
+                              ? "action.selected"
+                              : "background.paper",
+                        }}
                       >
-                        <ListItemText
-                          primary={sensor.nome}
-                          secondary={`${sensor.externalId} · ${sensor.tipoNome}`}
-                        />
-                      </ListItemButton>
+                        <Typography fontWeight={700}>{sensor.nome}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {sensor.externalId}
+                        </Typography>
+                        <Chip label={sensor.tipoNome} size="small" sx={{ mt: 1 }} />
+                        <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                          {sensor.compartimentoNome}
+                        </Typography>
+                      </Paper>
                     ))}
-                  </List>
+                  </Box>
                   {!sensors.isLoading && sensors.data?.length === 0 && (
                     <Empty text="Nenhum sensor vinculado." />
                   )}
@@ -247,39 +331,143 @@ function CompartimentosTree() {
               )}
 
               {selectedSensor && (
-                <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Typography variant="h6">
-                    Medicoes de {selectedSensor.nome}
-                  </Typography>
-                  <ErrorAlert error={measurements.error} />
-                  <TableContainer sx={{ maxHeight: 360 }}>
-                    <Table size="small" stickyHeader>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Timestamp</TableCell>
-                          <TableCell>Origem</TableCell>
-                          <TableCell>Valores</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {measurements.data?.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell>{new Date(item.timestamp).toLocaleString()}</TableCell>
-                            <TableCell>{item.source}</TableCell>
-                            <TableCell>
-                              <Box component="code" sx={{ whiteSpace: "pre-wrap" }}>
-                                {JSON.stringify(item.valores)}
-                              </Box>
-                            </TableCell>
-                          </TableRow>
+                <Stack spacing={2}>
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Stack
+                      direction={{ xs: "column", md: "row" }}
+                      justifyContent="space-between"
+                      spacing={2}
+                    >
+                      <Box>
+                        <Typography variant="h6">{selectedSensor.nome}</Typography>
+                        <Typography color="text.secondary">
+                          {selectedSensor.externalId} · {selectedSensor.tipoNome}
+                        </Typography>
+                      </Box>
+                      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                        {selectedSensorType?.parametros.map((parameter) => (
+                          <Chip
+                            key={parameter.id}
+                            label={`${parameter.nome}${
+                              parameter.numericUnit ? ` (${parameter.numericUnit})` : ""
+                            }`}
+                            size="small"
+                            variant="outlined"
+                          />
                         ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                  {!measurements.isLoading && measurements.data?.length === 0 && (
-                    <Empty text="Nenhuma medicao encontrada." />
+                      </Stack>
+                    </Stack>
+                  </Paper>
+
+                  <Paper variant="outlined" sx={{ p: 2 }}>
+                    <Typography variant="h6">Medições</Typography>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        display: "grid",
+                        gridTemplateColumns: {
+                          xs: "1fr",
+                          sm: "repeat(2, 1fr)",
+                          lg: "repeat(4, 1fr)",
+                        },
+                        gap: 1.5,
+                      }}
+                    >
+                      <TextField
+                        label="Início"
+                        type="datetime-local"
+                        value={measurementFrom}
+                        onChange={(event) => {
+                          setMeasurementFrom(event.target.value);
+                          setMeasurementPage(0);
+                        }}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                      />
+                      <TextField
+                        label="Fim"
+                        type="datetime-local"
+                        value={measurementTo}
+                        onChange={(event) => {
+                          setMeasurementTo(event.target.value);
+                          setMeasurementPage(0);
+                        }}
+                        slotProps={{ inputLabel: { shrink: true } }}
+                      />
+                      <FormControl>
+                        <InputLabel>Classificação</InputLabel>
+                        <Select
+                          label="Classificação"
+                          value={measurementStatusFilter}
+                          onChange={(event) =>
+                            setMeasurementStatusFilter(event.target.value as MeasurementStatus)
+                          }
+                        >
+                          <MenuItem value="ALL">Todas</MenuItem>
+                          <MenuItem value="APPROVED">Aprovadas</MenuItem>
+                          <MenuItem value="REJECTED">Reprovadas</MenuItem>
+                          <MenuItem value="UNCLASSIFIED">Sem classificação</MenuItem>
+                        </Select>
+                      </FormControl>
+                      <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
+                        {(["APPROVED", "REJECTED", "UNCLASSIFIED"] as const).map((status) => (
+                          <Chip
+                            key={status}
+                            size="small"
+                            color={measurementStatusConfig[status].color}
+                            label={`${
+                              measurements.data?.filter(
+                                (measurement) => measurementStatus(measurement) === status,
+                              ).length ?? 0
+                            } ${measurementStatusConfig[status].label.toLowerCase()}`}
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                  </Paper>
+
+                  <ErrorAlert error={measurements.error} />
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        xl: "repeat(2, minmax(0, 1fr))",
+                      },
+                      gap: 2,
+                    }}
+                  >
+                    {visibleMeasurements?.map((measurement) => (
+                      <MeasurementCard
+                        key={measurement.id}
+                        measurement={measurement}
+                        parameters={selectedSensorType?.parametros ?? []}
+                      />
+                    ))}
+                  </Box>
+                  {!measurements.isLoading && visibleMeasurements?.length === 0 && (
+                    <Paper variant="outlined">
+                      <Empty text="Nenhuma medição encontrada para os filtros selecionados." />
+                    </Paper>
                   )}
-                </Paper>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Button
+                      disabled={measurementPage === 0 || measurements.isFetching}
+                      onClick={() => setMeasurementPage((page) => Math.max(0, page - 1))}
+                    >
+                      Página anterior
+                    </Button>
+                    <Typography color="text.secondary">Página {measurementPage + 1}</Typography>
+                    <Button
+                      disabled={
+                        measurements.isFetching
+                        || (measurements.data?.length ?? 0) < measurementLimit
+                      }
+                      onClick={() => setMeasurementPage((page) => page + 1)}
+                    >
+                      Próxima página
+                    </Button>
+                  </Stack>
+                </Stack>
               )}
 
               <Paper variant="outlined">
@@ -350,6 +538,113 @@ function CompartimentosTree() {
         </DialogActions>
       </Dialog>
     </Stack>
+  );
+}
+
+function MeasurementCard({
+  measurement,
+  parameters,
+}: {
+  measurement: Medicao;
+  parameters: TipoSensor["parametros"];
+}) {
+  const status = measurementStatus(measurement);
+  const statusConfig = measurementStatusConfig[status];
+
+  return (
+    <Paper variant="outlined" sx={{ overflow: "hidden" }}>
+      <Stack
+        direction="row"
+        justifyContent="space-between"
+        alignItems="center"
+        sx={{ p: 2, bgcolor: "grey.50" }}
+      >
+        <Box>
+          <Typography fontWeight={700}>
+            {new Date(measurement.timestamp).toLocaleString()}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Origem: {measurement.source}
+          </Typography>
+        </Box>
+        <Chip
+          icon={statusConfig.icon}
+          label={statusConfig.label}
+          color={statusConfig.color}
+          variant={status === "UNCLASSIFIED" ? "outlined" : "filled"}
+        />
+      </Stack>
+      <Divider />
+      <Box
+        sx={{
+          p: 2,
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+          gap: 1.5,
+        }}
+      >
+        {Object.entries(measurement.valores).map(([name, value]) => {
+          const parameter = parameters.find((item) => item.nome === name);
+          const qualifications = measurement.qualificacoes[name] ?? [];
+          const rejected = qualifications.some((item) =>
+            ["ALERTA", "CRITICO", "INVALIDO"].includes(item.resultado),
+          );
+          const approved = qualifications.some((item) =>
+            ["IDEAL", "NORMAL"].includes(item.resultado),
+          );
+
+          return (
+            <Box
+              key={name}
+              sx={{
+                p: 1.5,
+                border: 1,
+                borderColor: rejected
+                  ? "error.light"
+                  : approved
+                    ? "success.light"
+                    : "divider",
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                {parameter?.descricao || name}
+              </Typography>
+              <Typography variant="h6">
+                {String(value)}
+                {parameter?.numericUnit ? (
+                  <Typography component="span" variant="body2" sx={{ ml: 0.5 }}>
+                    {parameter.numericUnit}
+                  </Typography>
+                ) : null}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" display="block">
+                {name}
+              </Typography>
+              <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ mt: 1 }}>
+                {qualifications.map((qualification) => (
+                  <Chip
+                    key={qualification.id}
+                    size="small"
+                    color={
+                      ["ALERTA", "CRITICO", "INVALIDO"].includes(qualification.resultado)
+                        ? "error"
+                        : "success"
+                    }
+                    label={`${qualification.resultado}: ${
+                      qualification.regraNome ?? "regra"
+                    }`}
+                  />
+                ))}
+                {qualifications.length === 0 && (
+                  <Chip size="small" variant="outlined" label="Sem regra disparada" />
+                )}
+              </Stack>
+            </Box>
+          );
+        })}
+      </Box>
+    </Paper>
   );
 }
 

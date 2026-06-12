@@ -48,6 +48,7 @@ public class MedicoesQueryService {
             String sensorExternalId,
             Instant from,
             Instant to,
+            int page,
             int limit
     ) {
         int safeLimit = clampLimit(limit);
@@ -57,7 +58,7 @@ public class MedicoesQueryService {
         if (to != null)   spec = spec.and(MedicaoSpecs.to(to));
 
         var pageable = PageRequest.of(
-                0,
+                clampPage(page),
                 safeLimit,
                 Sort.by(Sort.Direction.DESC, "timestamp")
         );
@@ -92,6 +93,7 @@ public class MedicoesQueryService {
             String compartimentoId,
             Instant from,
             Instant to,
+            int page,
             int limit
     ) {
         int safeLimit = clampLimit(limit);
@@ -101,7 +103,7 @@ public class MedicoesQueryService {
         if (to != null)   spec = spec.and(MedicaoSpecs.to(to));
 
         var pageable = PageRequest.of(
-                0,
+                clampPage(page),
                 safeLimit,
                 Sort.by(Sort.Direction.DESC, "timestamp")
         );
@@ -217,5 +219,9 @@ public class MedicoesQueryService {
     private int clampLimit(int limit) {
         if (limit <= 0) return 200;
         return Math.min(limit, 1000);
+    }
+
+    private int clampPage(int page) {
+        return Math.max(page, 0);
     }
 }

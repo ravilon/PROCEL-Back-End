@@ -10,7 +10,8 @@ import java.util.UUID;
         name = "missao",
         indexes = {
                 @Index(name = "ix_missao_ativo", columnList = "ativo"),
-                @Index(name = "ix_missao_created_at", columnList = "created_at")
+                @Index(name = "ix_missao_created_at", columnList = "created_at"),
+                @Index(name = "ix_missao_parent_id", columnList = "parent_id")
         }
 )
 public class Missao {
@@ -38,6 +39,10 @@ public class Missao {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Missao parent;
+
     protected Missao() {}
 
     public Missao(String titulo, String descricao, String tipo, Integer value, boolean ativo) {
@@ -56,12 +61,14 @@ public class Missao {
     public int getValue() { return value; }
     public boolean isAtivo() { return ativo; }
     public Instant getCreatedAt() { return createdAt; }
+    public Missao getParent() { return parent; }
 
     public void setTitulo(String titulo) { this.titulo = titulo; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public void setTipo(String tipo) { this.tipo = normalizeTipo(tipo); }
     public void setValue(Integer value) { this.value = normalizeValue(value); }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public void setParent(Missao parent) { this.parent = parent; }
 
     private static String normalizeTipo(String tipo) {
         return tipo == null || tipo.isBlank() ? "Individual" : tipo.trim();

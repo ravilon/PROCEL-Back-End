@@ -424,7 +424,7 @@ collection:
                 store: true
               rebuildPath: true
           - url: "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes"
-            name: GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&limit
+            name: GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&page&limit
             meta:
               id: req_1f697b1598c147c9ad6f22bd1a031d38
               created: 1776477181129
@@ -445,6 +445,10 @@ collection:
               - name: limit
                 value: "50"
                 description: ""
+                disabled: false
+              - name: page
+                value: "0"
+                description: Pagina iniciando em zero
                 disabled: false
             headers:
               - name: Authorization
@@ -483,7 +487,7 @@ collection:
                 store: true
               rebuildPath: true
           - url: "{{baseUrl}}/api/rooms/{{roomId}}/medicoes"
-            name: GET /api/rooms/{{roomId}}/medicoes?from&to&limit
+            name: GET /api/rooms/{{roomId}}/medicoes?from&to&page&limit
             meta:
               id: req_2ef54c7781684c298724b202fc1989ca
               created: 1776477181136
@@ -504,6 +508,10 @@ collection:
               - name: limit
                 value: "50"
                 description: ""
+                disabled: false
+              - name: page
+                value: "0"
+                description: Pagina iniciando em zero
                 disabled: false
             headers:
               - name: Authorization
@@ -1493,4 +1501,3 @@ environments:
     toIso: 2026-05-12T21:19:09Z
     presencaId: 7655bd02-1302-4589-9902-8aa89ccf01c6
     jwtToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImVtYWlsIjoiYWRtaW5AcHJvY2VsLmxvY2FsIiwicm9sZXMiOlsiQURNSU4iLCJBTkFMSVNUQSIsIklOR0VTVE9SIiwiT1BFUkFET1IiLCJVU1VBUklPIl0sImlhdCI6MTc3ODYyMDg3OSwiZXhwIjoxNzc4NjI0NDc5fQ._qui_-Bxol9YngShQ_UAm9cYcMqFdDnqWL6gM402Tag
-

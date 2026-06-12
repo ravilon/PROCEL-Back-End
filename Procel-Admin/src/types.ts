@@ -91,6 +91,18 @@ export interface RegraParametro {
   createdAt: string;
 }
 
+export interface Missao {
+  id: string;
+  titulo: string;
+  descricao?: string | null;
+  tipo: string;
+  value: number;
+  ativo: boolean;
+  createdAt: string;
+  parentId?: string | null;
+  parentTitulo?: string | null;
+}
+
 export interface Disciplina {
   id: number;
   nome: string;
@@ -136,7 +148,19 @@ export interface Medicao {
   receivedAt: string;
   source: string;
   valores: Record<string, unknown>;
-  qualificacoes: Record<string, unknown[]>;
+  qualificacoes: Record<string, ParametroQualificacao[]>;
+}
+
+export type AvaliacaoResultado = "IDEAL" | "NORMAL" | "ALERTA" | "CRITICO" | "INVALIDO";
+
+export interface ParametroQualificacao {
+  id: string;
+  regraParametroId?: string | null;
+  regraNome?: string | null;
+  resultado: AvaliacaoResultado;
+  severidade: number;
+  mensagem?: string | null;
+  avaliadoEm: string;
 }
 
 export type AlunoDisciplinaStatus = "ATIVA" | "CONCLUIDA" | "CANCELADA";

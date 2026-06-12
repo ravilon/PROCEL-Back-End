@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { DisciplinasPage } from "./pages/DisciplinasPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SensorsAdminPage } from "./pages/SensorsAdminPage";
+import { MissionsAdminPage } from "./pages/MissionsAdminPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="operacoes" element={<ApiConsolePage />} />
             <Route path="disciplinas" element={<DisciplinasPage />} />
             <Route path="sensores" element={<SensorsAdminPage />} />
+            <Route path="missoes" element={<MissionsAdminPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

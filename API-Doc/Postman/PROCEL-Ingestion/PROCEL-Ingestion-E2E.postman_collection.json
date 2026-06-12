@@ -1256,12 +1256,12 @@
           }
         },
         {
-          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&limit",
+          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&page&limit",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes?from={{fromIso}}&to={{toIso}}&limit=50",
+              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes?from={{fromIso}}&to={{toIso}}&page=0&limit=50",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1279,6 +1279,10 @@
                 {
                   "key": "to",
                   "value": "{{toIso}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
                 },
                 {
                   "key": "limit",
@@ -1311,12 +1315,12 @@
           "response": []
         },
         {
-          "name": "GET /api/rooms/{{roomId}}/medicoes?from&to&limit",
+          "name": "GET /api/rooms/{{roomId}}/medicoes?from&to&page&limit",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes?from={{fromIso}}&to={{toIso}}&limit=50",
+              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes?from={{fromIso}}&to={{toIso}}&page=0&limit=50",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -1334,6 +1338,10 @@
                 {
                   "key": "to",
                   "value": "{{toIso}}"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
                 },
                 {
                   "key": "limit",

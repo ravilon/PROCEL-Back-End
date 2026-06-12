@@ -39,6 +39,9 @@ public class MissaoService {
 
         boolean ativo = req.ativo() == null || req.ativo();
         Missao missao = new Missao(req.titulo().trim(), req.descricao(), req.tipo(), req.value(), ativo);
+        if (req.parentId() != null) {
+            missao.setParent(findMissao(req.parentId()));
+        }
         return toMissaoResponse(missaoRepo.save(missao));
     }
 
@@ -71,6 +74,11 @@ public class MissaoService {
             missao.setValue(req.value());
         if (req.ativo() != null)
             missao.setAtivo(req.ativo());
+        if (req.parentId() != null) {
+            Missao parent = findMissao(req.parentId());
+            validateParent(missao, parent);
+            missao.setParent(parent);
+        }
 
         return toMissaoResponse(missao);
     }
@@ -185,6 +193,19 @@ public class MissaoService {
                 .orElseThrow(() -> new NotFoundException("Missao not found id=" + missaoId));
     }
 
+    private static void validateParent(Missao missao, Missao parent) {
+        if (missao.getId().equals(parent.getId())) {
+            throw new IllegalArgumentException("Missao cannot be its own parent");
+        }
+        Missao current = parent;
+        while (current != null) {
+            if (missao.getId().equals(current.getId())) {
+                throw new IllegalArgumentException("Mission hierarchy cannot contain cycles");
+            }
+            current = current.getParent();
+        }
+    }
+
     private Atividade findAtividadeForPessoa(String pessoaId, UUID atividadeId) {
         if (pessoaId == null || pessoaId.isBlank())
             throw new IllegalArgumentException("pessoaId is required");
@@ -231,7 +252,9 @@ public class MissaoService {
                 missao.getTipo(),
                 missao.getValue(),
                 missao.isAtivo(),
-                missao.getCreatedAt());
+                missao.getCreatedAt(),
+                missao.getParent() == null ? null : missao.getParent().getId(),
+                missao.getParent() == null ? null : missao.getParent().getTitulo());
     }
 
     private static MissaoDTOs.AtividadeResponse toAtividadeResponse(Atividade atividade) {
