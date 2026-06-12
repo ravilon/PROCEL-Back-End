@@ -352,7 +352,7 @@ Status suportados para atividades:
 PENDENTE, EM_ANDAMENTO, CONCLUIDA, EXPIRADA, CANCELADA
 ```
 
-`missao` e o modelo/catalogo. Uma missao pode informar `parentId` para formar uma arvore de objetivos e etapas filhas; ciclos e autorreferencia sao rejeitados. `atividade` e a atribuicao de uma missao a uma pessoa, com status e datas proprias. Completar uma missao significa atualizar a atividade criada quando a missao e atribuida a uma pessoa. Atividades nao sao apagadas; o delete logico marca `EXPIRADA`, permitindo contar historico de missoes concluidas e expiradas em `/atividades/resumo`. ADMIN e OPERADOR podem gerenciar modelos e atividades de qualquer pessoa. USUARIO comum pode gerenciar apenas as proprias atividades.
+`missao` e o modelo/catalogo. Uma missao pode informar `parentId` para formar uma arvore de objetivos e etapas filhas; ciclos e autorreferencia sao rejeitados. Na atualizacao, `parentId: null` move a missao para a raiz. Ao atribuir uma missao pai, a API cria atividades para toda a subarvore ativa. O status e o progresso da atividade pai sao derivados das filhas: quando todas as filhas diretas estao `CONCLUIDA`, a pai e concluida automaticamente. As respostas de atividade incluem `missaoParentId`, `totalFilhas`, `filhasConcluidas` e `progressoPercentual`. Atividades nao sao apagadas; o delete logico marca `EXPIRADA`.
 
 Salas e sensores:
 
@@ -391,6 +391,7 @@ POST /api/rules/groups
 GET  /api/rules/groups
 POST /api/rules/groups/{grupoId}/rules
 GET  /api/rules/groups/{grupoId}/rules
+POST /api/rules/groups/{grupoId}/rooms
 POST /api/rules/sensors/{sensorExternalId}/groups
 GET  /api/rules/sensors/{sensorExternalId}/groups
 ```
@@ -403,6 +404,13 @@ Cardinalidade aplicada na API:
 - Um `grupo_regra` nao pode ter duas regras ativas para o mesmo `parametro_def`.
 - Um sensor so pode ter um vinculo ativo/agendado, com janela de validade sobreposta, que produza regra ativa para um mesmo `parametro_def`.
 - Regras vinculadas a um sensor precisam pertencer ao mesmo `tipo_de_sensor` do sensor.
+- O vinculo em lote por salas aplica o grupo somente aos sensores compativeis com o unico tipo de sensor usado pelas regras ativas do grupo.
+
+Filtros de compartimentos:
+
+```text
+GET /api/catalog/compartimentos?q={texto}&tipo={tipo}&predio={predio}&unidade={unidade}&campus={campus}
+```
 
 Operadores suportados:
 
@@ -514,6 +522,10 @@ API-Doc/Postman/PROCEL-Ingestion/
 ```
 
 Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, catalogo e hierarquia de missoes via `parentId`, atividades com `CONCLUIDA`/`EXPIRADA`, administracao de tipos de sensor e parametros, DER/Parameter Qualification, ingestao mockada e consultas paginadas de medicoes com `qualificacoes`.
+
+O Procel-Admin disponibiliza fluxos visuais para cadastro de cursos, sensores, tipos e parametros, composicao de grupos de regras, associacao em lote por salas, consulta de medicoes por periodo, administracao hierarquica de missoes, progresso de atividades, vinculacao de disciplinas e edicao de usuarios.
+
+A interface inclui acesso direto ao Swagger da API em `{API_BASE_URL}/swagger-ui/index.html`. Versao administrativa atual: `0.1`, desenvolvida para o PROCEL. Contato: Ravilon Aguiar, 2026, `ravilonaguiardossantos@gmail.com`.
 
 ## Banco Analitico
 

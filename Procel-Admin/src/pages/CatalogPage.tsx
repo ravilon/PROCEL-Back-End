@@ -3,6 +3,9 @@ import {
   AddOutlined,
   CheckCircleOutlined,
   ErrorOutline,
+  EditOutlined,
+  ExpandLessOutlined,
+  ExpandMoreOutlined,
   HelpOutline,
   MenuBookOutlined,
   PersonSearchOutlined,
@@ -10,8 +13,11 @@ import {
 } from "@mui/icons-material";
 import {
   Alert,
+  LinearProgress,
   Box,
   Chip,
+  Checkbox,
+  Collapse,
   CircularProgress,
   Button,
   Divider,
@@ -21,6 +27,7 @@ import {
   DialogTitle,
   FormControl,
   InputLabel,
+  IconButton,
   List,
   ListItemButton,
   ListItemText,
@@ -44,11 +51,16 @@ import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiRequest } from "../lib/api";
 import type {
+  Atividade,
+  AtividadeStatus,
   Compartimento,
   Disciplina,
+  DisciplinaAluno,
   Curso,
+  GrupoRegra,
   Medicao,
   PeriodoAula,
+  Pessoa,
   PessoaResumo,
   PessoaCurso,
   Sensor,
@@ -94,6 +106,16 @@ function Empty({ text }: { text: string }) {
 function CompartimentosTree() {
   const { session, hasAnyRole } = useAuth();
   const [query, setQuery] = useState("");
+  const [roomFilters, setRoomFilters] = useState({
+    tipo: "",
+    predio: "",
+    unidade: "",
+    campus: "",
+  });
+  const [selectedRoomIds, setSelectedRoomIds] = useState<string[]>([]);
+  const [bulkRulesOpen, setBulkRulesOpen] = useState(false);
+  const [bulkGroupId, setBulkGroupId] = useState("");
+  const [bulkStatus, setBulkStatus] = useState("ATIVO");
   const [selectedRoom, setSelectedRoom] = useState<Compartimento | null>(null);
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
@@ -105,17 +127,47 @@ function CompartimentosTree() {
   const [measurementStatusFilter, setMeasurementStatusFilter] =
     useState<MeasurementStatus>("ALL");
   const [measurementPage, setMeasurementPage] = useState(0);
+  const [measurementsExpanded, setMeasurementsExpanded] = useState(true);
   const measurementLimit = 24;
   const queryClient = useQueryClient();
 
   const rooms = useQuery({
-    queryKey: ["catalog", "rooms", query],
+    queryKey: ["catalog", "rooms", query, roomFilters],
     queryFn: () =>
       apiRequest<Compartimento[]>(
-        `/api/catalog/compartimentos?q=${encodeURIComponent(query)}`,
+        `/api/catalog/compartimentos?${new URLSearchParams({
+          q: query,
+          ...roomFilters,
+        }).toString()}`,
         {},
         session,
       ),
+  });
+  const ruleGroups = useQuery({
+    queryKey: ["rules", "groups"],
+    queryFn: () => apiRequest<GrupoRegra[]>("/api/rules/groups", {}, session),
+    enabled: bulkRulesOpen,
+  });
+  const bulkAssignRules = useMutation({
+    mutationFn: () =>
+      apiRequest<unknown>(
+        `/api/rules/groups/${bulkGroupId}/rooms`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            compartimentoIds: selectedRoomIds,
+            status: bulkStatus,
+            validoDe: null,
+            validoAte: null,
+          }),
+        },
+        session,
+      ),
+    onSuccess: () => {
+      setBulkRulesOpen(false);
+      setSelectedRoomIds([]);
+      setBulkGroupId("");
+    },
   });
 
   const sensors = useQuery({
@@ -201,13 +253,41 @@ function CompartimentosTree() {
 
   return (
     <Stack spacing={2}>
-      <TextField
-        label="Buscar compartimento"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="ID, nome, tipo, predio ou unidade"
-        fullWidth
-      />
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "repeat(5, 1fr)" },
+            gap: 1.5,
+          }}
+        >
+          <TextField
+            label="Buscar compartimento"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="ID ou nome"
+          />
+          {(["tipo", "predio", "unidade", "campus"] as const).map((field) => (
+            <TextField
+              key={field}
+              label={field.charAt(0).toUpperCase() + field.slice(1)}
+              value={roomFilters[field]}
+              onChange={(event) =>
+                setRoomFilters({ ...roomFilters, [field]: event.target.value })
+              }
+            />
+          ))}
+        </Box>
+        {hasAnyRole("ADMIN", "OPERADOR") && selectedRoomIds.length > 0 && (
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 2 }}>
+            <Chip label={`${selectedRoomIds.length} sala(s) selecionada(s)`} />
+            <Button variant="contained" onClick={() => setBulkRulesOpen(true)}>
+              Associar grupo de regras
+            </Button>
+            <Button onClick={() => setSelectedRoomIds([])}>Limpar seleção</Button>
+          </Stack>
+        )}
+      </Paper>
       <Box
         sx={{
           display: "grid",
@@ -228,6 +308,20 @@ function CompartimentosTree() {
                   setSelectedSensor(null);
                 }}
               >
+                {hasAnyRole("ADMIN", "OPERADOR") && (
+                  <Checkbox
+                    edge="start"
+                    checked={selectedRoomIds.includes(room.id)}
+                    onClick={(event) => event.stopPropagation()}
+                    onChange={(_, checked) =>
+                      setSelectedRoomIds((current) =>
+                        checked
+                          ? [...current, room.id]
+                          : current.filter((id) => id !== room.id),
+                      )
+                    }
+                  />
+                )}
                 <ListItemText
                   primary={room.nome}
                   secondary={`${room.id} · ${room.predioNome}`}
@@ -298,6 +392,7 @@ function CompartimentosTree() {
                         onClick={() => {
                           setSelectedSensor(sensor);
                           setMeasurementPage(0);
+                          setMeasurementsExpanded(true);
                         }}
                         sx={{
                           p: 2,
@@ -360,7 +455,16 @@ function CompartimentosTree() {
                   </Paper>
 
                   <Paper variant="outlined" sx={{ p: 2 }}>
-                    <Typography variant="h6">Medições</Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="h6">Medições</Typography>
+                      <IconButton
+                        aria-label={measurementsExpanded ? "Minimizar medições" : "Exibir medições"}
+                        onClick={() => setMeasurementsExpanded((expanded) => !expanded)}
+                      >
+                        {measurementsExpanded ? <ExpandLessOutlined /> : <ExpandMoreOutlined />}
+                      </IconButton>
+                    </Stack>
+                    <Collapse in={measurementsExpanded}>
                     <Box
                       sx={{
                         mt: 2,
@@ -423,8 +527,11 @@ function CompartimentosTree() {
                         ))}
                       </Stack>
                     </Box>
+                    </Collapse>
                   </Paper>
 
+                  <Collapse in={measurementsExpanded}>
+                  <Stack spacing={2}>
                   <ErrorAlert error={measurements.error} />
                   <Box
                     sx={{
@@ -467,6 +574,8 @@ function CompartimentosTree() {
                       Próxima página
                     </Button>
                   </Stack>
+                  </Stack>
+                  </Collapse>
                 </Stack>
               )}
 
@@ -481,6 +590,56 @@ function CompartimentosTree() {
           )}
         </Stack>
       </Box>
+      <Dialog
+        open={bulkRulesOpen}
+        onClose={() => setBulkRulesOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Associar regras às salas selecionadas</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              O grupo será associado apenas aos sensores compatíveis com o tipo dos parâmetros.
+            </Alert>
+            <FormControl required>
+              <InputLabel>Grupo de regras</InputLabel>
+              <Select
+                label="Grupo de regras"
+                value={bulkGroupId}
+                onChange={(event) => setBulkGroupId(event.target.value)}
+              >
+                {ruleGroups.data?.map((group) => (
+                  <MenuItem key={group.id} value={group.id}>{group.nome}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl>
+              <InputLabel>Status do vínculo</InputLabel>
+              <Select
+                label="Status do vínculo"
+                value={bulkStatus}
+                onChange={(event) => setBulkStatus(event.target.value)}
+              >
+                <MenuItem value="ATIVO">Ativo</MenuItem>
+                <MenuItem value="AGENDADO">Agendado</MenuItem>
+                <MenuItem value="RASCUNHO">Rascunho</MenuItem>
+              </Select>
+            </FormControl>
+            <ErrorAlert error={bulkAssignRules.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setBulkRulesOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => bulkAssignRules.mutate()}
+            disabled={bulkAssignRules.isPending || !bulkGroupId}
+          >
+            Associar
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog
         open={sensorDialogOpen}
         onClose={() => setSensorDialogOpen(false)}
@@ -752,10 +911,28 @@ function DisciplinasTree() {
 }
 
 function PessoasTree() {
-  const { session } = useAuth();
+  const { session, hasAnyRole } = useAuth();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<PessoaResumo | null>(null);
+  const [activityStatus, setActivityStatus] = useState<AtividadeStatus | "ALL">("ALL");
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [userForm, setUserForm] = useState({
+    nome: "",
+    email: "",
+    telefone: "",
+    matricula: "",
+    password: "",
+    roles: [] as string[],
+  });
   const [period, setPeriod] = useState(`${new Date().getFullYear()}/${new Date().getMonth() < 6 ? 1 : 2}`);
+  const [disciplineDialogOpen, setDisciplineDialogOpen] = useState(false);
+  const [disciplineLink, setDisciplineLink] = useState({
+    disciplinaId: "",
+    turma: "",
+    periodoLetivo: period,
+    status: "ATIVA",
+  });
   const people = useQuery({
     queryKey: ["catalog", "people", query],
     queryFn: () =>
@@ -768,17 +945,57 @@ function PessoasTree() {
   const disciplines = useQuery({
     queryKey: ["person", selected?.id, "disciplines", period],
     queryFn: () =>
-      apiRequest<unknown[]>(
+      apiRequest<DisciplinaAluno[]>(
         `/api/pessoas/${selected!.id}/disciplinas?periodoLetivo=${encodeURIComponent(period)}`,
         {},
         session,
       ),
     enabled: Boolean(selected && /^\d{4}\/[12]$/.test(period)),
   });
+  const disciplineCatalog = useQuery({
+    queryKey: ["catalog", "disciplines", "person-link"],
+    queryFn: () => apiRequest<Disciplina[]>("/api/catalog/disciplinas", {}, session),
+    enabled: disciplineDialogOpen,
+  });
+  const linkDiscipline = useMutation({
+    mutationFn: () =>
+      apiRequest<DisciplinaAluno>(
+        `/api/pessoas/${selected!.id}/disciplinas`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            disciplinaId: Number(disciplineLink.disciplinaId),
+            turma: disciplineLink.turma,
+            periodoLetivo: disciplineLink.periodoLetivo,
+            status: disciplineLink.status,
+          }),
+        },
+        session,
+      ),
+    onSuccess: async () => {
+      setDisciplineDialogOpen(false);
+      setPeriod(disciplineLink.periodoLetivo);
+      setDisciplineLink({
+        disciplinaId: "",
+        turma: "",
+        periodoLetivo: disciplineLink.periodoLetivo,
+        status: "ATIVA",
+      });
+      await queryClient.invalidateQueries({
+        queryKey: ["person", selected?.id, "disciplines"],
+      });
+    },
+  });
   const activities = useQuery({
-    queryKey: ["person", selected?.id, "activities"],
+    queryKey: ["person", selected?.id, "activities", activityStatus],
     queryFn: () =>
-      apiRequest<unknown[]>(`/api/pessoas/${selected!.id}/atividades`, {}, session),
+      apiRequest<Atividade[]>(
+        `/api/pessoas/${selected!.id}/atividades${
+          activityStatus === "ALL" ? "" : `?status=${activityStatus}`
+        }`,
+        {},
+        session,
+      ),
     enabled: Boolean(selected),
   });
   const course = useQuery({
@@ -786,6 +1003,37 @@ function PessoasTree() {
     queryFn: () =>
       apiRequest<PessoaCurso>(`/api/pessoas/${selected!.id}/curso`, {}, session),
     enabled: Boolean(selected),
+  });
+  const personDetails = useQuery({
+    queryKey: ["person", selected?.id, "details"],
+    queryFn: () => apiRequest<Pessoa>(`/api/pessoas/${selected!.id}`, {}, session),
+    enabled: Boolean(selected && hasAnyRole("ADMIN")),
+  });
+  const updatePerson = useMutation({
+    mutationFn: () =>
+      apiRequest<Pessoa>(
+        `/api/pessoas/${selected!.id}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            nome: userForm.nome,
+            email: userForm.email,
+            userId: selected!.id,
+            password: userForm.password || null,
+            telefone: userForm.telefone,
+            matricula: userForm.matricula,
+            roles: userForm.roles,
+          }),
+        },
+        session,
+      ),
+    onSuccess: async () => {
+      setUserDialogOpen(false);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["catalog", "people"] }),
+        queryClient.invalidateQueries({ queryKey: ["person", selected?.id, "details"] }),
+      ]);
+    },
   });
 
   return (
@@ -816,7 +1064,28 @@ function PessoasTree() {
           {selected && (
             <>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="h6">{selected.nome}</Typography>
+                <Stack direction="row" justifyContent="space-between" spacing={2}>
+                  <Typography variant="h6">{selected.nome}</Typography>
+                  {hasAnyRole("ADMIN") && (
+                    <Button
+                      startIcon={<EditOutlined />}
+                      onClick={() => {
+                        const person = personDetails.data;
+                        setUserForm({
+                          nome: person?.nome ?? selected.nome,
+                          email: person?.email ?? selected.email,
+                          telefone: person?.telefone ?? "",
+                          matricula: person?.matricula ?? selected.matricula ?? "",
+                          password: "",
+                          roles: person?.roles ?? selected.roles,
+                        });
+                        setUserDialogOpen(true);
+                      }}
+                    >
+                      Editar usuário
+                    </Button>
+                  )}
+                </Stack>
                 <Typography>{selected.email}</Typography>
                 <Typography color="text.secondary">
                   Curso: {course.data?.curso?.nome ?? "Nao vinculado"}
@@ -826,48 +1095,344 @@ function PessoasTree() {
                 </Stack>
               </Paper>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <TextField
-                  label="Periodo letivo"
-                  value={period}
-                  onChange={(event) => setPeriod(event.target.value)}
-                  size="small"
-                />
-                <Typography variant="h6" sx={{ mt: 2 }}>Disciplinas</Typography>
-                <Box component="pre" sx={{ overflow: "auto", fontSize: 12 }}>
-                  {JSON.stringify(disciplines.data ?? [], null, 2)}
-                </Box>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={2}
+                >
+                  <Stack direction="row" spacing={1.5}>
+                    <Typography variant="h6">Disciplinas associadas</Typography>
+                    <TextField
+                      label="Período letivo"
+                      value={period}
+                      onChange={(event) => setPeriod(event.target.value)}
+                      size="small"
+                    />
+                  </Stack>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddOutlined />}
+                    onClick={() => {
+                      setDisciplineLink({ ...disciplineLink, periodoLetivo: period });
+                      setDisciplineDialogOpen(true);
+                    }}
+                  >
+                    Atribuir disciplina
+                  </Button>
+                </Stack>
+                <TableContainer sx={{ mt: 2 }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Disciplina</TableCell>
+                        <TableCell>Turma</TableCell>
+                        <TableCell>Período</TableCell>
+                        <TableCell>Status</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {disciplines.data?.map((discipline) => (
+                        <TableRow key={discipline.vinculoId}>
+                          <TableCell>{discipline.disciplinaNome}</TableCell>
+                          <TableCell>{discipline.turma}</TableCell>
+                          <TableCell>{discipline.periodoLetivo}</TableCell>
+                          <TableCell>
+                            <Chip label={discipline.status} size="small" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {!disciplines.isLoading && disciplines.data?.length === 0 && (
+                  <Empty text="Nenhuma disciplina associada neste período." />
+                )}
+                <ErrorAlert error={disciplines.error} />
               </Paper>
               <Paper variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="h6">Atividades</Typography>
-                <Box component="pre" sx={{ overflow: "auto", fontSize: 12 }}>
-                  {JSON.stringify(activities.data ?? [], null, 2)}
-                </Box>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  justifyContent="space-between"
+                  spacing={2}
+                >
+                  <Typography variant="h6">Atividades e progresso</Typography>
+                  <FormControl size="small" sx={{ minWidth: 190 }}>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      label="Status"
+                      value={activityStatus}
+                      onChange={(event) =>
+                        setActivityStatus(event.target.value as AtividadeStatus | "ALL")
+                      }
+                    >
+                      <MenuItem value="ALL">Todos os status</MenuItem>
+                      {["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "EXPIRADA", "CANCELADA"].map(
+                        (status) => (
+                          <MenuItem key={status} value={status}>{status}</MenuItem>
+                        ),
+                      )}
+                    </Select>
+                  </FormControl>
+                </Stack>
+                <Stack spacing={1.5} sx={{ mt: 2 }}>
+                  {activities.data?.map((activity) => (
+                    <Box
+                      key={activity.id}
+                      sx={{
+                        p: 2,
+                        ml: activity.missaoParentId ? 3 : 0,
+                        border: 1,
+                        borderColor: "divider",
+                        borderLeft: 4,
+                        borderLeftColor:
+                          activity.status === "CONCLUIDA"
+                            ? "success.main"
+                            : activity.status === "EM_ANDAMENTO"
+                              ? "warning.main"
+                              : "grey.400",
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Stack direction="row" justifyContent="space-between" spacing={2}>
+                        <Box>
+                          <Typography fontWeight={700}>{activity.missaoTitulo}</Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {activity.missaoDescricao || activity.missaoTipo}
+                          </Typography>
+                        </Box>
+                        <Chip label={activity.status} size="small" />
+                      </Stack>
+                      {activity.totalFilhas > 0 && (
+                        <Box sx={{ mt: 1.5 }}>
+                          <Stack direction="row" justifyContent="space-between">
+                            <Typography variant="caption">
+                              {activity.filhasConcluidas} de {activity.totalFilhas} etapas concluídas
+                            </Typography>
+                            <Typography variant="caption">
+                              {activity.progressoPercentual}%
+                            </Typography>
+                          </Stack>
+                          <LinearProgress
+                            variant="determinate"
+                            value={activity.progressoPercentual}
+                            sx={{ mt: 0.5, height: 8, borderRadius: 1 }}
+                          />
+                        </Box>
+                      )}
+                    </Box>
+                  ))}
+                  {!activities.isLoading && activities.data?.length === 0 && (
+                    <Empty text="Nenhuma atividade encontrada para este filtro." />
+                  )}
+                </Stack>
+                <ErrorAlert error={activities.error} />
               </Paper>
             </>
           )}
         </Stack>
       </Box>
+      <Dialog
+        open={userDialogOpen}
+        onClose={() => setUserDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Editar usuário</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Nome"
+              value={userForm.nome}
+              onChange={(event) => setUserForm({ ...userForm, nome: event.target.value })}
+              required
+            />
+            <TextField
+              label="E-mail"
+              type="email"
+              value={userForm.email}
+              onChange={(event) => setUserForm({ ...userForm, email: event.target.value })}
+              required
+            />
+            <TextField
+              label="Telefone"
+              value={userForm.telefone}
+              onChange={(event) => setUserForm({ ...userForm, telefone: event.target.value })}
+            />
+            <TextField
+              label="Matrícula"
+              value={userForm.matricula}
+              onChange={(event) => setUserForm({ ...userForm, matricula: event.target.value })}
+            />
+            <TextField
+              label="Nova senha"
+              type="password"
+              value={userForm.password}
+              onChange={(event) => setUserForm({ ...userForm, password: event.target.value })}
+              helperText="Deixe em branco para manter a senha atual."
+            />
+            <FormControl>
+              <InputLabel>Perfis de acesso</InputLabel>
+              <Select
+                multiple
+                label="Perfis de acesso"
+                value={userForm.roles}
+                onChange={(event) =>
+                  setUserForm({
+                    ...userForm,
+                    roles: typeof event.target.value === "string"
+                      ? event.target.value.split(",")
+                      : event.target.value,
+                  })
+                }
+              >
+                {["ADMIN", "OPERADOR", "ANALISTA", "USUARIO", "INGESTOR"].map((role) => (
+                  <MenuItem key={role} value={role}>{role}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <ErrorAlert error={updatePerson.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => updatePerson.mutate()}
+            disabled={
+              updatePerson.isPending
+              || !userForm.nome.trim()
+              || !userForm.email.trim()
+              || userForm.roles.length === 0
+            }
+          >
+            Salvar alterações
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={disciplineDialogOpen}
+        onClose={() => setDisciplineDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Atribuir disciplina a {selected?.nome}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <FormControl required>
+              <InputLabel>Disciplina</InputLabel>
+              <Select
+                label="Disciplina"
+                value={disciplineLink.disciplinaId}
+                onChange={(event) =>
+                  setDisciplineLink({ ...disciplineLink, disciplinaId: event.target.value })
+                }
+              >
+                {disciplineCatalog.data?.map((discipline) => (
+                  <MenuItem key={discipline.id} value={String(discipline.id)}>
+                    {discipline.nome}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <TextField
+              label="Turma"
+              value={disciplineLink.turma}
+              onChange={(event) =>
+                setDisciplineLink({ ...disciplineLink, turma: event.target.value })
+              }
+              required
+            />
+            <TextField
+              label="Período letivo"
+              value={disciplineLink.periodoLetivo}
+              onChange={(event) =>
+                setDisciplineLink({ ...disciplineLink, periodoLetivo: event.target.value })
+              }
+              placeholder="2026/1"
+              required
+            />
+            <FormControl>
+              <InputLabel>Status</InputLabel>
+              <Select
+                label="Status"
+                value={disciplineLink.status}
+                onChange={(event) =>
+                  setDisciplineLink({ ...disciplineLink, status: event.target.value })
+                }
+              >
+                <MenuItem value="ATIVA">Ativa</MenuItem>
+                <MenuItem value="CONCLUIDA">Concluída</MenuItem>
+                <MenuItem value="CANCELADA">Cancelada</MenuItem>
+              </Select>
+            </FormControl>
+            <ErrorAlert error={linkDiscipline.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDisciplineDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => linkDiscipline.mutate()}
+            disabled={
+              linkDiscipline.isPending
+              || !disciplineLink.disciplinaId
+              || !disciplineLink.turma.trim()
+              || !/^\d{4}\/[12]$/.test(disciplineLink.periodoLetivo)
+            }
+          >
+            Atribuir
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
 
 function CursosTree() {
-  const { session } = useAuth();
+  const { session, hasAnyRole } = useAuth();
+  const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
+  const [courseDialogOpen, setCourseDialogOpen] = useState(false);
+  const [newCourse, setNewCourse] = useState({ nome: "", unidadeSigla: "" });
   const courses = useQuery({
     queryKey: ["courses", query],
     queryFn: () =>
       apiRequest<Curso[]>(`/api/cursos?q=${encodeURIComponent(query)}`, {}, session),
   });
+  const createCourse = useMutation({
+    mutationFn: () =>
+      apiRequest<Curso>(
+        "/api/cursos",
+        { method: "POST", body: JSON.stringify(newCourse) },
+        session,
+      ),
+    onSuccess: async () => {
+      setCourseDialogOpen(false);
+      setNewCourse({ nome: "", unidadeSigla: "" });
+      await queryClient.invalidateQueries({ queryKey: ["courses"] });
+    },
+  });
 
   return (
     <Stack spacing={2}>
-      <TextField
-        label="Buscar curso"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="ID, nome ou unidade"
-      />
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+        <TextField
+          label="Buscar curso"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="ID, nome ou unidade"
+          fullWidth
+        />
+        {hasAnyRole("ADMIN", "OPERADOR") && (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlined />}
+            onClick={() => setCourseDialogOpen(true)}
+          >
+            Cadastrar curso
+          </Button>
+        )}
+      </Stack>
       <TableContainer component={Paper} variant="outlined">
         <Table>
           <TableHead>
@@ -889,6 +1454,44 @@ function CursosTree() {
         </Table>
       </TableContainer>
       <ErrorAlert error={courses.error} />
+      <Dialog
+        open={courseDialogOpen}
+        onClose={() => setCourseDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Cadastrar curso</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Nome"
+              value={newCourse.nome}
+              onChange={(event) => setNewCourse({ ...newCourse, nome: event.target.value })}
+              required
+              autoFocus
+            />
+            <TextField
+              label="Sigla da unidade"
+              value={newCourse.unidadeSigla}
+              onChange={(event) =>
+                setNewCourse({ ...newCourse, unidadeSigla: event.target.value })
+              }
+              placeholder="Ex.: CDTec"
+            />
+            <ErrorAlert error={createCourse.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCourseDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => createCourse.mutate()}
+            disabled={createCourse.isPending || !newCourse.nome.trim()}
+          >
+            Cadastrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

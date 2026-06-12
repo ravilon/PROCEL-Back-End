@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface MissaoRepository extends JpaRepository<Missao, UUID> {
     List<Missao> findByAtivoOrderByCreatedAtDesc(boolean ativo);
     List<Missao> findAllByOrderByCreatedAtDesc();
+    List<Missao> findByParent_IdOrderByCreatedAtAsc(UUID parentId);
 }

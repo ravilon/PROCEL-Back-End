@@ -51,10 +51,20 @@ public class CatalogoService {
     }
 
     @Transactional(readOnly = true)
-    public List<CatalogoDTOs.CompartimentoResponse> listarCompartimentos(String query) {
+    public List<CatalogoDTOs.CompartimentoResponse> listarCompartimentos(
+            String query,
+            String tipo,
+            String predio,
+            String unidade,
+            String campus
+    ) {
         return compartimentoRepo.findAll().stream()
                 .filter(item -> matches(query, item.getId(), item.getNome(), item.getTipo(),
                         item.getPredio().getNome(), item.getUnidade().getNome()))
+                .filter(item -> matchesFilter(tipo, item.getTipo()))
+                .filter(item -> matchesFilter(predio, item.getPredio().getNome()))
+                .filter(item -> matchesFilter(unidade, item.getUnidade().getNome()))
+                .filter(item -> matchesFilter(campus, item.getPredio().getCampus().getNome()))
                 .sorted(Comparator.comparing(Compartimento::getNome, String.CASE_INSENSITIVE_ORDER))
                 .limit(MAX_RESULTS)
                 .map(CatalogoService::toCompartimento)
@@ -136,6 +146,12 @@ public class CatalogoService {
             }
         }
         return false;
+    }
+
+    private static boolean matchesFilter(String filter, String value) {
+        return filter == null || filter.isBlank()
+                || (value != null && value.toLowerCase(Locale.ROOT)
+                .contains(filter.trim().toLowerCase(Locale.ROOT)));
     }
 
     private static CatalogoDTOs.CompartimentoResponse toCompartimento(Compartimento item) {

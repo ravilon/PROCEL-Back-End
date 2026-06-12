@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.List;
 
 public class RegraDTOs {
 
@@ -79,6 +80,19 @@ public class RegraDTOs {
             Instant validoDe,
             Instant validoAte,
             Instant createdAt
+    ) {}
+
+    public record GrupoSalasRequest(
+            List<String> compartimentoIds,
+            SensorGrupoRegraStatus status,
+            Instant validoDe,
+            Instant validoAte
+    ) {}
+
+    public record GrupoSalasResponse(
+            int salasSelecionadas,
+            int sensoresVinculados,
+            List<SensorGrupoRegraResponse> vinculos
     ) {}
 
     public record ParametroDefResponse(

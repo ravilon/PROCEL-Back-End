@@ -1168,9 +1168,37 @@
             }
           },
           "response": []
+        },
+        {
+          "name": "POST /api/rules/groups/{{grupoRegraId}}/rooms",
+          "request": {
+            "method": "POST",
+            "header": {
+              "key": "Content-Type",
+              "value": "application/json"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"compartimentoIds\": [\"{{roomId}}\"],\n  \"status\": \"ATIVO\",\n  \"validoDe\": null,\n  \"validoAte\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/rules/groups/{{grupoRegraId}}/rooms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "rules",
+                "groups",
+                "{{grupoRegraId}}",
+                "rooms"
+              ]
+            }
+          },
+          "response": []
         }
       ],
-      "description": "Configura DER Parameter Qualification. A API rejeita duas regras ativas/agendadas sobrepostas para o mesmo sensor + ParametroDef. Esta pasta mostra o fluxo basico de criacao; para reruns idempotentes use Documentos/ApiSmokeTests/ApiSmokeTest.ps1."
+      "description": "Configura DER Parameter Qualification. Inclui vinculo individual e em lote aos sensores compativeis das salas selecionadas."
     },
     {
       "name": "07 - Sensors ingest mock",

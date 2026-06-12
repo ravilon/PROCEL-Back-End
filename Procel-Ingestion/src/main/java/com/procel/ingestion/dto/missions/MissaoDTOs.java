@@ -25,7 +25,7 @@ public class MissaoDTOs {
                         @Schema(description = "Tipo da missao.", example = "Individual") String tipo,
                         @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") Boolean ativo,
-                        @Schema(description = "Missao pai opcional. Envie null para manter o pai atual.") UUID parentId) {
+                        @Schema(description = "Missao pai opcional. Envie null para tornar a missao raiz.") UUID parentId) {
         }
 
         @Schema(description = "Modelo de missao disponivel no sistema.")
@@ -65,7 +65,11 @@ public class MissaoDTOs {
                         @Schema(description = "Descricao da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String missaoDescricao,
                         @Schema(description = "Tipo da missao.", example = "Individual") String missaoTipo,
                         @Schema(description = "Pontuacao XP da missao.", example = "20") int missaoValue,
+                        @Schema(description = "Missao pai, quando houver.") UUID missaoParentId,
                         @Schema(description = "Status da atividade.", example = "PENDENTE") AtividadeStatus status,
+                        @Schema(description = "Quantidade de atividades filhas diretas.") int totalFilhas,
+                        @Schema(description = "Quantidade de atividades filhas concluidas.") int filhasConcluidas,
+                        @Schema(description = "Progresso calculado pelas filhas, de 0 a 100.") int progressoPercentual,
                         @Schema(description = "Instante de atribuicao.", example = "2026-05-11T21:30:00Z") Instant assignedAt,
                         @Schema(description = "Instante de inicio.", example = "2026-05-11T22:00:00Z") Instant startedAt,
                         @Schema(description = "Instante de conclusao.", example = "2026-05-11T23:00:00Z") Instant completedAt) {

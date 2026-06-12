@@ -103,6 +103,32 @@ export interface Missao {
   parentTitulo?: string | null;
 }
 
+export type AtividadeStatus =
+  | "PENDENTE"
+  | "EM_ANDAMENTO"
+  | "CONCLUIDA"
+  | "EXPIRADA"
+  | "CANCELADA";
+
+export interface Atividade {
+  id: string;
+  pessoaId: string;
+  pessoaNome: string;
+  missaoId: string;
+  missaoTitulo: string;
+  missaoDescricao?: string | null;
+  missaoTipo: string;
+  missaoValue: number;
+  missaoParentId?: string | null;
+  status: AtividadeStatus;
+  totalFilhas: number;
+  filhasConcluidas: number;
+  progressoPercentual: number;
+  assignedAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+}
+
 export interface Disciplina {
   id: number;
   nome: string;

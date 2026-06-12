@@ -14,4 +14,5 @@ public interface AtividadeRepository extends JpaRepository<Atividade, UUID> {
     List<Atividade> findByPessoaIdAndStatusOrderByAssignedAtDesc(String pessoaId, AtividadeStatus status);
     List<Atividade> findByMissaoIdAndStatusIn(UUID missaoId, List<AtividadeStatus> statuses);
     Optional<Atividade> findByIdAndPessoaId(UUID id, String pessoaId);
+    Optional<Atividade> findByPessoaIdAndMissaoId(String pessoaId, UUID missaoId);
 }

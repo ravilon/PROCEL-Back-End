@@ -135,6 +135,52 @@ public class RegrasService {
                 .toList();
     }
 
+    @Transactional
+    public RegraDTOs.GrupoSalasResponse vincularGrupoAsSalas(
+            UUID grupoId,
+            RegraDTOs.GrupoSalasRequest req
+    ) {
+        if (grupoId == null) throw new IllegalArgumentException("grupoId is required");
+        if (req == null || req.compartimentoIds() == null || req.compartimentoIds().isEmpty()) {
+            throw new IllegalArgumentException("compartimentoIds is required");
+        }
+        GrupoRegra grupo = grupoRepo.findById(grupoId)
+                .orElseThrow(() -> new NotFoundException("GrupoRegra not found id=" + grupoId));
+        List<RegraParametro> regras = regraRepo
+                .findAllByGrupoRegra_IdAndAtivoTrueOrderByPrioridadeDescSeveridadeDesc(grupoId);
+        if (regras.isEmpty()) {
+            throw new IllegalArgumentException("GrupoRegra must have at least one active rule");
+        }
+        Set<String> tipos = regras.stream()
+                .map(regra -> regra.getParametroDef().getTipo().getNome())
+                .collect(java.util.stream.Collectors.toSet());
+        if (tipos.size() != 1) {
+            throw new IllegalArgumentException("Bulk room assignment requires rules from one sensor type");
+        }
+        String tipoNome = tipos.iterator().next();
+        List<String> roomIds = req.compartimentoIds().stream()
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .filter(id -> !id.isBlank())
+                .distinct()
+                .toList();
+        List<RegraDTOs.SensorGrupoRegraResponse> links = sensorRepo
+                .findByCompartimento_IdIn(roomIds)
+                .stream()
+                .filter(sensor -> tipoNome.equals(sensor.getTipo().getNome()))
+                .map(sensor -> vincularGrupoAoSensor(
+                        sensor.getExternalId(),
+                        new RegraDTOs.SensorGrupoRegraRequest(
+                                grupoId,
+                                req.status(),
+                                req.validoDe(),
+                                req.validoAte()
+                        )
+                ))
+                .toList();
+        return new RegraDTOs.GrupoSalasResponse(roomIds.size(), links.size(), links);
+    }
+
     @Transactional(readOnly = true)
     public List<RegraDTOs.ParametroDefResponse> listarParametros(String tipoNome) {
         if (tipoNome == null || tipoNome.isBlank()) throw new IllegalArgumentException("tipoNome is required");

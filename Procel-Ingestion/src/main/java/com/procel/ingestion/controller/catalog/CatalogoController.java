@@ -28,9 +28,13 @@ public class CatalogoController {
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA','USUARIO')")
     @Operation(summary = "Lista compartimentos para busca e navegacao")
     public List<CatalogoDTOs.CompartimentoResponse> compartimentos(
-            @RequestParam(required = false) String q
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String tipo,
+            @RequestParam(required = false) String predio,
+            @RequestParam(required = false) String unidade,
+            @RequestParam(required = false) String campus
     ) {
-        return service.listarCompartimentos(q);
+        return service.listarCompartimentos(q, tipo, predio, unidade, campus);
     }
 
     @GetMapping("/compartimentos/{id}/sensores")

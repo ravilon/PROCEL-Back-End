@@ -78,6 +78,8 @@ public class MissaoService {
             Missao parent = findMissao(req.parentId());
             validateParent(missao, parent);
             missao.setParent(parent);
+        } else {
+            missao.setParent(null);
         }
 
         return toMissaoResponse(missao);
@@ -113,12 +115,8 @@ public class MissaoService {
             throw new ConflictException("Pessoa already has activity for missaoId=" + req.missaoId());
         }
 
-        Atividade atividade = new Atividade(pessoa, missao, req.status());
-        if (req.startedAt() != null)
-            atividade.setStartedAt(req.startedAt());
-        normalizeStatusTimestamps(atividade);
-
-        return toAtividadeResponse(atividadeRepo.save(atividade));
+        Atividade atividade = createActivityTree(pessoa, missao, req.status(), req.startedAt(), true);
+        return toAtividadeResponse(atividade);
     }
 
     @Transactional(readOnly = true)
@@ -134,7 +132,7 @@ public class MissaoService {
         List<Atividade> atividades = status == null
                 ? atividadeRepo.findByPessoaIdOrderByAssignedAtDesc(normalizedPessoaId)
                 : atividadeRepo.findByPessoaIdAndStatusOrderByAssignedAtDesc(normalizedPessoaId, status);
-        return atividades.stream().map(MissaoService::toAtividadeResponse).toList();
+        return atividades.stream().map(this::toAtividadeResponse).toList();
     }
 
     @Transactional(readOnly = true)
@@ -175,7 +173,12 @@ public class MissaoService {
             atividade.setCompletedAt(req.completedAt());
         if (req.status() != null)
             atividade.setStatus(req.status());
-        normalizeStatusTimestamps(atividade);
+        if (hasChildren(atividade.getMissao())) {
+            syncActivityFromChildren(atividade);
+        } else {
+            normalizeStatusTimestamps(atividade);
+        }
+        syncAncestorActivities(atividade.getPessoa().getId(), atividade.getMissao().getParent());
 
         return toAtividadeResponse(atividade);
     }
@@ -244,6 +247,81 @@ public class MissaoService {
                 .count();
     }
 
+    private Atividade createActivityTree(
+            Pessoa pessoa,
+            Missao missao,
+            AtividadeStatus requestedStatus,
+            Instant startedAt,
+            boolean root
+    ) {
+        Atividade atividade = atividadeRepo.findByPessoaIdAndMissaoId(pessoa.getId(), missao.getId())
+                .orElseGet(() -> atividadeRepo.save(new Atividade(
+                        pessoa,
+                        missao,
+                        root ? requestedStatus : AtividadeStatus.PENDENTE
+                )));
+        if (root && startedAt != null) {
+            atividade.setStartedAt(startedAt);
+        }
+        for (Missao child : missaoRepo.findByParent_IdOrderByCreatedAtAsc(missao.getId())) {
+            if (child.isAtivo()) {
+                createActivityTree(pessoa, child, AtividadeStatus.PENDENTE, null, false);
+            }
+        }
+        if (hasChildren(missao)) {
+            syncActivityFromChildren(atividade);
+        } else {
+            normalizeStatusTimestamps(atividade);
+        }
+        return atividade;
+    }
+
+    private boolean hasChildren(Missao missao) {
+        return !missaoRepo.findByParent_IdOrderByCreatedAtAsc(missao.getId()).isEmpty();
+    }
+
+    private void syncAncestorActivities(String pessoaId, Missao parent) {
+        Missao current = parent;
+        while (current != null) {
+            atividadeRepo.findByPessoaIdAndMissaoId(pessoaId, current.getId())
+                    .ifPresent(this::syncActivityFromChildren);
+            current = current.getParent();
+        }
+    }
+
+    private void syncActivityFromChildren(Atividade parentActivity) {
+        List<Atividade> children = childActivities(parentActivity);
+        if (children.isEmpty()) return;
+
+        boolean allCompleted = children.stream()
+                .allMatch(item -> item.getStatus() == AtividadeStatus.CONCLUIDA);
+        boolean anyProgress = children.stream()
+                .anyMatch(item -> item.getStatus() == AtividadeStatus.CONCLUIDA
+                        || item.getStatus() == AtividadeStatus.EM_ANDAMENTO);
+
+        if (allCompleted) {
+            parentActivity.setStatus(AtividadeStatus.CONCLUIDA);
+            if (parentActivity.getStartedAt() == null) parentActivity.setStartedAt(Instant.now());
+            if (parentActivity.getCompletedAt() == null) parentActivity.setCompletedAt(Instant.now());
+        } else if (anyProgress) {
+            parentActivity.setStatus(AtividadeStatus.EM_ANDAMENTO);
+            if (parentActivity.getStartedAt() == null) parentActivity.setStartedAt(Instant.now());
+            parentActivity.setCompletedAt(null);
+        } else {
+            parentActivity.setStatus(AtividadeStatus.PENDENTE);
+            parentActivity.setCompletedAt(null);
+        }
+    }
+
+    private List<Atividade> childActivities(Atividade parentActivity) {
+        String pessoaId = parentActivity.getPessoa().getId();
+        return missaoRepo.findByParent_IdOrderByCreatedAtAsc(parentActivity.getMissao().getId())
+                .stream()
+                .map(child -> atividadeRepo.findByPessoaIdAndMissaoId(pessoaId, child.getId()).orElse(null))
+                .filter(java.util.Objects::nonNull)
+                .toList();
+    }
+
     private static MissaoDTOs.MissaoResponse toMissaoResponse(Missao missao) {
         return new MissaoDTOs.MissaoResponse(
                 missao.getId(),
@@ -257,7 +335,14 @@ public class MissaoService {
                 missao.getParent() == null ? null : missao.getParent().getTitulo());
     }
 
-    private static MissaoDTOs.AtividadeResponse toAtividadeResponse(Atividade atividade) {
+    private MissaoDTOs.AtividadeResponse toAtividadeResponse(Atividade atividade) {
+        List<Atividade> children = childActivities(atividade);
+        int completed = (int) children.stream()
+                .filter(item -> item.getStatus() == AtividadeStatus.CONCLUIDA)
+                .count();
+        int progress = children.isEmpty()
+                ? (atividade.getStatus() == AtividadeStatus.CONCLUIDA ? 100 : 0)
+                : completed * 100 / children.size();
         return new MissaoDTOs.AtividadeResponse(
                 atividade.getId(),
                 atividade.getPessoa().getId(),
@@ -267,7 +352,11 @@ public class MissaoService {
                 atividade.getMissao().getDescricao(),
                 atividade.getMissao().getTipo(),
                 atividade.getMissao().getValue(),
+                atividade.getMissao().getParent() == null ? null : atividade.getMissao().getParent().getId(),
                 atividade.getStatus(),
+                children.size(),
+                completed,
+                progress,
                 atividade.getAssignedAt(),
                 atividade.getStartedAt(),
                 atividade.getCompletedAt());

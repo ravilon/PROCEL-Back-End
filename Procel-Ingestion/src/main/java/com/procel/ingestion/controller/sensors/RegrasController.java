@@ -69,4 +69,13 @@ public class RegrasController {
     public List<RegraDTOs.SensorGrupoRegraResponse> listarVinculosDoSensor(@PathVariable String sensorExternalId) {
         return service.listarVinculosDoSensor(sensorExternalId);
     }
+
+    @PostMapping("/groups/{grupoId}/rooms")
+    @Operation(summary = "Vincula grupo aos sensores compativeis de varias salas")
+    public RegraDTOs.GrupoSalasResponse vincularGrupoAsSalas(
+            @PathVariable UUID grupoId,
+            @RequestBody RegraDTOs.GrupoSalasRequest req
+    ) {
+        return service.vincularGrupoAsSalas(grupoId, req);
+    }
 }

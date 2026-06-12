@@ -883,6 +883,40 @@ collection:
                 send: true
                 store: true
               rebuildPath: true
+          - url: "{{baseUrl}}/api/rules/groups/{{grupoRegraId}}/rooms"
+            name: POST /api/rules/groups/{{grupoRegraId}}/rooms
+            meta:
+              id: req_bulk_rules_rooms_20260612
+              created: 1781270400000
+              modified: 1781270400000
+              isPrivate: false
+              description: Vincula o grupo aos sensores compativeis das salas.
+              sortKey: -1776477176807.05
+            method: POST
+            body:
+              mimeType: application/json
+              text: |-
+                {
+                  "compartimentoIds": ["{{roomId}}"],
+                  "status": "ATIVO",
+                  "validoDe": null,
+                  "validoAte": null
+                }
+            headers:
+              - name: Content-Type
+                value: application/json
+                disabled: false
+              - name: Authorization
+                value: Bearer {{jwtToken}}
+                disabled: false
+            settings:
+              renderRequestBody: true
+              encodeUrl: true
+              followRedirects: global
+              cookies:
+                send: true
+                store: true
+              rebuildPath: true
       - name: 04 - Missoes e Atividades
         meta:
           id: fld_3980adcf6c0c46efbbdb678128899bff
