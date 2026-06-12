@@ -40,6 +40,10 @@ public class Pessoa {
     @Column(name = "matricula", length = 80)
     private String matricula;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "curso_id", foreignKey = @ForeignKey(name = "fk_pessoa_curso"))
+    private Curso curso;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -70,6 +74,7 @@ public class Pessoa {
     public String getPasswordHash() { return passwordHash; }
     public String getTelefone() { return telefone; }
     public String getMatricula() { return matricula; }
+    public Curso getCurso() { return curso; }
     public Instant getCreatedAt() { return createdAt; }
     public Set<Role> getRoles() { return roles; }
 
@@ -78,5 +83,6 @@ public class Pessoa {
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public void setTelefone(String telefone) { this.telefone = telefone; }
     public void setMatricula(String matricula) { this.matricula = matricula; }
+    public void setCurso(Curso curso) { this.curso = curso; }
     public void setRoles(Set<Role> roles) { this.roles = roles; }
 }

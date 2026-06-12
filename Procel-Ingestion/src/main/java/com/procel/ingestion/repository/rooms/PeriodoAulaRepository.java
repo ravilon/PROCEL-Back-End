@@ -19,6 +19,14 @@ public interface PeriodoAulaRepository extends JpaRepository<PeriodoAula, UUID> 
             LocalDate data
     );
 
+    List<PeriodoAula> findTop200ByCompartimentoIdOrderByDataDescTurnoAscPeriodoAulaAsc(
+            String compartimentoId
+    );
+
+    List<PeriodoAula> findTop200ByDisciplinaIdOrderByDataDescTurnoAscPeriodoAulaAsc(
+            Long disciplinaId
+    );
+
     long deleteByCompartimentoIdAndDataBetween(
             String compartimentoId,
             LocalDate dataInicial,

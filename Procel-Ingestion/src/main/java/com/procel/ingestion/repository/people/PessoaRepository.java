@@ -10,4 +10,5 @@ public interface PessoaRepository extends JpaRepository<Pessoa, String> {
     Optional<Pessoa> findByMatricula(String matricula);
     boolean existsByEmail(String email);
     boolean existsByMatricula(String matricula);
+    boolean existsByCursoId(Long cursoId);
 }
