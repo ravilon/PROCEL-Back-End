@@ -1,6 +1,6 @@
 package com.procel.ingestion.entity.rooms;
 
-public enum OcorrenciaAulaTipo {
+public enum PeriodoAulaTipo {
     AULA,
     PROVA,
     RESERVA,

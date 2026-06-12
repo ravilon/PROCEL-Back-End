@@ -157,11 +157,11 @@ JOIN unidade u ON u.id = co.unidadeid;
 
 
 -- =====================================================
--- OCORRENCIAS DE AULA
+-- PERIODOS DE AULA
 -- "periodo_aula" representa a posicao da aula dentro do turno.
 -- =====================================================
 
--- 12) Agenda completa de ocorrencias por intervalo de datas
+-- 12) Agenda completa de periodos de aula por intervalo de datas
 SELECT
   oa.id,
   oa.data,
@@ -181,7 +181,7 @@ SELECT
   oa.descricao,
   oa.source,
   oa.sincronizado_em
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 JOIN compartimento co ON co.id = oa.compartimento_id
 JOIN predio p ON p.id = co.predioid
 JOIN campus c ON c.id = p.campusid
@@ -200,7 +200,7 @@ SELECT
   oa.tipo,
   oa.turma,
   COALESCE(d.nome, oa.descricao) AS atividade
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 LEFT JOIN disciplina d ON d.id = oa.disciplina_id
 WHERE oa.compartimento_id = '1000'
   AND oa.data = DATE '2026-06-11'
@@ -220,7 +220,7 @@ SELECT
   co.id AS compartimento_id,
   co.nome AS compartimento,
   p.nome AS predio
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 JOIN disciplina d ON d.id = oa.disciplina_id
 JOIN compartimento co ON co.id = oa.compartimento_id
 JOIN predio p ON p.id = co.predioid
@@ -229,12 +229,12 @@ WHERE d.id = 27064
 ORDER BY oa.data, oa.turno, oa.periodo_aula;
 
 
--- 15) Quantidade de ocorrencias por tipo e data
+-- 15) Quantidade de periodos de aula por tipo e data
 SELECT
   oa.data,
   oa.tipo,
   COUNT(*) AS qtd_ocorrencias
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 WHERE oa.data BETWEEN DATE '2026-06-07' AND DATE '2026-06-13'
 GROUP BY oa.data, oa.tipo
 ORDER BY oa.data, oa.tipo;
@@ -248,7 +248,7 @@ SELECT
   co.nome AS compartimento,
   COUNT(*) AS periodos_ocupados,
   COUNT(DISTINCT oa.data) AS dias_com_ocorrencia
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 JOIN compartimento co ON co.id = oa.compartimento_id
 JOIN predio p ON p.id = co.predioid
 JOIN campus c ON c.id = p.campusid
@@ -268,8 +268,8 @@ SELECT
   oa1.hora_fim AS fim_1,
   oa2.hora_inicio AS inicio_2,
   oa2.hora_fim AS fim_2
-FROM ocorrencia_aula oa1
-JOIN ocorrencia_aula oa2
+FROM periodo_aula oa1
+JOIN periodo_aula oa2
   ON oa2.compartimento_id = oa1.compartimento_id
  AND oa2.data = oa1.data
  AND oa2.id > oa1.id
@@ -279,7 +279,7 @@ JOIN compartimento co ON co.id = oa1.compartimento_id
 ORDER BY oa1.data, co.nome, oa1.hora_inicio;
 
 
--- 18) Ocorrencias sem disciplina associada
+-- 18) Periodos de aula sem disciplina associada
 -- Inclui provas, reservas e outros registros do Cobalto sem disciplina.
 SELECT
   oa.id,
@@ -292,7 +292,7 @@ SELECT
   oa.descricao,
   co.id AS compartimento_id,
   co.nome AS compartimento
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 JOIN compartimento co ON co.id = oa.compartimento_id
 WHERE oa.disciplina_id IS NULL
 ORDER BY oa.data DESC, oa.hora_inicio, co.nome;
@@ -308,7 +308,7 @@ SELECT
   MIN(oa.data) AS primeira_ocorrencia,
   MAX(oa.data) AS ultima_ocorrencia
 FROM disciplina d
-LEFT JOIN ocorrencia_aula oa ON oa.disciplina_id = d.id
+LEFT JOIN periodo_aula oa ON oa.disciplina_id = d.id
 GROUP BY d.id, d.nome, d.unidade_sigla
 ORDER BY qtd_ocorrencias DESC, d.nome;
 
@@ -320,13 +320,13 @@ SELECT
   MAX(oa.sincronizado_em) AS ultima_sincronizacao,
   COUNT(oa.id) AS qtd_ocorrencias
 FROM compartimento co
-LEFT JOIN ocorrencia_aula oa ON oa.compartimento_id = co.id
+LEFT JOIN periodo_aula oa ON oa.compartimento_id = co.id
 GROUP BY co.id, co.nome
 ORDER BY ultima_sincronizacao DESC NULLS LAST, co.nome;
 
 
--- 21) View consolidada de ocorrencias de aula
-CREATE OR REPLACE VIEW vw_ocorrencias_aula AS
+-- 21) View consolidada de periodos de aula
+CREATE OR REPLACE VIEW vw_periodos_aula AS
 SELECT
   oa.id,
   oa.data,
@@ -351,7 +351,7 @@ SELECT
   c.nome AS campus,
   u.id AS unidade_id,
   u.nome AS unidade
-FROM ocorrencia_aula oa
+FROM periodo_aula oa
 JOIN compartimento co ON co.id = oa.compartimento_id
 JOIN predio p ON p.id = co.predioid
 JOIN campus c ON c.id = p.campusid

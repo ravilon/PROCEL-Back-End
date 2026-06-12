@@ -1,7 +1,7 @@
 package com.procel.ingestion.integration.cobalto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.procel.ingestion.entity.rooms.OcorrenciaAulaTipo;
+import com.procel.ingestion.entity.rooms.PeriodoAulaTipo;
 import com.procel.ingestion.service.rooms.AulaRecord;
 import org.junit.jupiter.api.Test;
 
@@ -44,7 +44,7 @@ class CobaltoAulasSourceTest {
                 LocalTime.of(8, 0),
                 LocalTime.of(8, 50),
                 "T1",
-                OcorrenciaAulaTipo.AULA,
+                PeriodoAulaTipo.AULA,
                 "(CDTEC) T1 - SISTEMAS DISCRETOS"
         ));
     }
@@ -71,7 +71,7 @@ class CobaltoAulasSourceTest {
         AulaRecord record = output.getFirst();
         assertThat(record.disciplinaId()).isNull();
         assertThat(record.data()).isEqualTo(LocalDate.of(2026, 6, 15));
-        assertThat(record.tipo()).isEqualTo(OcorrenciaAulaTipo.PROVA);
+        assertThat(record.tipo()).isEqualTo(PeriodoAulaTipo.PROVA);
         assertThat(record.descricao()).contains("Sala para aplicar prova");
     }
 

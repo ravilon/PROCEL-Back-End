@@ -1,6 +1,6 @@
 package com.procel.ingestion.service.rooms;
 
-import com.procel.ingestion.entity.rooms.OcorrenciaAulaTipo;
+import com.procel.ingestion.entity.rooms.PeriodoAulaTipo;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -15,6 +15,6 @@ public record AulaRecord(
         LocalTime horaInicio,
         LocalTime horaFim,
         String turma,
-        OcorrenciaAulaTipo tipo,
+        PeriodoAulaTipo tipo,
         String descricao
 ) {}

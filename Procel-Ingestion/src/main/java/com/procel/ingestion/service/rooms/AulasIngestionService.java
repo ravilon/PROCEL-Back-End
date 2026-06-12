@@ -2,10 +2,10 @@ package com.procel.ingestion.service.rooms;
 
 import com.procel.ingestion.entity.rooms.Compartimento;
 import com.procel.ingestion.entity.rooms.Disciplina;
-import com.procel.ingestion.entity.rooms.OcorrenciaAula;
+import com.procel.ingestion.entity.rooms.PeriodoAula;
 import com.procel.ingestion.repository.rooms.CompartimentoRepository;
 import com.procel.ingestion.repository.rooms.DisciplinaRepository;
-import com.procel.ingestion.repository.rooms.OcorrenciaAulaRepository;
+import com.procel.ingestion.repository.rooms.PeriodoAulaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,16 +22,16 @@ public class AulasIngestionService {
 
     private final CompartimentoRepository compartimentoRepository;
     private final DisciplinaRepository disciplinaRepository;
-    private final OcorrenciaAulaRepository ocorrenciaRepository;
+    private final PeriodoAulaRepository periodoAulaRepository;
 
     public AulasIngestionService(
             CompartimentoRepository compartimentoRepository,
             DisciplinaRepository disciplinaRepository,
-            OcorrenciaAulaRepository ocorrenciaRepository
+            PeriodoAulaRepository periodoAulaRepository
     ) {
         this.compartimentoRepository = compartimentoRepository;
         this.disciplinaRepository = disciplinaRepository;
-        this.ocorrenciaRepository = ocorrenciaRepository;
+        this.periodoAulaRepository = periodoAulaRepository;
     }
 
     @Transactional
@@ -47,7 +47,7 @@ public class AulasIngestionService {
 
         LocalDate weekEnd = weekStart.plusDays(6);
         int deleted = Math.toIntExact(
-                ocorrenciaRepository.deleteByCompartimentoIdAndDataBetween(
+                periodoAulaRepository.deleteByCompartimentoIdAndDataBetween(
                         compartimentoId,
                         weekStart,
                         weekEnd
@@ -57,7 +57,7 @@ public class AulasIngestionService {
         Map<Long, Disciplina> disciplinas = new HashMap<>();
         int disciplinesCreated = 0;
         int disciplinesUpdated = 0;
-        List<OcorrenciaAula> ocorrencias = new ArrayList<>(records.size());
+        List<PeriodoAula> periodosAula = new ArrayList<>(records.size());
 
         for (AulaRecord record : records) {
             Disciplina disciplina = null;
@@ -84,7 +84,7 @@ public class AulasIngestionService {
                 }
             }
 
-            ocorrencias.add(new OcorrenciaAula(
+            periodosAula.add(new PeriodoAula(
                     compartimento,
                     disciplina,
                     record.data(),
@@ -99,11 +99,11 @@ public class AulasIngestionService {
             ));
         }
 
-        ocorrenciaRepository.saveAll(ocorrencias);
+        periodoAulaRepository.saveAll(periodosAula);
 
         return new AulasRoomIngestionResult(
                 deleted,
-                ocorrencias.size(),
+                periodosAula.size(),
                 disciplinesCreated,
                 disciplinesUpdated
         );

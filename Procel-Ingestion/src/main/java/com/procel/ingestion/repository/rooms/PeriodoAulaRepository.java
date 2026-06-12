@@ -1,20 +1,20 @@
 package com.procel.ingestion.repository.rooms;
 
-import com.procel.ingestion.entity.rooms.OcorrenciaAula;
+import com.procel.ingestion.entity.rooms.PeriodoAula;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public interface OcorrenciaAulaRepository extends JpaRepository<OcorrenciaAula, UUID> {
+public interface PeriodoAulaRepository extends JpaRepository<PeriodoAula, UUID> {
 
-    List<OcorrenciaAula> findByCompartimentoIdAndDataOrderByTurnoAscPeriodoAulaAsc(
+    List<PeriodoAula> findByCompartimentoIdAndDataOrderByTurnoAscPeriodoAulaAsc(
             String compartimentoId,
             LocalDate data
     );
 
-    List<OcorrenciaAula> findByDisciplinaIdAndDataOrderByTurnoAscPeriodoAulaAsc(
+    List<PeriodoAula> findByDisciplinaIdAndDataOrderByTurnoAscPeriodoAulaAsc(
             Long disciplinaId,
             LocalDate data
     );

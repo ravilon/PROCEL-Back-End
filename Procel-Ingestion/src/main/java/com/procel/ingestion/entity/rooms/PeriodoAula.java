@@ -20,23 +20,23 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "ocorrencia_aula",
+        name = "periodo_aula",
         indexes = {
                 @Index(
-                        name = "ix_ocorrencia_aula_compartimento_data",
+                        name = "ix_periodo_aula_compartimento_data",
                         columnList = "compartimento_id,data"
                 ),
                 @Index(
-                        name = "ix_ocorrencia_aula_disciplina_data",
+                        name = "ix_periodo_aula_disciplina_data",
                         columnList = "disciplina_id,data"
                 ),
                 @Index(
-                        name = "ix_ocorrencia_aula_data_turno_periodo_aula",
+                        name = "ix_periodo_aula_data_turno_periodo_aula",
                         columnList = "data,turno,periodo_aula"
                 )
         }
 )
-public class OcorrenciaAula {
+public class PeriodoAula {
 
     @Id
     @GeneratedValue
@@ -47,14 +47,14 @@ public class OcorrenciaAula {
     @JoinColumn(
             name = "compartimento_id",
             nullable = false,
-            foreignKey = @ForeignKey(name = "fk_ocorrencia_aula_compartimento")
+            foreignKey = @ForeignKey(name = "fk_periodo_aula_compartimento")
     )
     private Compartimento compartimento;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "disciplina_id",
-            foreignKey = @ForeignKey(name = "fk_ocorrencia_aula_disciplina")
+            foreignKey = @ForeignKey(name = "fk_periodo_aula_disciplina")
     )
     private Disciplina disciplina;
 
@@ -78,7 +78,7 @@ public class OcorrenciaAula {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 20)
-    private OcorrenciaAulaTipo tipo;
+    private PeriodoAulaTipo tipo;
 
     @Column(name = "descricao", nullable = false, length = 1000)
     private String descricao;
@@ -89,9 +89,9 @@ public class OcorrenciaAula {
     @Column(name = "sincronizado_em", nullable = false)
     private Instant sincronizadoEm = Instant.now();
 
-    protected OcorrenciaAula() {}
+    protected PeriodoAula() {}
 
-    public OcorrenciaAula(
+    public PeriodoAula(
             Compartimento compartimento,
             Disciplina disciplina,
             LocalDate data,
@@ -100,7 +100,7 @@ public class OcorrenciaAula {
             LocalTime horaInicio,
             LocalTime horaFim,
             String turma,
-            OcorrenciaAulaTipo tipo,
+            PeriodoAulaTipo tipo,
             String descricao,
             String source
     ) {
@@ -127,14 +127,14 @@ public class OcorrenciaAula {
     public LocalTime getHoraInicio() { return horaInicio; }
     public LocalTime getHoraFim() { return horaFim; }
     public String getTurma() { return turma; }
-    public OcorrenciaAulaTipo getTipo() { return tipo; }
+    public PeriodoAulaTipo getTipo() { return tipo; }
     public String getDescricao() { return descricao; }
     public String getSource() { return source; }
     public Instant getSincronizadoEm() { return sincronizadoEm; }
 
     public void setDisciplina(Disciplina disciplina) { this.disciplina = disciplina; }
     public void setTurma(String turma) { this.turma = turma; }
-    public void setTipo(OcorrenciaAulaTipo tipo) { this.tipo = tipo; }
+    public void setTipo(PeriodoAulaTipo tipo) { this.tipo = tipo; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public void setSource(String source) { this.source = source; }
     public void setSincronizadoEm(Instant sincronizadoEm) { this.sincronizadoEm = sincronizadoEm; }

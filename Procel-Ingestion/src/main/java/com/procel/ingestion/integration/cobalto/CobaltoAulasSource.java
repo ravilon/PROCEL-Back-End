@@ -2,7 +2,7 @@ package com.procel.ingestion.integration.cobalto;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.procel.ingestion.entity.rooms.OcorrenciaAulaTipo;
+import com.procel.ingestion.entity.rooms.PeriodoAulaTipo;
 import com.procel.ingestion.service.rooms.AulaRecord;
 import com.procel.ingestion.service.rooms.AulasSource;
 import org.springframework.http.HttpHeaders;
@@ -258,7 +258,7 @@ public class CobaltoAulasSource implements AulasSource {
     ) {
         Long disciplinaId = disciplineId(href);
         ParsedClassText parsedText = parseClassText(description);
-        OcorrenciaAulaTipo tipo = classify(disciplinaId, description);
+        PeriodoAulaTipo tipo = classify(disciplinaId, description);
 
         return new AulaRecord(
                 disciplinaId,
@@ -293,15 +293,15 @@ public class CobaltoAulasSource implements AulasSource {
         );
     }
 
-    private OcorrenciaAulaTipo classify(Long disciplinaId, String description) {
-        if (disciplinaId != null) return OcorrenciaAulaTipo.AULA;
+    private PeriodoAulaTipo classify(Long disciplinaId, String description) {
+        if (disciplinaId != null) return PeriodoAulaTipo.AULA;
 
         String normalized = description.toLowerCase(Locale.ROOT);
-        if (normalized.contains("prova")) return OcorrenciaAulaTipo.PROVA;
+        if (normalized.contains("prova")) return PeriodoAulaTipo.PROVA;
         if (normalized.contains("reserva") || normalized.contains("sala")) {
-            return OcorrenciaAulaTipo.RESERVA;
+            return PeriodoAulaTipo.RESERVA;
         }
-        return OcorrenciaAulaTipo.OUTRO;
+        return PeriodoAulaTipo.OUTRO;
     }
 
     private String plainText(String html) {
