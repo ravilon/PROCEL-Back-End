@@ -18,7 +18,7 @@ public class AulasSyncJobService {
     private final AulasSyncService syncService;
     private final TaskExecutor taskExecutor;
     private final Map<UUID, JobState> jobs = new ConcurrentHashMap<>();
-    private final Map<LocalDate, UUID> activeJobsByWeek = new ConcurrentHashMap<>();
+    private final Map<JobKey, UUID> activeJobs = new ConcurrentHashMap<>();
 
     public AulasSyncJobService(
             AulasSyncService syncService,
@@ -28,30 +28,45 @@ public class AulasSyncJobService {
         this.taskExecutor = taskExecutor;
     }
 
-    public synchronized AulasSyncJobResponse start(LocalDate date) {
+    public synchronized AulasSyncJobResponse start(LocalDate date, String roomId) {
         LocalDate weekStart = normalizeWeekStart(date);
-        UUID activeJobId = activeJobsByWeek.get(weekStart);
+        String normalizedRoomId = normalizeRoomId(roomId);
+        JobKey key = new JobKey(weekStart, normalizedRoomId);
+        JobKey conflictingKey = findConflictingActiveJob(weekStart, normalizedRoomId);
+        UUID activeJobId = conflictingKey == null ? null : activeJobs.get(conflictingKey);
 
         if (activeJobId != null) {
             JobState activeJob = jobs.get(activeJobId);
             if (activeJob != null && activeJob.isActive()) {
                 return activeJob.snapshot();
             }
-            activeJobsByWeek.remove(weekStart, activeJobId);
+            activeJobs.remove(conflictingKey, activeJobId);
         }
 
-        JobState job = new JobState(UUID.randomUUID(), weekStart);
+        JobState job = new JobState(UUID.randomUUID(), weekStart, normalizedRoomId);
         jobs.put(job.jobId, job);
-        activeJobsByWeek.put(weekStart, job.jobId);
+        activeJobs.put(key, job.jobId);
 
         try {
             taskExecutor.execute(() -> execute(job));
         } catch (RuntimeException ex) {
             job.fail(rootMessage(ex));
-            activeJobsByWeek.remove(weekStart, job.jobId);
+            activeJobs.remove(key, job.jobId);
         }
 
         return job.snapshot();
+    }
+
+    private JobKey findConflictingActiveJob(LocalDate weekStart, String roomId) {
+        for (JobKey activeKey : activeJobs.keySet()) {
+            if (!activeKey.weekStart().equals(weekStart)) {
+                continue;
+            }
+            if (roomId == null || activeKey.roomId() == null || roomId.equals(activeKey.roomId())) {
+                return activeKey;
+            }
+        }
+        return null;
     }
 
     public AulasSyncJobResponse get(UUID jobId) {
@@ -65,11 +80,11 @@ public class AulasSyncJobService {
     private void execute(JobState job) {
         job.start();
         try {
-            job.complete(syncService.syncAll(job.weekStart));
+            job.complete(syncService.sync(job.weekStart, job.roomId, job::updateProgress));
         } catch (Exception ex) {
             job.fail(rootMessage(ex));
         } finally {
-            activeJobsByWeek.remove(job.weekStart, job.jobId);
+            activeJobs.remove(new JobKey(job.weekStart, job.roomId), job.jobId);
         }
     }
 
@@ -78,6 +93,10 @@ public class AulasSyncJobService {
             throw new IllegalArgumentException("weekStart is required");
         }
         return date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
+    }
+
+    private String normalizeRoomId(String roomId) {
+        return roomId == null || roomId.isBlank() ? null : roomId.trim();
     }
 
     private String rootMessage(Throwable throwable) {
@@ -93,16 +112,19 @@ public class AulasSyncJobService {
     private static final class JobState {
         private final UUID jobId;
         private final LocalDate weekStart;
+        private final String roomId;
         private final Instant createdAt = Instant.now();
         private volatile AulasSyncJobStatus status = AulasSyncJobStatus.PENDING;
         private volatile Instant startedAt;
         private volatile Instant completedAt;
+        private volatile AulasSyncProgress progress = AulasSyncProgress.pending();
         private volatile AulasSyncResult result;
         private volatile String error;
 
-        private JobState(UUID jobId, LocalDate weekStart) {
+        private JobState(UUID jobId, LocalDate weekStart, String roomId) {
             this.jobId = jobId;
             this.weekStart = weekStart;
+            this.roomId = roomId;
         }
 
         private void start() {
@@ -112,8 +134,18 @@ public class AulasSyncJobService {
 
         private void complete(AulasSyncResult result) {
             this.result = result;
+            this.progress = AulasSyncProgress.of(
+                    result.roomsRequested(),
+                    result.roomsRequested(),
+                    result.roomsSynced(),
+                    result.roomsFailed()
+            );
             completedAt = Instant.now();
             status = AulasSyncJobStatus.COMPLETED;
+        }
+
+        private void updateProgress(AulasSyncProgress progress) {
+            this.progress = progress;
         }
 
         private void fail(String error) {
@@ -132,12 +164,16 @@ public class AulasSyncJobService {
                     jobId,
                     status,
                     weekStart,
+                    roomId,
                     createdAt,
                     startedAt,
                     completedAt,
+                    progress,
                     result,
                     error
             );
         }
     }
+
+    private record JobKey(LocalDate weekStart, String roomId) {}
 }

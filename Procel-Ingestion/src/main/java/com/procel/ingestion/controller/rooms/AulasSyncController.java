@@ -42,9 +42,12 @@ public class AulasSyncController {
             @Parameter(description = "Data pertencente a semana desejada.", example = "2026-06-14")
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate weekStart
+            LocalDate weekStart,
+            @Parameter(description = "ID opcional de uma sala para sincronizacao individual.")
+            @RequestParam(required = false)
+            String roomId
     ) {
-        return ResponseEntity.accepted().body(jobService.start(weekStart));
+        return ResponseEntity.accepted().body(jobService.start(weekStart, roomId));
     }
 
     @GetMapping("/sync/{jobId}")

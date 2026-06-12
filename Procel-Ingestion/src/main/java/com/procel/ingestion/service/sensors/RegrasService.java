@@ -144,8 +144,9 @@ public class RegrasService {
         if (req == null || req.compartimentoIds() == null || req.compartimentoIds().isEmpty()) {
             throw new IllegalArgumentException("compartimentoIds is required");
         }
-        GrupoRegra grupo = grupoRepo.findById(grupoId)
-                .orElseThrow(() -> new NotFoundException("GrupoRegra not found id=" + grupoId));
+        if (!grupoRepo.existsById(grupoId)) {
+            throw new NotFoundException("GrupoRegra not found id=" + grupoId);
+        }
         List<RegraParametro> regras = regraRepo
                 .findAllByGrupoRegra_IdAndAtivoTrueOrderByPrioridadeDescSeveridadeDesc(grupoId);
         if (regras.isEmpty()) {

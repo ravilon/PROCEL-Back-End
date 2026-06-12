@@ -8,9 +8,11 @@ public record AulasSyncJobResponse(
         UUID jobId,
         AulasSyncJobStatus status,
         LocalDate weekStart,
+        String roomId,
         Instant createdAt,
         Instant startedAt,
         Instant completedAt,
+        AulasSyncProgress progress,
         AulasSyncResult result,
         String error
 ) {}

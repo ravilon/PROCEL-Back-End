@@ -8,6 +8,7 @@ import { DisciplinasPage } from "./pages/DisciplinasPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SensorsAdminPage } from "./pages/SensorsAdminPage";
 import { MissionsAdminPage } from "./pages/MissionsAdminPage";
+import { SyncAdminPage } from "./pages/SyncAdminPage";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="disciplinas" element={<DisciplinasPage />} />
             <Route path="sensores" element={<SensorsAdminPage />} />
             <Route path="missoes" element={<MissionsAdminPage />} />
+            <Route path="sincronizacoes" element={<SyncAdminPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

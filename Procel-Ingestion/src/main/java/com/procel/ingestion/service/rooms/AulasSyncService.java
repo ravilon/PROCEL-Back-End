@@ -11,6 +11,7 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 @Service
 public class AulasSyncService {
@@ -40,10 +41,18 @@ public class AulasSyncService {
     }
 
     public AulasSyncResult syncAll(LocalDate date) {
+        return sync(date, null, progress -> {});
+    }
+
+    public AulasSyncResult sync(
+            LocalDate date,
+            String roomId,
+            Consumer<AulasSyncProgress> progressListener
+    ) {
         long start = System.currentTimeMillis();
         LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.SUNDAY));
         LocalDate weekEnd = weekStart.plusDays(6);
-        List<String> roomIds = resolveRoomIds();
+        List<String> roomIds = resolveRoomIds(roomId);
 
         int roomsSynced = 0;
         int roomsFailed = 0;
@@ -53,14 +62,15 @@ public class AulasSyncService {
         int disciplinesCreated = 0;
         int disciplinesUpdated = 0;
         List<String> errors = new ArrayList<>();
+        progressListener.accept(AulasSyncProgress.of(roomIds.size(), 0, 0, 0));
 
-        for (String roomId : roomIds) {
+        for (String targetRoomId : roomIds) {
             try {
-                List<AulaRecord> records = source.fetchAulas(roomId, weekStart);
+                List<AulaRecord> records = source.fetchAulas(targetRoomId, weekStart);
                 occurrencesFetched += records.size();
 
                 AulasRoomIngestionResult result = ingestionService.replaceWeek(
-                        roomId,
+                        targetRoomId,
                         weekStart,
                         records
                 );
@@ -74,14 +84,21 @@ public class AulasSyncService {
                 roomsFailed++;
                 log.error(
                         "Class schedule sync failed | compartimentoId={} weekStart={}",
-                        roomId,
+                        targetRoomId,
                         weekStart,
                         ex
                 );
 
                 if (errors.size() < MAX_REPORTED_ERRORS) {
-                    errors.add("room=" + roomId + ": " + rootMessage(ex));
+                    errors.add("room=" + targetRoomId + ": " + rootMessage(ex));
                 }
+            } finally {
+                progressListener.accept(AulasSyncProgress.of(
+                        roomIds.size(),
+                        roomsSynced + roomsFailed,
+                        roomsSynced,
+                        roomsFailed
+                ));
             }
         }
 
@@ -115,7 +132,14 @@ public class AulasSyncService {
         );
     }
 
-    private List<String> resolveRoomIds() {
+    private List<String> resolveRoomIds(String roomId) {
+        if (roomId != null && !roomId.isBlank()) {
+            String normalizedRoomId = roomId.trim();
+            if (!compartimentoRepository.existsById(normalizedRoomId)) {
+                throw new IllegalArgumentException("Compartimento not found id=" + normalizedRoomId);
+            }
+            return List.of(normalizedRoomId);
+        }
         return compartimentoRepository.findByTipoIn(CLASSROOM_TYPES).stream()
                 .map(Compartimento::getId)
                 .sorted()

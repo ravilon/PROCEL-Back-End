@@ -102,7 +102,8 @@ export function DisciplinasPage() {
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center" },
+          flexDirection: { xs: "column", sm: "row" },
           gap: 2,
         }}
       >
