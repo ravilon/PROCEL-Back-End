@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Set;
 import java.util.UUID;
+import java.util.List;
 
 public final class CatalogoDTOs {
 
@@ -22,6 +23,13 @@ public final class CatalogoDTOs {
             String predioNome,
             String campusNome,
             String unidadeNome
+    ) {}
+
+    public record CompartimentoFilterOptionsResponse(
+            List<String> tipos,
+            List<String> predios,
+            List<String> unidades,
+            List<String> campi
     ) {}
 
     public record SensorResponse(

@@ -63,4 +63,12 @@ public class AulasSyncController {
     ) {
         return ResponseEntity.ok(jobService.get(jobId));
     }
+
+    @GetMapping("/sync/active")
+    @Operation(summary = "Consulta a sincronizacao de aulas atualmente em execucao")
+    public ResponseEntity<AulasSyncJobResponse> getActiveJob() {
+        return jobService.getLatestActive()
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
 }

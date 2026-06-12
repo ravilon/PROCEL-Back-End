@@ -11,6 +11,8 @@ public final class SensorAdminDTOs {
 
     public record TipoSensorRequest(String nome) {}
 
+    public record TipoSensorUpdateRequest(String nome) {}
+
     public record TipoSensorResponse(String nome, List<ParametroResponse> parametros) {}
 
     public record ParametroRequest(

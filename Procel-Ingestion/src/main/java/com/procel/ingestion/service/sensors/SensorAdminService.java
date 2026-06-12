@@ -13,9 +13,11 @@ import com.procel.ingestion.repository.sensors.SensorRepository;
 import com.procel.ingestion.repository.sensors.TipoDeSensorRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class SensorAdminService {
@@ -24,17 +26,20 @@ public class SensorAdminService {
     private final ParametroDefRepository parametroRepo;
     private final SensorRepository sensorRepo;
     private final CompartimentoRepository compartimentoRepo;
+    private final EntityManager entityManager;
 
     public SensorAdminService(
             TipoDeSensorRepository tipoRepo,
             ParametroDefRepository parametroRepo,
             SensorRepository sensorRepo,
-            CompartimentoRepository compartimentoRepo
+            CompartimentoRepository compartimentoRepo,
+            EntityManager entityManager
     ) {
         this.tipoRepo = tipoRepo;
         this.parametroRepo = parametroRepo;
         this.sensorRepo = sensorRepo;
         this.compartimentoRepo = compartimentoRepo;
+        this.entityManager = entityManager;
     }
 
     @Transactional(readOnly = true)
@@ -55,6 +60,42 @@ public class SensorAdminService {
             throw new ConflictException("TipoDeSensor already exists nome=" + nome);
         }
         return toTipoResponse(tipoRepo.save(new TipoDeSensor(nome)));
+    }
+
+    @Transactional
+    public SensorAdminDTOs.TipoSensorResponse atualizarTipo(
+            String tipoNome,
+            SensorAdminDTOs.TipoSensorUpdateRequest request
+    ) {
+        if (tipoNome == null || tipoNome.isBlank()) {
+            throw new IllegalArgumentException("tipoNome is required");
+        }
+        if (request == null || request.nome() == null || request.nome().isBlank()) {
+            throw new IllegalArgumentException("nome is required");
+        }
+        String nomeAtual = tipoNome.trim();
+        String novoNome = request.nome().trim();
+        if (!tipoRepo.existsById(nomeAtual)) {
+            throw new NotFoundException("TipoDeSensor not found nome=" + nomeAtual);
+        }
+        if (nomeAtual.equals(novoNome)) {
+            return toTipoResponse(tipoRepo.findById(nomeAtual).orElseThrow());
+        }
+        if (tipoRepo.existsById(novoNome)) {
+            throw new ConflictException("TipoDeSensor already exists nome=" + novoNome);
+        }
+
+        entityManager.flush();
+        entityManager.createNativeQuery(
+                        "update tipo_de_sensor set nome = :novoNome where nome = :nomeAtual")
+                .setParameter("novoNome", novoNome)
+                .setParameter("nomeAtual", nomeAtual)
+                .executeUpdate();
+        entityManager.clear();
+
+        TipoDeSensor atualizado = tipoRepo.findById(novoNome)
+                .orElseThrow(() -> new IllegalStateException("TipoDeSensor rename failed nome=" + novoNome));
+        return toTipoResponse(atualizado);
     }
 
     @Transactional
@@ -88,6 +129,34 @@ public class SensorAdminService {
                 unit
         ));
         return toParametroResponse(parametro);
+    }
+
+    @Transactional
+    public SensorAdminDTOs.ParametroResponse atualizarParametro(
+            UUID parametroId,
+            SensorAdminDTOs.ParametroRequest request
+    ) {
+        if (parametroId == null) {
+            throw new IllegalArgumentException("parametroId is required");
+        }
+        validateParametroRequest(request);
+        ParametroDef parametro = parametroRepo.findById(parametroId)
+                .orElseThrow(() -> new NotFoundException("ParametroDef not found id=" + parametroId));
+        String nome = request.nome().trim();
+        parametroRepo.findByTipo_NomeAndNome(parametro.getTipo().getNome(), nome)
+                .filter(outro -> !outro.getId().equals(parametroId))
+                .ifPresent(outro -> {
+                    throw new ConflictException(
+                            "ParametroDef already exists tipo=" + parametro.getTipo().getNome() + " nome=" + nome);
+                });
+
+        parametro.setNome(nome);
+        parametro.setDescricao(blankToNull(request.descricao()));
+        parametro.setDataType(request.dataType());
+        parametro.setNumericUnit(request.dataType() == com.procel.ingestion.entity.sensors.DataType.NUMERIC
+                ? blankToNull(request.numericUnit())
+                : null);
+        return toParametroResponse(parametroRepo.save(parametro));
     }
 
     @Transactional
@@ -151,5 +220,14 @@ public class SensorAdminService {
 
     private static String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private static void validateParametroRequest(SensorAdminDTOs.ParametroRequest request) {
+        if (request == null || request.nome() == null || request.nome().isBlank()) {
+            throw new IllegalArgumentException("nome is required");
+        }
+        if (request.dataType() == null) {
+            throw new IllegalArgumentException("dataType is required");
+        }
     }
 }

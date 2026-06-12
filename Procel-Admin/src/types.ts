@@ -40,6 +40,13 @@ export interface Compartimento {
   unidadeNome: string;
 }
 
+export interface CompartimentoFilterOptions {
+  tipos: string[];
+  predios: string[];
+  unidades: string[];
+  campi: string[];
+}
+
 export interface Sensor {
   externalId: string;
   nome: string;

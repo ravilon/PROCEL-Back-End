@@ -72,6 +72,17 @@ public class CatalogoService {
     }
 
     @Transactional(readOnly = true)
+    public CatalogoDTOs.CompartimentoFilterOptionsResponse opcoesFiltrosCompartimentos() {
+        List<Compartimento> compartimentos = compartimentoRepo.findAll();
+        return new CatalogoDTOs.CompartimentoFilterOptionsResponse(
+                distinctSorted(compartimentos.stream().map(Compartimento::getTipo).toList()),
+                distinctSorted(compartimentos.stream().map(item -> item.getPredio().getNome()).toList()),
+                distinctSorted(compartimentos.stream().map(item -> item.getUnidade().getNome()).toList()),
+                distinctSorted(compartimentos.stream().map(item -> item.getPredio().getCampus().getNome()).toList())
+        );
+    }
+
+    @Transactional(readOnly = true)
     public List<CatalogoDTOs.SensorResponse> listarSensores(String query) {
         return sensorRepo.findAll().stream()
                 .filter(item -> matches(query, item.getExternalId(), item.getNome(),
@@ -152,6 +163,14 @@ public class CatalogoService {
         return filter == null || filter.isBlank()
                 || (value != null && value.toLowerCase(Locale.ROOT)
                 .contains(filter.trim().toLowerCase(Locale.ROOT)));
+    }
+
+    private static List<String> distinctSorted(List<String> values) {
+        return values.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .distinct()
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .toList();
     }
 
     private static CatalogoDTOs.CompartimentoResponse toCompartimento(Compartimento item) {

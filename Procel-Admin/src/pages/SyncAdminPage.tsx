@@ -23,7 +23,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { apiRequest } from "../lib/api";
+import { ApiError, apiRequest } from "../lib/api";
 import type { AulasSyncJob, Compartimento, RoomsSyncResult } from "../types";
 
 function todayIso() {
@@ -33,12 +33,16 @@ function todayIso() {
 }
 
 const activeStatuses = new Set(["PENDING", "RUNNING"]);
+const JOB_STORAGE_PREFIX = "procel:aulas-sync-job:";
 
 export function SyncAdminPage() {
   const { session } = useAuth();
+  const jobStorageKey = `${JOB_STORAGE_PREFIX}${session?.userId ?? "anonymous"}`;
   const [weekStart, setWeekStart] = useState(todayIso);
   const [roomId, setRoomId] = useState("");
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(() =>
+    localStorage.getItem(jobStorageKey),
+  );
 
   const rooms = useQuery({
     queryKey: ["sync", "rooms"],
@@ -61,19 +65,55 @@ export function SyncAdminPage() {
         session,
       );
     },
-    onSuccess: (startedJob) => setJobId(startedJob.jobId),
+    onSuccess: (startedJob) => {
+      localStorage.setItem(jobStorageKey, startedJob.jobId);
+      setJobId(startedJob.jobId);
+    },
   });
 
+  const activeJob = useQuery({
+    queryKey: ["sync", "aulas-job", "active"],
+    queryFn: async () => {
+      const found = await apiRequest<AulasSyncJob | undefined>(
+        "/api/rooms/aulas/sync/active",
+        {},
+        session,
+      );
+      if (found) localStorage.setItem(jobStorageKey, found.jobId);
+      return found;
+    },
+    enabled: !jobId,
+    refetchInterval: jobId ? false : 3000,
+  });
+
+  const effectiveJobId = jobId ?? activeJob.data?.jobId ?? null;
   const job = useQuery({
-    queryKey: ["sync", "aulas-job", jobId],
-    queryFn: () =>
-      apiRequest<AulasSyncJob>(`/api/rooms/aulas/sync/${jobId}`, {}, session),
-    enabled: Boolean(jobId),
+    queryKey: ["sync", "aulas-job", effectiveJobId],
+    queryFn: async () => {
+      try {
+        return await apiRequest<AulasSyncJob>(
+          `/api/rooms/aulas/sync/${effectiveJobId}`,
+          {},
+          session,
+        );
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 400) {
+          localStorage.removeItem(jobStorageKey);
+          return apiRequest<AulasSyncJob | undefined>(
+            "/api/rooms/aulas/sync/active",
+            {},
+            session,
+          );
+        }
+        throw error;
+      }
+    },
+    enabled: Boolean(effectiveJobId),
     refetchInterval: (query) =>
       activeStatuses.has(query.state.data?.status ?? "") ? 1500 : false,
   });
 
-  const currentJob = job.data;
+  const currentJob = job.data ?? activeJob.data;
   const isPeriodsSyncing =
     startPeriodsSync.isPending || activeStatuses.has(currentJob?.status ?? "");
 

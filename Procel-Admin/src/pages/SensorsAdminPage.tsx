@@ -1,5 +1,6 @@
 import {
   AddOutlined,
+  EditOutlined,
   RuleOutlined,
   SensorsOutlined,
 } from "@mui/icons-material";
@@ -8,6 +9,10 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputLabel,
   MenuItem,
@@ -82,6 +87,14 @@ function SensorTypesPanel() {
   const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState("");
   const [typeName, setTypeName] = useState("");
+  const [editingTypeName, setEditingTypeName] = useState("");
+  const [editingParameter, setEditingParameter] = useState<ParametroDef | null>(null);
+  const [parameterEdit, setParameterEdit] = useState({
+    nome: "",
+    descricao: "",
+    dataType: "NUMERIC" as SensorDataType,
+    numericUnit: "",
+  });
   const [parameter, setParameter] = useState({
     nome: "",
     descricao: "",
@@ -119,6 +132,41 @@ function SensorTypesPanel() {
       await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
     },
   });
+  const updateType = useMutation({
+    mutationFn: () =>
+      apiRequest<TipoSensor>(
+        `/api/sensor-admin/types/${encodeURIComponent(selectedType)}`,
+        { method: "PUT", body: JSON.stringify({ nome: editingTypeName }) },
+        session,
+      ),
+    onSuccess: async (updated) => {
+      setEditingTypeName("");
+      setSelectedType(updated.nome);
+      await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
+    },
+  });
+  const updateParameter = useMutation({
+    mutationFn: () =>
+      apiRequest<ParametroDef>(
+        `/api/sensor-admin/parameters/${editingParameter!.id}`,
+        { method: "PUT", body: JSON.stringify(parameterEdit) },
+        session,
+      ),
+    onSuccess: async () => {
+      setEditingParameter(null);
+      await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
+    },
+  });
+
+  const openParameterEdit = (item: ParametroDef) => {
+    setEditingParameter(item);
+    setParameterEdit({
+      nome: item.nome,
+      descricao: item.descricao ?? "",
+      dataType: item.dataType,
+      numericUnit: item.numericUnit ?? "",
+    });
+  };
 
   return (
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "320px 1fr" }, gap: 2 }}>
@@ -178,16 +226,45 @@ function SensorTypesPanel() {
         {selected && (
           <>
             <Paper variant="outlined" sx={{ p: 2 }}>
-              <Typography variant="h6">{selected.nome}</Typography>
+              <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
+                <Typography variant="h6">{selected.nome}</Typography>
+                <Button
+                  size="small"
+                  startIcon={<EditOutlined />}
+                  onClick={() => setEditingTypeName(selected.nome)}
+                >
+                  Editar tipo
+                </Button>
+              </Stack>
               <Stack spacing={1} sx={{ mt: 2 }}>
                 {selected.parametros.map((item) => (
-                  <Box key={item.id} sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1 }}>
+                  <Box
+                    key={item.id}
+                    sx={{
+                      p: 1.5,
+                      bgcolor: "grey.50",
+                      borderRadius: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 2,
+                    }}
+                  >
+                    <Box>
                     <Typography fontWeight={600}>{item.nome}</Typography>
                     <Typography variant="body2" color="text.secondary">
                       {item.dataType}
                       {item.numericUnit ? ` · ${item.numericUnit}` : ""}
                       {item.descricao ? ` · ${item.descricao}` : ""}
                     </Typography>
+                    </Box>
+                    <Button
+                      size="small"
+                      startIcon={<EditOutlined />}
+                      onClick={() => openParameterEdit(item)}
+                    >
+                      Editar
+                    </Button>
                   </Box>
                 ))}
                 {selected.parametros.length === 0 && (
@@ -255,6 +332,109 @@ function SensorTypesPanel() {
           </>
         )}
       </Stack>
+      <Dialog
+        open={Boolean(editingTypeName)}
+        onClose={() => !updateType.isPending && setEditingTypeName("")}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Editar tipo de sensor</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            required
+            label="Nome do tipo"
+            value={editingTypeName}
+            onChange={(event) => setEditingTypeName(event.target.value)}
+            sx={{ mt: 1 }}
+          />
+          <ErrorMessage error={updateType.error} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditingTypeName("")} disabled={updateType.isPending}>
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => updateType.mutate()}
+            disabled={updateType.isPending || !editingTypeName.trim()}
+          >
+            Salvar alteracoes
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={Boolean(editingParameter)}
+        onClose={() => !updateParameter.isPending && setEditingParameter(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Editar parametro</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              autoFocus
+              required
+              label="Chave no payload"
+              value={parameterEdit.nome}
+              onChange={(event) =>
+                setParameterEdit({ ...parameterEdit, nome: event.target.value })
+              }
+            />
+            <TextField
+              label="Descricao"
+              value={parameterEdit.descricao}
+              onChange={(event) =>
+                setParameterEdit({ ...parameterEdit, descricao: event.target.value })
+              }
+            />
+            <FormControl>
+              <InputLabel>Tipo de dado</InputLabel>
+              <Select
+                label="Tipo de dado"
+                value={parameterEdit.dataType}
+                onChange={(event) =>
+                  setParameterEdit({
+                    ...parameterEdit,
+                    dataType: event.target.value as SensorDataType,
+                  })
+                }
+              >
+                <MenuItem value="NUMERIC">Numerico</MenuItem>
+                <MenuItem value="BOOLEAN">Booleano</MenuItem>
+                <MenuItem value="TEXT">Texto</MenuItem>
+              </Select>
+            </FormControl>
+            {parameterEdit.dataType === "NUMERIC" && (
+              <TextField
+                label="Unidade"
+                value={parameterEdit.numericUnit}
+                onChange={(event) =>
+                  setParameterEdit({ ...parameterEdit, numericUnit: event.target.value })
+                }
+                placeholder="C, %, ppm..."
+              />
+            )}
+            <ErrorMessage error={updateParameter.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setEditingParameter(null)}
+            disabled={updateParameter.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => updateParameter.mutate()}
+            disabled={updateParameter.isPending || !parameterEdit.nome.trim()}
+          >
+            Salvar alteracoes
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

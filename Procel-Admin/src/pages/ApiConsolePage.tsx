@@ -7,16 +7,21 @@ import {
   Box,
   Button,
   Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError, apiRequest } from "../lib/api";
-import type { Role } from "../types";
+import type { Role, TipoSensor } from "../types";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -25,6 +30,8 @@ interface Field {
   label: string;
   placeholder?: string;
   required?: boolean;
+  options?: { value: string; label: string }[];
+  lookup?: "sensorTypes";
 }
 
 interface Endpoint {
@@ -71,13 +78,13 @@ const groups: Group[] = [
   {
     name: "Missoes e atividades",
     endpoints: [
-      { name: "Listar missoes", description: "Catalogo de missoes.", method: "GET", path: "/api/missoes", roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO"], queryFields: [{ name: "ativo", label: "Ativo", placeholder: "true" }] },
+      { name: "Listar missoes", description: "Catalogo de missoes.", method: "GET", path: "/api/missoes", roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO"], queryFields: [{ name: "ativo", label: "Ativo", options: [{ value: "true", label: "Sim" }, { value: "false", label: "Nao" }] }] },
       { name: "Criar missao", description: "Cria modelo de missao.", method: "POST", path: "/api/missoes", roles: manager, body: JSON.stringify({ titulo: "", descricao: "", tipo: "Individual", value: 20, ativo: true }, null, 2) },
       { name: "Buscar missao", description: "Consulta por UUID.", method: "GET", path: "/api/missoes/{missaoId}", roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO"], pathFields: [{ name: "missaoId", label: "ID da missao", required: true }] },
       { name: "Atualizar missao", description: "Edita modelo.", method: "PUT", path: "/api/missoes/{missaoId}", roles: manager, pathFields: [{ name: "missaoId", label: "ID da missao", required: true }], body: JSON.stringify({ titulo: "", descricao: "", tipo: "Individual", value: 20, ativo: true }, null, 2) },
       { name: "Excluir missao", description: "Remove modelo.", method: "DELETE", path: "/api/missoes/{missaoId}", roles: manager, pathFields: [{ name: "missaoId", label: "ID da missao", required: true }] },
       { name: "Atribuir atividade", description: "Atribui missao para pessoa.", method: "POST", path: "/api/pessoas/{pessoaId}/atividades", roles: user, pathFields: [{ name: "pessoaId", label: "ID da pessoa", required: true }], body: JSON.stringify({ missaoId: "", status: "PENDENTE", startedAt: null }, null, 2) },
-      { name: "Listar atividades", description: "Atividades da pessoa.", method: "GET", path: "/api/pessoas/{pessoaId}/atividades", roles: user, pathFields: [{ name: "pessoaId", label: "ID da pessoa", required: true }], queryFields: [{ name: "status", label: "Status", placeholder: "PENDENTE" }] },
+      { name: "Listar atividades", description: "Atividades da pessoa.", method: "GET", path: "/api/pessoas/{pessoaId}/atividades", roles: user, pathFields: [{ name: "pessoaId", label: "ID da pessoa", required: true }], queryFields: [{ name: "status", label: "Status", options: ["PENDENTE", "EM_ANDAMENTO", "CONCLUIDA", "EXPIRADA", "CANCELADA"].map((value) => ({ value, label: value })) }] },
       { name: "Resumo de atividades", description: "Contagem por status.", method: "GET", path: "/api/pessoas/{pessoaId}/atividades/resumo", roles: user, pathFields: [{ name: "pessoaId", label: "ID da pessoa", required: true }] },
       { name: "Buscar atividade", description: "Consulta uma atividade por UUID.", method: "GET", path: "/api/pessoas/{pessoaId}/atividades/{atividadeId}", roles: user, pathFields: [{ name: "pessoaId", label: "ID da pessoa", required: true }, { name: "atividadeId", label: "ID da atividade", required: true }] },
       { name: "Atualizar atividade", description: "Altera status e datas.", method: "PUT", path: "/api/pessoas/{pessoaId}/atividades/{atividadeId}", roles: user, pathFields: [{ name: "pessoaId", label: "ID da pessoa", required: true }, { name: "atividadeId", label: "ID da atividade", required: true }], body: JSON.stringify({ status: "EM_ANDAMENTO", startedAt: null, completedAt: null }, null, 2) },
@@ -131,7 +138,7 @@ const groups: Group[] = [
     endpoints: [
       { name: "Listar grupos", description: "Grupos de regras.", method: "GET", path: "/api/rules/groups", roles: manager },
       { name: "Criar grupo", description: "Novo grupo de regras.", method: "POST", path: "/api/rules/groups", roles: manager, body: JSON.stringify({ nome: "", descricao: "", ativo: true }, null, 2) },
-      { name: "Listar parametros", description: "Definicoes por tipo de sensor.", method: "GET", path: "/api/rules/parameter-defs", roles: manager, queryFields: [{ name: "tipoNome", label: "Tipo do sensor", required: true }] },
+      { name: "Listar parametros", description: "Definicoes por tipo de sensor.", method: "GET", path: "/api/rules/parameter-defs", roles: manager, queryFields: [{ name: "tipoNome", label: "Tipo do sensor", required: true, lookup: "sensorTypes" }] },
       { name: "Listar regras do grupo", description: "Regras ordenadas por prioridade.", method: "GET", path: "/api/rules/groups/{grupoId}/rules", roles: manager, pathFields: [{ name: "grupoId", label: "ID do grupo", required: true }] },
       { name: "Criar regra", description: "Regra para parametro.", method: "POST", path: "/api/rules/groups/{grupoId}/rules", roles: manager, pathFields: [{ name: "grupoId", label: "ID do grupo", required: true }], body: JSON.stringify({ parametroDefId: "", nome: "", descricao: "", operador: "BETWEEN", valorNumeric1: 20, valorNumeric2: 25, valorText: null, valorBoolean: null, resultado: "ALERTA", severidade: 1, prioridade: 1, ativo: true }, null, 2) },
       { name: "Vincular grupo ao sensor", description: "Agenda ou ativa regras.", method: "POST", path: "/api/rules/sensors/{sensorExternalId}/groups", roles: manager, pathFields: [{ name: "sensorExternalId", label: "ID externo", required: true }], body: JSON.stringify({ grupoRegraId: "", status: "ATIVO", validoDe: null, validoAte: null }, null, 2) },
@@ -147,6 +154,13 @@ function EndpointForm({ endpoint }: { endpoint: Endpoint }) {
   const [result, setResult] = useState<unknown>();
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const needsSensorTypes = [...(endpoint.pathFields ?? []), ...(endpoint.queryFields ?? [])]
+    .some((field) => field.lookup === "sensorTypes");
+  const sensorTypes = useQuery({
+    queryKey: ["sensor-admin", "types"],
+    queryFn: () => apiRequest<TipoSensor[]>("/api/sensor-admin/types", {}, session),
+    enabled: needsSensorTypes,
+  });
 
   const execute = async (event: FormEvent) => {
     event.preventDefault();
@@ -180,17 +194,42 @@ function EndpointForm({ endpoint }: { endpoint: Endpoint }) {
           <Chip label={endpoint.method} color={endpoint.method === "GET" ? "info" : endpoint.method === "DELETE" ? "error" : "primary"} size="small" />
           <Box component="code">{endpoint.path}</Box>
         </Stack>
-        {[...(endpoint.pathFields ?? []), ...(endpoint.queryFields ?? [])].map((field) => (
-          <TextField
-            key={field.name}
-            label={field.label}
-            required={field.required}
-            placeholder={field.placeholder}
-            value={values[field.name] ?? ""}
-            onChange={(event) => setValues((current) => ({ ...current, [field.name]: event.target.value }))}
-            size="small"
-          />
-        ))}
+        {[...(endpoint.pathFields ?? []), ...(endpoint.queryFields ?? [])].map((field) => {
+          const options = field.lookup === "sensorTypes"
+            ? sensorTypes.data?.map((item) => ({ value: item.nome, label: item.nome })) ?? []
+            : field.options;
+          return options ? (
+            <FormControl key={field.name} size="small" required={field.required}>
+              <InputLabel>{field.label}</InputLabel>
+              <Select
+                label={field.label}
+                value={values[field.name] ?? ""}
+                onChange={(event) =>
+                  setValues((current) => ({ ...current, [field.name]: event.target.value }))
+                }
+              >
+                {!field.required && <MenuItem value="">Todos</MenuItem>}
+                {options.map((option) => (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <TextField
+              key={field.name}
+              label={field.label}
+              required={field.required}
+              placeholder={field.placeholder}
+              value={values[field.name] ?? ""}
+              onChange={(event) =>
+                setValues((current) => ({ ...current, [field.name]: event.target.value }))
+              }
+              size="small"
+            />
+          );
+        })}
         {endpoint.body && (
           <TextField
             label="Body JSON"

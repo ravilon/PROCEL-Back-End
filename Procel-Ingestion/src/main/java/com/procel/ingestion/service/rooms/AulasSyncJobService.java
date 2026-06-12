@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Map;
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -75,6 +77,13 @@ public class AulasSyncJobService {
             throw new IllegalArgumentException("Class schedule sync job not found id=" + jobId);
         }
         return job.snapshot();
+    }
+
+    public Optional<AulasSyncJobResponse> getLatestActive() {
+        return jobs.values().stream()
+                .filter(JobState::isActive)
+                .max(Comparator.comparing(job -> job.createdAt))
+                .map(JobState::snapshot);
     }
 
     private void execute(JobState job) {

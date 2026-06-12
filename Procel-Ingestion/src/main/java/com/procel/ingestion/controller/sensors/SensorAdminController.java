@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +41,15 @@ public class SensorAdminController {
         return service.criarTipo(request);
     }
 
+    @PutMapping("/types/{tipoNome}")
+    @Operation(summary = "Renomeia tipo de sensor preservando sensores e parametros associados")
+    public SensorAdminDTOs.TipoSensorResponse atualizarTipo(
+            @PathVariable String tipoNome,
+            @RequestBody SensorAdminDTOs.TipoSensorUpdateRequest request
+    ) {
+        return service.atualizarTipo(tipoNome, request);
+    }
+
     @PostMapping("/types/{tipoNome}/parameters")
     @Operation(summary = "Cria parametro para um tipo de sensor")
     public SensorAdminDTOs.ParametroResponse criarParametro(
@@ -47,6 +57,15 @@ public class SensorAdminController {
             @RequestBody SensorAdminDTOs.ParametroRequest request
     ) {
         return service.criarParametro(tipoNome, request);
+    }
+
+    @PutMapping("/parameters/{parametroId}")
+    @Operation(summary = "Atualiza parametro de um tipo de sensor")
+    public SensorAdminDTOs.ParametroResponse atualizarParametro(
+            @PathVariable java.util.UUID parametroId,
+            @RequestBody SensorAdminDTOs.ParametroRequest request
+    ) {
+        return service.atualizarParametro(parametroId, request);
     }
 
     @PostMapping("/sensors")

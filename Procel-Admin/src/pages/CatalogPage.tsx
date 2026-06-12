@@ -54,6 +54,7 @@ import type {
   Atividade,
   AtividadeStatus,
   Compartimento,
+  CompartimentoFilterOptions,
   Disciplina,
   DisciplinaAluno,
   Curso,
@@ -139,6 +140,15 @@ function CompartimentosTree() {
           q: query,
           ...roomFilters,
         }).toString()}`,
+        {},
+        session,
+      ),
+  });
+  const roomFilterOptions = useQuery({
+    queryKey: ["catalog", "room-filter-options"],
+    queryFn: () =>
+      apiRequest<CompartimentoFilterOptions>(
+        "/api/catalog/compartimentos/filter-options",
         {},
         session,
       ),
@@ -267,15 +277,29 @@ function CompartimentosTree() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="ID ou nome"
           />
-          {(["tipo", "predio", "unidade", "campus"] as const).map((field) => (
-            <TextField
-              key={field}
-              label={field.charAt(0).toUpperCase() + field.slice(1)}
-              value={roomFilters[field]}
-              onChange={(event) =>
-                setRoomFilters({ ...roomFilters, [field]: event.target.value })
-              }
-            />
+          {([
+            ["tipo", "Tipo", roomFilterOptions.data?.tipos ?? []],
+            ["predio", "Predio", roomFilterOptions.data?.predios ?? []],
+            ["unidade", "Unidade", roomFilterOptions.data?.unidades ?? []],
+            ["campus", "Campus", roomFilterOptions.data?.campi ?? []],
+          ] as const).map(([field, label, options]) => (
+            <FormControl key={field}>
+              <InputLabel>{label}</InputLabel>
+              <Select
+                label={label}
+                value={roomFilters[field]}
+                onChange={(event) =>
+                  setRoomFilters({ ...roomFilters, [field]: event.target.value })
+                }
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {options.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           ))}
         </Box>
         {hasAnyRole("ADMIN", "OPERADOR") && selectedRoomIds.length > 0 && (

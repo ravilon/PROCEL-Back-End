@@ -37,6 +37,13 @@ public class CatalogoController {
         return service.listarCompartimentos(q, tipo, predio, unidade, campus);
     }
 
+    @GetMapping("/compartimentos/filter-options")
+    @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA','USUARIO')")
+    @Operation(summary = "Lista opcoes disponiveis para os filtros de compartimentos")
+    public CatalogoDTOs.CompartimentoFilterOptionsResponse opcoesFiltrosCompartimentos() {
+        return service.opcoesFiltrosCompartimentos();
+    }
+
     @GetMapping("/compartimentos/{id}/sensores")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     @Operation(summary = "Lista sensores diretamente vinculados ao compartimento")
