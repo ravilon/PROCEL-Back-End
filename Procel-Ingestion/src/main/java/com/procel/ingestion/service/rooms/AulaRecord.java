@@ -11,7 +11,7 @@ public record AulaRecord(
         String unidadeSigla,
         LocalDate data,
         Integer turno,
-        Integer periodo,
+        Integer periodoAula,
         LocalTime horaInicio,
         LocalTime horaFim,
         String turma,

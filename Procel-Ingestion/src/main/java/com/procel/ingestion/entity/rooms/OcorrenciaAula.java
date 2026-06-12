@@ -31,8 +31,8 @@ import java.util.UUID;
                         columnList = "disciplina_id,data"
                 ),
                 @Index(
-                        name = "ix_ocorrencia_aula_data_turno_periodo",
-                        columnList = "data,turno,periodo"
+                        name = "ix_ocorrencia_aula_data_turno_periodo_aula",
+                        columnList = "data,turno,periodo_aula"
                 )
         }
 )
@@ -64,8 +64,8 @@ public class OcorrenciaAula {
     @Column(name = "turno", nullable = false)
     private Integer turno;
 
-    @Column(name = "periodo", nullable = false)
-    private Integer periodo;
+    @Column(name = "periodo_aula", nullable = false)
+    private Integer periodoAula;
 
     @Column(name = "hora_inicio", nullable = false)
     private LocalTime horaInicio;
@@ -96,7 +96,7 @@ public class OcorrenciaAula {
             Disciplina disciplina,
             LocalDate data,
             Integer turno,
-            Integer periodo,
+            Integer periodoAula,
             LocalTime horaInicio,
             LocalTime horaFim,
             String turma,
@@ -108,7 +108,7 @@ public class OcorrenciaAula {
         this.disciplina = disciplina;
         this.data = data;
         this.turno = turno;
-        this.periodo = periodo;
+        this.periodoAula = periodoAula;
         this.horaInicio = horaInicio;
         this.horaFim = horaFim;
         this.turma = turma;
@@ -123,7 +123,7 @@ public class OcorrenciaAula {
     public Disciplina getDisciplina() { return disciplina; }
     public LocalDate getData() { return data; }
     public Integer getTurno() { return turno; }
-    public Integer getPeriodo() { return periodo; }
+    public Integer getPeriodoAula() { return periodoAula; }
     public LocalTime getHoraInicio() { return horaInicio; }
     public LocalTime getHoraFim() { return horaFim; }
     public String getTurma() { return turma; }

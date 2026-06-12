@@ -174,7 +174,7 @@ public class CobaltoAulasSource implements AulasSource {
             return;
         }
 
-        int periodo = row.get("periodo").asInt();
+        int periodoAula = row.get("periodo").asInt();
         Matcher timeMatcher = TIME_PATTERN.matcher(row.get("periodo_descritivo").asText());
         if (!timeMatcher.find()) {
             return;
@@ -194,7 +194,7 @@ public class CobaltoAulasSource implements AulasSource {
                     cell.asText(),
                     date,
                     turno,
-                    periodo,
+                    periodoAula,
                     horaInicio,
                     horaFim,
                     output
@@ -206,7 +206,7 @@ public class CobaltoAulasSource implements AulasSource {
             String html,
             LocalDate date,
             int turno,
-            int periodo,
+            int periodoAula,
             LocalTime horaInicio,
             LocalTime horaFim,
             List<AulaRecord> output
@@ -224,7 +224,7 @@ public class CobaltoAulasSource implements AulasSource {
                         description,
                         date,
                         turno,
-                        periodo,
+                        periodoAula,
                         horaInicio,
                         horaFim
                 ));
@@ -239,7 +239,7 @@ public class CobaltoAulasSource implements AulasSource {
                         description,
                         date,
                         turno,
-                        periodo,
+                        periodoAula,
                         horaInicio,
                         horaFim
                 ));
@@ -252,7 +252,7 @@ public class CobaltoAulasSource implements AulasSource {
             String description,
             LocalDate date,
             int turno,
-            int periodo,
+            int periodoAula,
             LocalTime horaInicio,
             LocalTime horaFim
     ) {
@@ -266,7 +266,7 @@ public class CobaltoAulasSource implements AulasSource {
                 disciplinaId != null ? parsedText.unitAbbreviation() : null,
                 date,
                 turno,
-                periodo,
+                periodoAula,
                 horaInicio,
                 horaFim,
                 disciplinaId != null ? parsedText.classGroup() : null,

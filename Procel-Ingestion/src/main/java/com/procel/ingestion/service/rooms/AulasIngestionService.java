@@ -89,7 +89,7 @@ public class AulasIngestionService {
                     disciplina,
                     record.data(),
                     record.turno(),
-                    record.periodo(),
+                    record.periodoAula(),
                     record.horaInicio(),
                     record.horaFim(),
                     record.turma(),

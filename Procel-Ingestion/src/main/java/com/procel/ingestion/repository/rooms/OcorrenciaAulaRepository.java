@@ -9,12 +9,12 @@ import java.util.UUID;
 
 public interface OcorrenciaAulaRepository extends JpaRepository<OcorrenciaAula, UUID> {
 
-    List<OcorrenciaAula> findByCompartimentoIdAndDataOrderByTurnoAscPeriodoAsc(
+    List<OcorrenciaAula> findByCompartimentoIdAndDataOrderByTurnoAscPeriodoAulaAsc(
             String compartimentoId,
             LocalDate data
     );
 
-    List<OcorrenciaAula> findByDisciplinaIdAndDataOrderByTurnoAscPeriodoAsc(
+    List<OcorrenciaAula> findByDisciplinaIdAndDataOrderByTurnoAscPeriodoAulaAsc(
             Long disciplinaId,
             LocalDate data
     );
