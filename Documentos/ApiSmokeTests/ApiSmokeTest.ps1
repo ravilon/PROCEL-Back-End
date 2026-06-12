@@ -589,6 +589,15 @@ AssertSmoke "DELETE missao keeps row and sets ativo=false" ($missaoDeprecated.at
 # ---------------------------
 # 6) Presenca checkin
 # ---------------------------
+$stalePresenceCheckout = SoftCall "POST /api/presencas/checkout/by-pessoa (cleanup from previous run)" {
+  InvokeApi "/api/presencas/checkout/by-pessoa" -Method POST -Body @{
+    pessoaId=$PessoaId
+  }
+}
+if ($null -ne $stalePresenceCheckout) {
+  Write-Host "[INFO] Closed stale presence $($stalePresenceCheckout.id) from a previous smoke-test run." -ForegroundColor Yellow
+}
+
 $presenca = TryCall "POST /api/presencas/checkin" {
   InvokeApi "/api/presencas/checkin" -Method POST -Body @{
     pessoaId=$PessoaId
