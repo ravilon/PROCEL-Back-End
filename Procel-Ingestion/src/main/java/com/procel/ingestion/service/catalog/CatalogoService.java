@@ -83,8 +83,9 @@ public class CatalogoService {
     }
 
     @Transactional(readOnly = true)
-    public List<CatalogoDTOs.SensorResponse> listarSensores(String query) {
+    public List<CatalogoDTOs.SensorResponse> listarSensores(String query, boolean includeHidden) {
         return sensorRepo.findAll().stream()
+                .filter(item -> includeHidden || item.isAtivo())
                 .filter(item -> matches(query, item.getExternalId(), item.getNome(),
                         item.getTipo().getNome(), item.getCompartimento().getNome()))
                 .sorted(Comparator.comparing(Sensor::getNome, String.CASE_INSENSITIVE_ORDER))
@@ -94,8 +95,14 @@ public class CatalogoService {
     }
 
     @Transactional(readOnly = true)
-    public List<CatalogoDTOs.SensorResponse> listarSensoresDoCompartimento(String compartimentoId) {
-        return sensorRepo.findByCompartimentoIdOrderByNomeAsc(compartimentoId).stream()
+    public List<CatalogoDTOs.SensorResponse> listarSensoresDoCompartimento(
+            String compartimentoId,
+            boolean includeHidden
+    ) {
+        List<Sensor> sensores = includeHidden
+                ? sensorRepo.findByCompartimentoIdOrderByNomeAsc(compartimentoId)
+                : sensorRepo.findByCompartimentoIdAndAtivoTrueOrderByNomeAsc(compartimentoId);
+        return sensores.stream()
                 .map(CatalogoService::toSensor)
                 .toList();
     }
@@ -194,7 +201,8 @@ public class CatalogoService {
                 item.getNome(),
                 item.getTipo().getNome(),
                 item.getCompartimento().getId(),
-                item.getCompartimento().getNome()
+                item.getCompartimento().getNome(),
+                item.isAtivo()
         );
     }
 

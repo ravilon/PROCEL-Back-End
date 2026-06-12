@@ -29,6 +29,9 @@ public class Sensor {
     @JoinColumn(name = "compartimento_id", nullable = false)
     private Compartimento compartimento;
 
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
+
     public Sensor() {}
 
     public Sensor(String externalId, String nome, TipoDeSensor tipo, Compartimento compartimento) {
@@ -42,9 +45,11 @@ public class Sensor {
     public String getNome() { return nome; }
     public TipoDeSensor getTipo() { return tipo; }
     public Compartimento getCompartimento() { return compartimento; }
+    public boolean isAtivo() { return ativo; }
 
     public void setExternalId(String externalId) { this.externalId = externalId; }
     public void setNome(String nome) { this.nome = nome; }
     public void setTipo(TipoDeSensor tipo) { this.tipo = tipo; }
     public void setCompartimento(Compartimento compartimento) { this.compartimento = compartimento; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
 }

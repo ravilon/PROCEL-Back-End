@@ -26,6 +26,7 @@ create table medicao (
 );
 
 create table parametro_def (
+    ativo boolean not null default true,
     id uuid not null,
     data_type varchar(20) not null check ((data_type in ('NUMERIC','BOOLEAN','TEXT'))),
     numeric_unit varchar(40),
@@ -110,6 +111,7 @@ create table presenca (
 );
 
 create table sensor (
+    ativo boolean not null default true,
     compartimento_id varchar(80) not null,
     tipo_nome varchar(80) not null,
     external_id varchar(120) not null,

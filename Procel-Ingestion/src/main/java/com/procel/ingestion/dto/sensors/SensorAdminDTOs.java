@@ -28,7 +28,8 @@ public final class SensorAdminDTOs {
             String nome,
             String descricao,
             DataType dataType,
-            String numericUnit
+            String numericUnit,
+            boolean ativo
     ) {}
 
     public record SensorRequest(
@@ -43,6 +44,7 @@ public final class SensorAdminDTOs {
             String nome,
             String tipoNome,
             String compartimentoId,
-            String compartimentoNome
+            String compartimentoNome,
+            boolean ativo
     ) {}
 }

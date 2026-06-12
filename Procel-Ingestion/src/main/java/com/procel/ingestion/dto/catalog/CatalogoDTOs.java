@@ -37,7 +37,8 @@ public final class CatalogoDTOs {
             String nome,
             String tipoNome,
             String compartimentoId,
-            String compartimentoNome
+            String compartimentoNome,
+            boolean ativo
     ) {}
 
     public record DisciplinaResponse(

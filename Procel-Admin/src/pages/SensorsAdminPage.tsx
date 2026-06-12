@@ -1,5 +1,6 @@
 import {
   AddOutlined,
+  DeleteOutlined,
   EditOutlined,
   RuleOutlined,
   SensorsOutlined,
@@ -86,6 +87,7 @@ function SensorTypesPanel() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const [selectedType, setSelectedType] = useState("");
+  const [showHiddenParameters, setShowHiddenParameters] = useState(false);
   const [typeName, setTypeName] = useState("");
   const [editingTypeName, setEditingTypeName] = useState("");
   const [editingParameter, setEditingParameter] = useState<ParametroDef | null>(null);
@@ -102,8 +104,13 @@ function SensorTypesPanel() {
     numericUnit: "",
   });
   const types = useQuery({
-    queryKey: ["sensor-admin", "types"],
-    queryFn: () => apiRequest<TipoSensor[]>("/api/sensor-admin/types", {}, session),
+    queryKey: ["sensor-admin", "types", showHiddenParameters],
+    queryFn: () =>
+      apiRequest<TipoSensor[]>(
+        `/api/sensor-admin/types?includeHidden=${showHiddenParameters}`,
+        {},
+        session,
+      ),
   });
   const selected = types.data?.find((item) => item.nome === selectedType);
 
@@ -154,6 +161,29 @@ function SensorTypesPanel() {
       ),
     onSuccess: async () => {
       setEditingParameter(null);
+      await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
+    },
+  });
+  const hideParameter = useMutation({
+    mutationFn: (parameterId: string) =>
+      apiRequest<void>(
+        `/api/sensor-admin/parameters/${parameterId}`,
+        { method: "DELETE" },
+        session,
+      ),
+    onSuccess: async () => {
+      setEditingParameter(null);
+      await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
+    },
+  });
+  const restoreParameter = useMutation({
+    mutationFn: (parameterId: string) =>
+      apiRequest<ParametroDef>(
+        `/api/sensor-admin/parameters/${parameterId}/restore`,
+        { method: "POST" },
+        session,
+      ),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
     },
   });
@@ -228,13 +258,23 @@ function SensorTypesPanel() {
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                 <Typography variant="h6">{selected.nome}</Typography>
-                <Button
-                  size="small"
-                  startIcon={<EditOutlined />}
-                  onClick={() => setEditingTypeName(selected.nome)}
-                >
-                  Editar tipo
-                </Button>
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Switch
+                      size="small"
+                      checked={showHiddenParameters}
+                      onChange={(_, checked) => setShowHiddenParameters(checked)}
+                    />
+                    <Typography variant="body2">Mostrar ocultos</Typography>
+                  </Stack>
+                  <Button
+                    size="small"
+                    startIcon={<EditOutlined />}
+                    onClick={() => setEditingTypeName(selected.nome)}
+                  >
+                    Editar tipo
+                  </Button>
+                </Stack>
               </Stack>
               <Stack spacing={1} sx={{ mt: 2 }}>
                 {selected.parametros.map((item) => (
@@ -251,20 +291,46 @@ function SensorTypesPanel() {
                     }}
                   >
                     <Box>
-                    <Typography fontWeight={600}>{item.nome}</Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Typography fontWeight={600}>{item.nome}</Typography>
+                        {!item.ativo && <Chip label="Oculto" size="small" />}
+                      </Stack>
                     <Typography variant="body2" color="text.secondary">
                       {item.dataType}
                       {item.numericUnit ? ` · ${item.numericUnit}` : ""}
                       {item.descricao ? ` · ${item.descricao}` : ""}
                     </Typography>
                     </Box>
-                    <Button
-                      size="small"
-                      startIcon={<EditOutlined />}
-                      onClick={() => openParameterEdit(item)}
-                    >
-                      Editar
-                    </Button>
+                    <Stack direction="row" spacing={1}>
+                      {item.ativo ? (
+                        <>
+                          <Button
+                            size="small"
+                            startIcon={<EditOutlined />}
+                            onClick={() => openParameterEdit(item)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="small"
+                            color="error"
+                            onClick={() => hideParameter.mutate(item.id)}
+                            disabled={hideParameter.isPending}
+                          >
+                            Ocultar
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          size="small"
+                          color="success"
+                          onClick={() => restoreParameter.mutate(item.id)}
+                          disabled={restoreParameter.isPending}
+                        >
+                          Reativar
+                        </Button>
+                      )}
+                    </Stack>
                   </Box>
                 ))}
                 {selected.parametros.length === 0 && (
@@ -443,6 +509,7 @@ function RuleGroupsPanel() {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const [selectedGroupId, setSelectedGroupId] = useState("");
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [group, setGroup] = useState({ nome: "", descricao: "" });
   const [typeName, setTypeName] = useState("");
   const [rule, setRule] = useState({
@@ -455,6 +522,7 @@ function RuleGroupsPanel() {
     resultado: "ALERTA",
     severidade: "1",
     prioridade: "0",
+    ativo: true,
   });
   const groups = useQuery({
     queryKey: ["rules", "groups"],
@@ -489,14 +557,14 @@ function RuleGroupsPanel() {
       await queryClient.invalidateQueries({ queryKey: ["rules", "groups"] });
     },
   });
-  const createRule = useMutation({
+  const saveRule = useMutation({
     mutationFn: () => {
       const numeric = selectedParameter?.dataType === "NUMERIC";
       const bool = selectedParameter?.dataType === "BOOLEAN";
       return apiRequest<RegraParametro>(
-        `/api/rules/groups/${selectedGroupId}/rules`,
+        `/api/rules/groups/${selectedGroupId}/rules${editingRuleId ? `/${editingRuleId}` : ""}`,
         {
-          method: "POST",
+          method: editingRuleId ? "PUT" : "POST",
           body: JSON.stringify({
             parametroDefId: rule.parametroDefId,
             nome: rule.nome,
@@ -509,7 +577,7 @@ function RuleGroupsPanel() {
             resultado: rule.resultado,
             severidade: Number(rule.severidade),
             prioridade: Number(rule.prioridade),
-            ativo: true,
+            ativo: rule.ativo,
           }),
         },
         session,
@@ -526,10 +594,44 @@ function RuleGroupsPanel() {
         resultado: "ALERTA",
         severidade: "1",
         prioridade: "0",
+        ativo: true,
       });
+      setEditingRuleId(null);
       await queryClient.invalidateQueries({ queryKey: ["rules", "groups", selectedGroupId] });
     },
   });
+  const removeRule = useMutation({
+    mutationFn: (ruleId: string) =>
+      apiRequest<void>(
+        `/api/rules/groups/${selectedGroupId}/rules/${ruleId}`,
+        { method: "DELETE" },
+        session,
+      ),
+    onSuccess: async () => {
+      setEditingRuleId(null);
+      await queryClient.invalidateQueries({ queryKey: ["rules", "groups", selectedGroupId] });
+    },
+  });
+
+  const editRule = (item: RegraParametro) => {
+    const type = types.data?.find((candidate) =>
+      candidate.parametros.some((parameter) => parameter.id === item.parametroDefId),
+    );
+    setTypeName(type?.nome ?? "");
+    setEditingRuleId(item.id);
+    setRule({
+      parametroDefId: item.parametroDefId,
+      nome: item.nome,
+      descricao: item.descricao ?? "",
+      operador: item.operador,
+      valor1: String(item.valorNumeric1 ?? item.valorText ?? item.valorBoolean ?? ""),
+      valor2: item.valorNumeric2 == null ? "" : String(item.valorNumeric2),
+      resultado: item.resultado,
+      severidade: String(item.severidade),
+      prioridade: String(item.prioridade),
+      ativo: item.ativo,
+    });
+  };
 
   const operators = selectedParameter?.dataType === "BOOLEAN"
     ? ["EQ", "NEQ"]
@@ -597,7 +699,12 @@ function RuleGroupsPanel() {
             <Stack spacing={1} sx={{ mt: 2 }}>
               {rules.data?.map((item) => (
                 <Box key={item.id} sx={{ p: 1.5, bgcolor: "grey.50", borderRadius: 1 }}>
-                  <Typography fontWeight={600}>{item.nome}</Typography>
+                  <Stack direction="row" justifyContent="space-between" spacing={2}>
+                    <Box>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Typography fontWeight={600}>{item.nome}</Typography>
+                    {!item.ativo && <Chip label="Inativa" size="small" />}
+                  </Stack>
                   <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
                     <Typography variant="body2">{ruleExpression(item)}</Typography>
                     <Typography color="text.secondary">→</Typography>
@@ -610,6 +717,28 @@ function RuleGroupsPanel() {
                           : "success"
                       }
                     />
+                  </Stack>
+                    </Box>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        size="small"
+                        startIcon={<EditOutlined />}
+                        onClick={() => editRule(item)}
+                      >
+                        Editar
+                      </Button>
+                      {item.ativo && (
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<DeleteOutlined />}
+                          onClick={() => removeRule.mutate(item.id)}
+                          disabled={removeRule.isPending}
+                        >
+                          Remover
+                        </Button>
+                      )}
+                    </Stack>
                   </Stack>
                 </Box>
               ))}
@@ -625,10 +754,35 @@ function RuleGroupsPanel() {
             sx={{ p: 2 }}
             onSubmit={(event: FormEvent) => {
               event.preventDefault();
-              createRule.mutate();
+              saveRule.mutate();
             }}
           >
-            <Typography variant="h6">Adicionar regra</Typography>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="h6">
+                {editingRuleId ? "Editar regra" : "Adicionar regra"}
+              </Typography>
+              {editingRuleId && (
+                <Button
+                  onClick={() => {
+                    setEditingRuleId(null);
+                    setRule({
+                      parametroDefId: "",
+                      nome: "",
+                      descricao: "",
+                      operador: "GT",
+                      valor1: "",
+                      valor2: "",
+                      resultado: "ALERTA",
+                      severidade: "1",
+                      prioridade: "0",
+                      ativo: true,
+                    });
+                  }}
+                >
+                  Cancelar edicao
+                </Button>
+              )}
+            </Stack>
             <Stack spacing={2} sx={{ mt: 2 }}>
               <Stack direction={{ xs: "column", lg: "row" }} spacing={1.5}>
               <FormControl required sx={{ minWidth: 180 }}>
@@ -754,10 +908,20 @@ function RuleGroupsPanel() {
                   fullWidth
                 />
               </Stack>
-              <Button type="submit" variant="contained" disabled={createRule.isPending}>
-                Adicionar regra
+              {editingRuleId && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Switch
+                    checked={rule.ativo}
+                    onChange={(_, checked) => setRule({ ...rule, ativo: checked })}
+                  />
+                  <Typography>Regra ativa</Typography>
+                </Stack>
+              )}
+              <Button type="submit" variant="contained" disabled={saveRule.isPending}>
+                {editingRuleId ? "Salvar alteracoes" : "Adicionar regra"}
               </Button>
-              <ErrorMessage error={createRule.error} />
+              <ErrorMessage error={saveRule.error} />
+              <ErrorMessage error={removeRule.error} />
             </Stack>
           </Paper>
         </Stack>

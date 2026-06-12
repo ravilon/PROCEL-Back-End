@@ -67,6 +67,9 @@ public class RegrasService {
                 .orElseThrow(() -> new NotFoundException("GrupoRegra not found id=" + grupoId));
         ParametroDef parametroDef = parametroDefRepo.findById(req.parametroDefId())
                 .orElseThrow(() -> new NotFoundException("ParametroDef not found id=" + req.parametroDefId()));
+        if (!parametroDef.isAtivo()) {
+            throw new IllegalArgumentException("ParametroDef is hidden id=" + req.parametroDefId());
+        }
         validateRegra(parametroDef, req);
         boolean ativo = req.ativo() == null || req.ativo();
         if (ativo && regraRepo.existsByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(grupoId, req.parametroDefId())) {
@@ -101,6 +104,45 @@ public class RegrasService {
     }
 
     @Transactional
+    public RegraDTOs.RegraParametroResponse atualizarRegra(
+            UUID grupoId,
+            UUID regraId,
+            RegraDTOs.RegraParametroRequest req
+    ) {
+        validateRegraRequest(grupoId, req);
+        RegraParametro regra = findRegraDoGrupo(grupoId, regraId);
+        ParametroDef parametroDef = parametroDefRepo.findById(req.parametroDefId())
+                .orElseThrow(() -> new NotFoundException(
+                        "ParametroDef not found id=" + req.parametroDefId()));
+        if (!parametroDef.isAtivo()) {
+            throw new IllegalArgumentException("ParametroDef is hidden id=" + req.parametroDefId());
+        }
+        validateRegra(parametroDef, req);
+        boolean ativo = req.ativo() == null || req.ativo();
+        if (ativo) {
+            boolean duplicate = regraRepo
+                    .findAllByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(grupoId, req.parametroDefId())
+                    .stream()
+                    .anyMatch(existing -> !existing.getId().equals(regraId));
+            if (duplicate) {
+                throw new IllegalArgumentException(
+                        "GrupoRegra already has an active rule for parametroDefId="
+                                + req.parametroDefId());
+            }
+        }
+
+        applyRegra(regra, parametroDef, req, ativo);
+        return toRegraResponse(regraRepo.save(regra));
+    }
+
+    @Transactional
+    public void removerRegra(UUID grupoId, UUID regraId) {
+        RegraParametro regra = findRegraDoGrupo(grupoId, regraId);
+        regra.setAtivo(false);
+        regraRepo.save(regra);
+    }
+
+    @Transactional
     public RegraDTOs.SensorGrupoRegraResponse vincularGrupoAoSensor(String sensorExternalId, RegraDTOs.SensorGrupoRegraRequest req) {
         if (sensorExternalId == null || sensorExternalId.isBlank()) throw new IllegalArgumentException("sensorExternalId is required");
         if (req == null) throw new IllegalArgumentException("body is required");
@@ -109,8 +151,8 @@ public class RegrasService {
             throw new IllegalArgumentException("validoAte must be after validoDe");
         }
 
-        Sensor sensor = sensorRepo.findByExternalId(sensorExternalId.trim())
-                .orElseThrow(() -> new NotFoundException("Sensor not found externalId=" + sensorExternalId));
+        Sensor sensor = sensorRepo.findByExternalIdAndAtivoTrue(sensorExternalId.trim())
+                .orElseThrow(() -> new NotFoundException("Active sensor not found externalId=" + sensorExternalId));
         GrupoRegra grupo = grupoRepo.findById(req.grupoRegraId())
                 .orElseThrow(() -> new NotFoundException("GrupoRegra not found id=" + req.grupoRegraId()));
         SensorGrupoRegraStatus status = req.status() == null ? SensorGrupoRegraStatus.RASCUNHO : req.status();
@@ -166,7 +208,7 @@ public class RegrasService {
                 .distinct()
                 .toList();
         List<RegraDTOs.SensorGrupoRegraResponse> links = sensorRepo
-                .findByCompartimento_IdIn(roomIds)
+                .findByCompartimento_IdInAndAtivoTrue(roomIds)
                 .stream()
                 .filter(sensor -> tipoNome.equals(sensor.getTipo().getNome()))
                 .map(sensor -> vincularGrupoAoSensor(
@@ -185,7 +227,7 @@ public class RegrasService {
     @Transactional(readOnly = true)
     public List<RegraDTOs.ParametroDefResponse> listarParametros(String tipoNome) {
         if (tipoNome == null || tipoNome.isBlank()) throw new IllegalArgumentException("tipoNome is required");
-        return parametroDefRepo.findAllByTipo_Nome(tipoNome.trim())
+        return parametroDefRepo.findAllByTipo_NomeAndAtivoTrue(tipoNome.trim())
                 .stream()
                 .map(RegrasService::toParametroDefResponse)
                 .toList();
@@ -250,6 +292,47 @@ public class RegrasService {
         return value == null || value.isBlank() ? null : value.trim();
     }
 
+    private void validateRegraRequest(UUID grupoId, RegraDTOs.RegraParametroRequest req) {
+        if (grupoId == null) throw new IllegalArgumentException("grupoId is required");
+        if (req == null) throw new IllegalArgumentException("body is required");
+        if (req.parametroDefId() == null) throw new IllegalArgumentException("parametroDefId is required");
+        if (req.nome() == null || req.nome().isBlank()) throw new IllegalArgumentException("nome is required");
+        if (req.operador() == null) throw new IllegalArgumentException("operador is required");
+        if (req.resultado() == null) throw new IllegalArgumentException("resultado is required");
+    }
+
+    private RegraParametro findRegraDoGrupo(UUID grupoId, UUID regraId) {
+        if (grupoId == null) throw new IllegalArgumentException("grupoId is required");
+        if (regraId == null) throw new IllegalArgumentException("regraId is required");
+        RegraParametro regra = regraRepo.findById(regraId)
+                .orElseThrow(() -> new NotFoundException("RegraParametro not found id=" + regraId));
+        if (!regra.getGrupoRegra().getId().equals(grupoId)) {
+            throw new NotFoundException(
+                    "RegraParametro not found grupoId=" + grupoId + " id=" + regraId);
+        }
+        return regra;
+    }
+
+    private static void applyRegra(
+            RegraParametro regra,
+            ParametroDef parametroDef,
+            RegraDTOs.RegraParametroRequest req,
+            boolean ativo
+    ) {
+        regra.setParametroDef(parametroDef);
+        regra.setNome(req.nome().trim());
+        regra.setDescricao(blankToNull(req.descricao()));
+        regra.setOperador(req.operador());
+        regra.setValorNumeric1(req.valorNumeric1());
+        regra.setValorNumeric2(req.valorNumeric2());
+        regra.setValorText(blankToNull(req.valorText()));
+        regra.setValorBoolean(req.valorBoolean());
+        regra.setResultado(req.resultado());
+        regra.setSeveridade(req.severidade() == null ? 0 : req.severidade());
+        regra.setPrioridade(req.prioridade() == null ? 0 : req.prioridade());
+        regra.setAtivo(ativo);
+    }
+
     private void validateGrupoSensorLink(
             Sensor sensor,
             GrupoRegra grupo,
@@ -270,6 +353,12 @@ public class RegrasService {
         Set<UUID> proposedParametroIds = new HashSet<>();
         for (RegraParametro regra : proposedRules) {
             ParametroDef parametroDef = regra.getParametroDef();
+            if (!parametroDef.isAtivo()) {
+                throw new IllegalArgumentException(
+                        "RegraParametro id=" + regra.getId()
+                                + " uses hidden parametroDefId=" + parametroDef.getId()
+                );
+            }
             if (!sensorTipoNome.equals(parametroDef.getTipo().getNome())) {
                 throw new IllegalArgumentException(
                         "RegraParametro id=" + regra.getId()

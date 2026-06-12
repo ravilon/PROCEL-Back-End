@@ -40,6 +40,9 @@ public class ParametroDef {
     @Column(name = "numeric_unit", length = 40)
     private String numericUnit;
 
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
+
     public ParametroDef() {}
 
     public ParametroDef(TipoDeSensor tipo, String nome, String descricao, DataType dataType, String numericUnit) {
@@ -56,10 +59,12 @@ public class ParametroDef {
     public String getDescricao() { return descricao; }
     public DataType getDataType() { return dataType; }
     public String getNumericUnit() { return numericUnit; }
+    public boolean isAtivo() { return ativo; }
 
     public void setTipo(TipoDeSensor tipo) { this.tipo = tipo; }
     public void setNome(String nome) { this.nome = nome; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public void setDataType(DataType dataType) { this.dataType = dataType; }
     public void setNumericUnit(String numericUnit) { this.numericUnit = numericUnit; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
 }

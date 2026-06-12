@@ -43,7 +43,7 @@ public class SensorsMockIngestService {
         Sensor sensor = resolveSensor(req.sensorExternalId());
         String tipoNome = sensor.getTipo().getNome();
 
-        List<ParametroDef> defs = defRepo.findAllByTipo_Nome(tipoNome);
+        List<ParametroDef> defs = defRepo.findAllByTipo_NomeAndAtivoTrue(tipoNome);
         if (defs.isEmpty()) {
             throw new IllegalStateException("No ParametroDef for tipo=" + tipoNome + ". Rode o seed antes.");
         }
@@ -89,11 +89,11 @@ public class SensorsMockIngestService {
 
     private Sensor resolveSensor(String sensorExternalId) {
         if (sensorExternalId != null && !sensorExternalId.isBlank()) {
-            return sensorRepo.findById(sensorExternalId)
-                    .orElseThrow(() -> new IllegalStateException("Sensor not found: " + sensorExternalId));
+            return sensorRepo.findByExternalIdAndAtivoTrue(sensorExternalId)
+                    .orElseThrow(() -> new IllegalStateException("Active sensor not found: " + sensorExternalId));
         }
 
-        return sensorRepo.findAll().stream()
+        return sensorRepo.findAllByAtivoTrue().stream()
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No Sensor found. Rode o seed do sensor antes."));
     }

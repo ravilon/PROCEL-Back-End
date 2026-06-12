@@ -43,10 +43,10 @@ public class SensorAdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<SensorAdminDTOs.TipoSensorResponse> listarTipos() {
+    public List<SensorAdminDTOs.TipoSensorResponse> listarTipos(boolean includeHidden) {
         return tipoRepo.findAll().stream()
                 .sorted(Comparator.comparing(TipoDeSensor::getNome, String.CASE_INSENSITIVE_ORDER))
-                .map(this::toTipoResponse)
+                .map(tipo -> toTipoResponse(tipo, includeHidden))
                 .toList();
     }
 
@@ -59,7 +59,7 @@ public class SensorAdminService {
         if (tipoRepo.existsById(nome)) {
             throw new ConflictException("TipoDeSensor already exists nome=" + nome);
         }
-        return toTipoResponse(tipoRepo.save(new TipoDeSensor(nome)));
+        return toTipoResponse(tipoRepo.save(new TipoDeSensor(nome)), false);
     }
 
     @Transactional
@@ -79,7 +79,7 @@ public class SensorAdminService {
             throw new NotFoundException("TipoDeSensor not found nome=" + nomeAtual);
         }
         if (nomeAtual.equals(novoNome)) {
-            return toTipoResponse(tipoRepo.findById(nomeAtual).orElseThrow());
+            return toTipoResponse(tipoRepo.findById(nomeAtual).orElseThrow(), true);
         }
         if (tipoRepo.existsById(novoNome)) {
             throw new ConflictException("TipoDeSensor already exists nome=" + novoNome);
@@ -95,7 +95,7 @@ public class SensorAdminService {
 
         TipoDeSensor atualizado = tipoRepo.findById(novoNome)
                 .orElseThrow(() -> new IllegalStateException("TipoDeSensor rename failed nome=" + novoNome));
-        return toTipoResponse(atualizado);
+        return toTipoResponse(atualizado, true);
     }
 
     @Transactional
@@ -160,6 +160,20 @@ public class SensorAdminService {
     }
 
     @Transactional
+    public void ocultarParametro(UUID parametroId) {
+        ParametroDef parametro = findParametro(parametroId);
+        parametro.setAtivo(false);
+        parametroRepo.save(parametro);
+    }
+
+    @Transactional
+    public SensorAdminDTOs.ParametroResponse reativarParametro(UUID parametroId) {
+        ParametroDef parametro = findParametro(parametroId);
+        parametro.setAtivo(true);
+        return toParametroResponse(parametroRepo.save(parametro));
+    }
+
+    @Transactional
     public SensorAdminDTOs.SensorResponse criarSensor(SensorAdminDTOs.SensorRequest request) {
         if (request == null) throw new IllegalArgumentException("body is required");
         if (request.externalId() == null || request.externalId().isBlank()) {
@@ -188,9 +202,24 @@ public class SensorAdminService {
         ));
     }
 
-    private SensorAdminDTOs.TipoSensorResponse toTipoResponse(TipoDeSensor tipo) {
+    @Transactional
+    public void ocultarSensor(String externalId) {
+        Sensor sensor = findSensor(externalId);
+        sensor.setAtivo(false);
+        sensorRepo.save(sensor);
+    }
+
+    @Transactional
+    public SensorAdminDTOs.SensorResponse reativarSensor(String externalId) {
+        Sensor sensor = findSensor(externalId);
+        sensor.setAtivo(true);
+        return toSensorResponse(sensorRepo.save(sensor));
+    }
+
+    private SensorAdminDTOs.TipoSensorResponse toTipoResponse(TipoDeSensor tipo, boolean includeHidden) {
         List<SensorAdminDTOs.ParametroResponse> parametros =
                 parametroRepo.findAllByTipo_Nome(tipo.getNome()).stream()
+                        .filter(parametro -> includeHidden || parametro.isAtivo())
                         .sorted(Comparator.comparing(ParametroDef::getNome, String.CASE_INSENSITIVE_ORDER))
                         .map(SensorAdminService::toParametroResponse)
                         .toList();
@@ -204,7 +233,8 @@ public class SensorAdminService {
                 parametro.getNome(),
                 parametro.getDescricao(),
                 parametro.getDataType(),
-                parametro.getNumericUnit()
+                parametro.getNumericUnit(),
+                parametro.isAtivo()
         );
     }
 
@@ -214,8 +244,23 @@ public class SensorAdminService {
                 sensor.getNome(),
                 sensor.getTipo().getNome(),
                 sensor.getCompartimento().getId(),
-                sensor.getCompartimento().getNome()
+                sensor.getCompartimento().getNome(),
+                sensor.isAtivo()
         );
+    }
+
+    private ParametroDef findParametro(UUID parametroId) {
+        if (parametroId == null) throw new IllegalArgumentException("parametroId is required");
+        return parametroRepo.findById(parametroId)
+                .orElseThrow(() -> new NotFoundException("ParametroDef not found id=" + parametroId));
+    }
+
+    private Sensor findSensor(String externalId) {
+        if (externalId == null || externalId.isBlank()) {
+            throw new IllegalArgumentException("externalId is required");
+        }
+        return sensorRepo.findById(externalId.trim())
+                .orElseThrow(() -> new NotFoundException("Sensor not found externalId=" + externalId));
     }
 
     private static String blankToNull(String value) {

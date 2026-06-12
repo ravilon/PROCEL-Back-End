@@ -3,6 +3,7 @@ package com.procel.ingestion.service.sensors;
 import com.procel.ingestion.dto.sensors.SensorAdminDTOs;
 import com.procel.ingestion.entity.sensors.DataType;
 import com.procel.ingestion.entity.sensors.ParametroDef;
+import com.procel.ingestion.entity.sensors.Sensor;
 import com.procel.ingestion.entity.sensors.TipoDeSensor;
 import com.procel.ingestion.repository.rooms.CompartimentoRepository;
 import com.procel.ingestion.repository.sensors.ParametroDefRepository;
@@ -78,6 +79,48 @@ class SensorAdminServiceTest {
         assertThat(response.nome()).isEqualTo("SII_SMART_V2");
         verify(entityManager).clear();
         verify(query).executeUpdate();
+    }
+
+    @Test
+    void hidesAndRestoresParameterWithoutDeletingIt() {
+        TipoDeSensorRepository tipoRepo = mock(TipoDeSensorRepository.class);
+        ParametroDefRepository parametroRepo = mock(ParametroDefRepository.class);
+        SensorAdminService service = service(tipoRepo, parametroRepo, mock(EntityManager.class));
+        ParametroDef parametro = new ParametroDef(
+                new TipoDeSensor("SII_SMART"), "temperature", null, DataType.NUMERIC, "C");
+        UUID id = UUID.randomUUID();
+        ReflectionTestUtils.setField(parametro, "id", id);
+        when(parametroRepo.findById(id)).thenReturn(Optional.of(parametro));
+        when(parametroRepo.save(parametro)).thenReturn(parametro);
+
+        service.ocultarParametro(id);
+        assertThat(parametro.isAtivo()).isFalse();
+
+        var restored = service.reativarParametro(id);
+        assertThat(restored.ativo()).isTrue();
+        verify(parametroRepo, org.mockito.Mockito.times(2)).save(parametro);
+    }
+
+    @Test
+    void hidesAndRestoresSensorWithoutDeletingIt() {
+        TipoDeSensorRepository tipoRepo = mock(TipoDeSensorRepository.class);
+        ParametroDefRepository parametroRepo = mock(ParametroDefRepository.class);
+        SensorRepository sensorRepo = mock(SensorRepository.class);
+        CompartimentoRepository compartimentoRepo = mock(CompartimentoRepository.class);
+        SensorAdminService service = new SensorAdminService(
+                tipoRepo, parametroRepo, sensorRepo, compartimentoRepo, mock(EntityManager.class));
+        var compartimento = new com.procel.ingestion.entity.rooms.Compartimento(
+                "room-1", null, null, "Sala 1", "Sala");
+        Sensor sensor = new Sensor(
+                "sensor-1", "Sensor", new TipoDeSensor("SII_SMART"), compartimento);
+        when(sensorRepo.findById("sensor-1")).thenReturn(Optional.of(sensor));
+        when(sensorRepo.save(sensor)).thenReturn(sensor);
+
+        service.ocultarSensor("sensor-1");
+        assertThat(sensor.isAtivo()).isFalse();
+        var restored = service.reativarSensor("sensor-1");
+
+        assertThat(restored.ativo()).isTrue();
     }
 
     private static SensorAdminService service(

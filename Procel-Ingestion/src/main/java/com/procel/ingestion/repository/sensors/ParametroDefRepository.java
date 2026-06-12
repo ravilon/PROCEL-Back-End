@@ -12,4 +12,8 @@ public interface ParametroDefRepository extends JpaRepository<ParametroDef, UUID
     Optional<ParametroDef> findByTipo_NomeAndNome(String tipoNome, String nome);
 
     List<ParametroDef> findAllByTipo_Nome(String tipoNome);
+
+    Optional<ParametroDef> findByTipo_NomeAndNomeAndAtivoTrue(String tipoNome, String nome);
+
+    List<ParametroDef> findAllByTipo_NomeAndAtivoTrue(String tipoNome);
 }

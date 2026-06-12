@@ -55,6 +55,22 @@ public class RegrasController {
         return service.listarRegras(grupoId);
     }
 
+    @PutMapping("/groups/{grupoId}/rules/{regraId}")
+    @Operation(summary = "Atualiza regra preservando avaliacoes historicas")
+    public RegraDTOs.RegraParametroResponse atualizarRegra(
+            @PathVariable UUID grupoId,
+            @PathVariable UUID regraId,
+            @RequestBody RegraDTOs.RegraParametroRequest req
+    ) {
+        return service.atualizarRegra(grupoId, regraId, req);
+    }
+
+    @DeleteMapping("/groups/{grupoId}/rules/{regraId}")
+    @Operation(summary = "Desativa regra preservando avaliacoes historicas")
+    public void removerRegra(@PathVariable UUID grupoId, @PathVariable UUID regraId) {
+        service.removerRegra(grupoId, regraId);
+    }
+
     @PostMapping("/sensors/{sensorExternalId}/groups")
     @Operation(summary = "Vincula grupo de regras a um sensor", description = "Requer ADMIN ou OPERADOR. Para vinculos ATIVO/AGENDADO, todas as regras ativas do grupo devem pertencer ao mesmo TipoDeSensor do sensor, e nao pode haver outra regra ativa/agendada sobreposta para o mesmo ParametroDef nesse sensor.")
     public RegraDTOs.SensorGrupoRegraResponse vincularGrupoAoSensor(

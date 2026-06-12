@@ -4,6 +4,7 @@ import {
   CheckCircleOutlined,
   ErrorOutline,
   EditOutlined,
+  DeleteOutlined,
   ExpandLessOutlined,
   ExpandMoreOutlined,
   HelpOutline,
@@ -35,6 +36,7 @@ import {
   Paper,
   Select,
   Stack,
+  Switch,
   Tab,
   Tabs,
   Table,
@@ -119,6 +121,7 @@ function CompartimentosTree() {
   const [bulkStatus, setBulkStatus] = useState("ATIVO");
   const [selectedRoom, setSelectedRoom] = useState<Compartimento | null>(null);
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
+  const [showHiddenSensors, setShowHiddenSensors] = useState(false);
   const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
   const [newSensor, setNewSensor] = useState({ externalId: "", nome: "", tipoNome: "" });
   const [measurementFrom, setMeasurementFrom] = useState(() =>
@@ -181,10 +184,10 @@ function CompartimentosTree() {
   });
 
   const sensors = useQuery({
-    queryKey: ["catalog", "room-sensors", selectedRoom?.id],
+    queryKey: ["catalog", "room-sensors", selectedRoom?.id, showHiddenSensors],
     queryFn: () =>
       apiRequest<Sensor[]>(
-        `/api/catalog/compartimentos/${selectedRoom!.id}/sensores`,
+        `/api/catalog/compartimentos/${selectedRoom!.id}/sensores?includeHidden=${showHiddenSensors}`,
         {},
         session,
       ),
@@ -255,6 +258,33 @@ function CompartimentosTree() {
       setSensorDialogOpen(false);
       setNewSensor({ externalId: "", nome: "", tipoNome: "" });
       setSelectedSensor(sensor);
+      await queryClient.invalidateQueries({
+        queryKey: ["catalog", "room-sensors", selectedRoom?.id],
+      });
+    },
+  });
+  const hideSensor = useMutation({
+    mutationFn: (externalId: string) =>
+      apiRequest<void>(
+        `/api/sensor-admin/sensors/${encodeURIComponent(externalId)}`,
+        { method: "DELETE" },
+        session,
+      ),
+    onSuccess: async () => {
+      setSelectedSensor(null);
+      await queryClient.invalidateQueries({
+        queryKey: ["catalog", "room-sensors", selectedRoom?.id],
+      });
+    },
+  });
+  const restoreSensor = useMutation({
+    mutationFn: (externalId: string) =>
+      apiRequest<Sensor>(
+        `/api/sensor-admin/sensors/${encodeURIComponent(externalId)}/restore`,
+        { method: "POST" },
+        session,
+      ),
+    onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["catalog", "room-sensors", selectedRoom?.id],
       });
@@ -386,13 +416,28 @@ function CompartimentosTree() {
                         Sensores
                       </Typography>
                       {hasAnyRole("ADMIN", "OPERADOR") && (
-                        <Button
-                          size="small"
-                          startIcon={<AddOutlined />}
-                          onClick={() => setSensorDialogOpen(true)}
-                        >
-                          Cadastrar
-                        </Button>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <Switch
+                              size="small"
+                              checked={showHiddenSensors}
+                              onChange={(_, checked) => {
+                                setShowHiddenSensors(checked);
+                                if (!checked && selectedSensor && !selectedSensor.ativo) {
+                                  setSelectedSensor(null);
+                                }
+                              }}
+                            />
+                            <Typography variant="body2">Mostrar ocultos</Typography>
+                          </Stack>
+                          <Button
+                            size="small"
+                            startIcon={<AddOutlined />}
+                            onClick={() => setSensorDialogOpen(true)}
+                          >
+                            Cadastrar
+                          </Button>
+                        </Stack>
                       )}
                     </Stack>
                   </Box>
@@ -431,7 +476,10 @@ function CompartimentosTree() {
                               : "background.paper",
                         }}
                       >
-                        <Typography fontWeight={700}>{sensor.nome}</Typography>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Typography fontWeight={700}>{sensor.nome}</Typography>
+                          {!sensor.ativo && <Chip label="Oculto" size="small" />}
+                        </Stack>
                         <Typography variant="body2" color="text.secondary">
                           {sensor.externalId}
                         </Typography>
@@ -439,6 +487,24 @@ function CompartimentosTree() {
                         <Typography variant="caption" display="block" sx={{ mt: 1 }}>
                           {sensor.compartimentoNome}
                         </Typography>
+                        {hasAnyRole("ADMIN", "OPERADOR") && (
+                          <Button
+                            size="small"
+                            color={sensor.ativo ? "error" : "success"}
+                            sx={{ mt: 1 }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (sensor.ativo) {
+                                hideSensor.mutate(sensor.externalId);
+                              } else {
+                                restoreSensor.mutate(sensor.externalId);
+                              }
+                            }}
+                            disabled={hideSensor.isPending || restoreSensor.isPending}
+                          >
+                            {sensor.ativo ? "Ocultar" : "Reativar"}
+                          </Button>
+                        )}
                       </Paper>
                     ))}
                   </Box>
@@ -941,6 +1007,17 @@ function PessoasTree() {
   const [selected, setSelected] = useState<PessoaResumo | null>(null);
   const [activityStatus, setActivityStatus] = useState<AtividadeStatus | "ALL">("ALL");
   const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [deleteUserDialogOpen, setDeleteUserDialogOpen] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({
+    userId: "",
+    nome: "",
+    email: "",
+    telefone: "",
+    matricula: "",
+    password: "",
+    roles: ["USUARIO"] as string[],
+  });
   const [userForm, setUserForm] = useState({
     nome: "",
     email: "",
@@ -981,6 +1058,23 @@ function PessoasTree() {
     queryFn: () => apiRequest<Disciplina[]>("/api/catalog/disciplinas", {}, session),
     enabled: disciplineDialogOpen,
   });
+  const disciplinePeriods = useQuery({
+    queryKey: ["catalog", "discipline-periods", disciplineLink.disciplinaId],
+    queryFn: () =>
+      apiRequest<PeriodoAula[]>(
+        `/api/catalog/disciplinas/${disciplineLink.disciplinaId}/periodos-aula`,
+        {},
+        session,
+      ),
+    enabled: Boolean(disciplineDialogOpen && disciplineLink.disciplinaId),
+  });
+  const disciplineClasses = Array.from(
+    new Set(
+      disciplinePeriods.data
+        ?.map((item) => item.turma?.trim())
+        .filter((item): item is string => Boolean(item)) ?? [],
+    ),
+  ).sort((a, b) => a.localeCompare(b));
   const linkDiscipline = useMutation({
     mutationFn: () =>
       apiRequest<DisciplinaAluno>(
@@ -1059,15 +1153,69 @@ function PessoasTree() {
       ]);
     },
   });
+  const createPerson = useMutation({
+    mutationFn: () =>
+      apiRequest<Pessoa>(
+        "/api/pessoas",
+        { method: "POST", body: JSON.stringify(newUserForm) },
+        session,
+      ),
+    onSuccess: async (created) => {
+      setCreateUserDialogOpen(false);
+      setNewUserForm({
+        userId: "",
+        nome: "",
+        email: "",
+        telefone: "",
+        matricula: "",
+        password: "",
+        roles: ["USUARIO"],
+      });
+      setSelected({
+        id: created.id,
+        nome: created.nome,
+        email: created.email,
+        matricula: created.matricula,
+        roles: created.roles,
+      });
+      await queryClient.invalidateQueries({ queryKey: ["catalog", "people"] });
+    },
+  });
+  const deletePerson = useMutation({
+    mutationFn: () =>
+      apiRequest<void>(
+        `/api/pessoas/${encodeURIComponent(selected!.id)}`,
+        { method: "DELETE" },
+        session,
+      ),
+    onSuccess: async () => {
+      setDeleteUserDialogOpen(false);
+      setSelected(null);
+      await queryClient.invalidateQueries({ queryKey: ["catalog", "people"] });
+    },
+  });
 
   return (
     <Stack spacing={2}>
-      <TextField
-        label="Buscar pessoa"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="ID, nome, e-mail ou matricula"
-      />
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+        <TextField
+          fullWidth
+          label="Buscar pessoa"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="ID, nome, e-mail ou matricula"
+        />
+        {hasAnyRole("ADMIN") && (
+          <Button
+            variant="contained"
+            startIcon={<AddOutlined />}
+            onClick={() => setCreateUserDialogOpen(true)}
+            sx={{ flexShrink: 0 }}
+          >
+            Cadastrar usuario
+          </Button>
+        )}
+      </Stack>
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "340px 1fr" }, gap: 2 }}>
         <Paper variant="outlined" sx={{ maxHeight: 650, overflow: "auto" }}>
           <List dense>
@@ -1091,6 +1239,7 @@ function PessoasTree() {
                 <Stack direction="row" justifyContent="space-between" spacing={2}>
                   <Typography variant="h6">{selected.nome}</Typography>
                   {hasAnyRole("ADMIN") && (
+                    <Stack direction="row" spacing={1}>
                     <Button
                       startIcon={<EditOutlined />}
                       onClick={() => {
@@ -1108,6 +1257,15 @@ function PessoasTree() {
                     >
                       Editar usuário
                     </Button>
+                    <Button
+                      color="error"
+                      startIcon={<DeleteOutlined />}
+                      onClick={() => setDeleteUserDialogOpen(true)}
+                      disabled={selected.id === session?.userId}
+                    >
+                      Excluir
+                    </Button>
+                    </Stack>
                   )}
                 </Stack>
                 <Typography>{selected.email}</Typography>
@@ -1256,6 +1414,143 @@ function PessoasTree() {
         </Stack>
       </Box>
       <Dialog
+        open={createUserDialogOpen}
+        onClose={() => !createPerson.isPending && setCreateUserDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Cadastrar usuario</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="ID do usuario"
+              value={newUserForm.userId}
+              onChange={(event) =>
+                setNewUserForm({ ...newUserForm, userId: event.target.value })
+              }
+              required
+              helperText="Identificador usado no login. Nao podera ser alterado."
+            />
+            <TextField
+              label="Nome"
+              value={newUserForm.nome}
+              onChange={(event) =>
+                setNewUserForm({ ...newUserForm, nome: event.target.value })
+              }
+              required
+            />
+            <TextField
+              label="E-mail"
+              type="email"
+              value={newUserForm.email}
+              onChange={(event) =>
+                setNewUserForm({ ...newUserForm, email: event.target.value })
+              }
+              required
+            />
+            <TextField
+              label="Senha inicial"
+              type="password"
+              value={newUserForm.password}
+              onChange={(event) =>
+                setNewUserForm({ ...newUserForm, password: event.target.value })
+              }
+              required
+            />
+            <TextField
+              label="Telefone"
+              value={newUserForm.telefone}
+              onChange={(event) =>
+                setNewUserForm({ ...newUserForm, telefone: event.target.value })
+              }
+            />
+            <TextField
+              label="Matricula"
+              value={newUserForm.matricula}
+              onChange={(event) =>
+                setNewUserForm({ ...newUserForm, matricula: event.target.value })
+              }
+            />
+            <FormControl>
+              <InputLabel>Perfis de acesso</InputLabel>
+              <Select
+                multiple
+                label="Perfis de acesso"
+                value={newUserForm.roles}
+                onChange={(event) =>
+                  setNewUserForm({
+                    ...newUserForm,
+                    roles: typeof event.target.value === "string"
+                      ? event.target.value.split(",")
+                      : event.target.value,
+                  })
+                }
+              >
+                {["ADMIN", "OPERADOR", "ANALISTA", "USUARIO", "INGESTOR"].map((role) => (
+                  <MenuItem key={role} value={role}>{role}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <ErrorAlert error={createPerson.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setCreateUserDialogOpen(false)}
+            disabled={createPerson.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() => createPerson.mutate()}
+            disabled={
+              createPerson.isPending
+              || !newUserForm.userId.trim()
+              || !newUserForm.nome.trim()
+              || !newUserForm.email.trim()
+              || !newUserForm.password
+              || newUserForm.roles.length === 0
+            }
+          >
+            Cadastrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={deleteUserDialogOpen}
+        onClose={() => !deletePerson.isPending && setDeleteUserDialogOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle>Excluir usuario</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Confirma a exclusao de <strong>{selected?.nome}</strong> ({selected?.id})?
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            A exclusao e permanente e pode ser recusada caso existam dados vinculados.
+          </Typography>
+          <ErrorAlert error={deletePerson.error} />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setDeleteUserDialogOpen(false)}
+            disabled={deletePerson.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => deletePerson.mutate()}
+            disabled={deletePerson.isPending || !selected}
+          >
+            Excluir permanentemente
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
         open={userDialogOpen}
         onClose={() => setUserDialogOpen(false)}
         fullWidth
@@ -1348,7 +1643,11 @@ function PessoasTree() {
                 label="Disciplina"
                 value={disciplineLink.disciplinaId}
                 onChange={(event) =>
-                  setDisciplineLink({ ...disciplineLink, disciplinaId: event.target.value })
+                  setDisciplineLink({
+                    ...disciplineLink,
+                    disciplinaId: event.target.value,
+                    turma: "",
+                  })
                 }
               >
                 {disciplineCatalog.data?.map((discipline) => (
@@ -1358,14 +1657,37 @@ function PessoasTree() {
                 ))}
               </Select>
             </FormControl>
-            <TextField
-              label="Turma"
-              value={disciplineLink.turma}
-              onChange={(event) =>
-                setDisciplineLink({ ...disciplineLink, turma: event.target.value })
-              }
-              required
-            />
+            {disciplineClasses.length > 0 ? (
+              <FormControl required>
+                <InputLabel>Turma</InputLabel>
+                <Select
+                  label="Turma"
+                  value={disciplineLink.turma}
+                  onChange={(event) =>
+                    setDisciplineLink({ ...disciplineLink, turma: event.target.value })
+                  }
+                >
+                  {disciplineClasses.map((turma) => (
+                    <MenuItem key={turma} value={turma}>{turma}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <TextField
+                label="Turma"
+                value={disciplineLink.turma}
+                onChange={(event) =>
+                  setDisciplineLink({ ...disciplineLink, turma: event.target.value })
+                }
+                helperText={
+                  disciplineLink.disciplinaId && !disciplinePeriods.isLoading
+                    ? "Nenhuma turma sincronizada; informe manualmente."
+                    : "Selecione uma disciplina para carregar as turmas."
+                }
+                required
+              />
+            )}
+            <ErrorAlert error={disciplinePeriods.error} />
             <TextField
               label="Período letivo"
               value={disciplineLink.periodoLetivo}

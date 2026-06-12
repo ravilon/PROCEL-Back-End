@@ -10,6 +10,10 @@ import java.util.Collection;
 public interface SensorRepository extends JpaRepository<Sensor, String> {
     List<Sensor> findByCompartimentoIdOrderByNomeAsc(String compartimentoId);
     List<Sensor> findByCompartimento_IdIn(Collection<String> compartimentoIds);
+    List<Sensor> findByCompartimentoIdAndAtivoTrueOrderByNomeAsc(String compartimentoId);
+    List<Sensor> findByCompartimento_IdInAndAtivoTrue(Collection<String> compartimentoIds);
+    List<Sensor> findAllByAtivoTrue();
+    Optional<Sensor> findByExternalIdAndAtivoTrue(String externalId);
 
     default Optional<Sensor> findByExternalId(String externalId) {
         return findById(externalId);

@@ -47,8 +47,11 @@ public class CatalogoController {
     @GetMapping("/compartimentos/{id}/sensores")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     @Operation(summary = "Lista sensores diretamente vinculados ao compartimento")
-    public List<CatalogoDTOs.SensorResponse> sensoresDoCompartimento(@PathVariable String id) {
-        return service.listarSensoresDoCompartimento(id);
+    public List<CatalogoDTOs.SensorResponse> sensoresDoCompartimento(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "false") boolean includeHidden
+    ) {
+        return service.listarSensoresDoCompartimento(id, includeHidden);
     }
 
     @GetMapping("/compartimentos/{id}/periodos-aula")
@@ -61,8 +64,11 @@ public class CatalogoController {
     @GetMapping("/sensores")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     @Operation(summary = "Lista sensores para busca e navegacao")
-    public List<CatalogoDTOs.SensorResponse> sensores(@RequestParam(required = false) String q) {
-        return service.listarSensores(q);
+    public List<CatalogoDTOs.SensorResponse> sensores(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "false") boolean includeHidden
+    ) {
+        return service.listarSensores(q, includeHidden);
     }
 
     @GetMapping("/tipos-sensor")

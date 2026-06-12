@@ -53,6 +53,7 @@ export interface Sensor {
   tipoNome: string;
   compartimentoId: string;
   compartimentoNome: string;
+  ativo: boolean;
 }
 
 export type SensorDataType = "NUMERIC" | "BOOLEAN" | "TEXT";
@@ -64,6 +65,7 @@ export interface ParametroDef {
   descricao?: string | null;
   dataType: SensorDataType;
   numericUnit?: string | null;
+  ativo: boolean;
 }
 
 export interface TipoSensor {

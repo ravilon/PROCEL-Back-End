@@ -41,9 +41,9 @@ public class SensorIngestionService {
 
     public void ingest(RawSensorEvent event) {
         // Sensor PK = external_id (String)
-        Sensor sensor = sensorRepo.findByExternalId(event.sensorExternalId())
+        Sensor sensor = sensorRepo.findByExternalIdAndAtivoTrue(event.sensorExternalId())
                 .orElseThrow(() -> new IllegalStateException(
-                        "Sensor not found for externalId=" + event.sensorExternalId()
+                        "Active sensor not found for externalId=" + event.sensorExternalId()
                 ));
 
         Instant measuredAt = nvl(event.timestamp(), Instant.now());
@@ -62,9 +62,9 @@ public class SensorIngestionService {
             String key = e.getKey();
             Object rawValue = e.getValue();
 
-            ParametroDef def = parametroDefRepo.findByTipo_NomeAndNome(tipoNome, key)
+            ParametroDef def = parametroDefRepo.findByTipo_NomeAndNomeAndAtivoTrue(tipoNome, key)
                     .orElseThrow(() -> new IllegalStateException(
-                            "ParametroDef not found: tipo=" + tipoNome + " key=" + key
+                            "Active ParametroDef not found: tipo=" + tipoNome + " key=" + key
                     ));
 
             // integridade: def deve ser do mesmo tipo do sensor
