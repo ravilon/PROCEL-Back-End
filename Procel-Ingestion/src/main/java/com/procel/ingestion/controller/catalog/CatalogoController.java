@@ -1,4 +1,4 @@
-package com.procel.ingestion.controller;
+package com.procel.ingestion.controller.catalog;
 
 import com.procel.ingestion.dto.catalog.CatalogoDTOs;
 import com.procel.ingestion.service.catalog.CatalogoService;

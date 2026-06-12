@@ -1,4 +1,4 @@
-package com.procel.ingestion.controller;
+package com.procel.ingestion.controller.people;
 
 import com.procel.ingestion.dto.people.AlunoDisciplinaDTOs;
 import com.procel.ingestion.service.people.AlunoDisciplinaService;

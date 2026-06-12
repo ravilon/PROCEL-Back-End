@@ -5,6 +5,7 @@ import {
   DashboardOutlined,
   LogoutOutlined,
   MenuBookOutlined,
+  SensorsOutlined,
 } from "@mui/icons-material";
 import {
   AppBar,
@@ -36,6 +37,7 @@ interface NavigationItem {
 const navigation: NavigationItem[] = [
   { label: "Visao geral", path: "/", icon: <DashboardOutlined /> },
   { label: "Navegador de dados", path: "/catalogo", icon: <AccountTreeOutlined /> },
+  { label: "Sensores e regras", path: "/sensores", icon: <SensorsOutlined />, roles: ["ADMIN", "OPERADOR"] },
   { label: "Operacoes da API", path: "/operacoes", icon: <ApiOutlined />, roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO", "INGESTOR"] },
   { label: "Minhas disciplinas", path: "/disciplinas", icon: <MenuBookOutlined />, roles: ["USUARIO", "ADMIN", "OPERADOR", "ANALISTA"] },
 ];

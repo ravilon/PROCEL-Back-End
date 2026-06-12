@@ -1,4 +1,4 @@
-package com.procel.ingestion.controller;
+package com.procel.ingestion.controller.auth;
 
 import com.procel.ingestion.dto.auth.AuthDTOs;
 import com.procel.ingestion.service.auth.AuthService;

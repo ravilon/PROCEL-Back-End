@@ -1,4 +1,4 @@
-package com.procel.ingestion.controller;
+package com.procel.ingestion.controller.sensors;
 
 import com.procel.ingestion.dto.sensors.RegraDTOs;
 import com.procel.ingestion.service.sensors.RegrasService;

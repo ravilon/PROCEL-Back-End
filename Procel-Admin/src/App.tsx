@@ -6,6 +6,7 @@ import { CatalogPage } from "./pages/CatalogPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DisciplinasPage } from "./pages/DisciplinasPage";
 import { LoginPage } from "./pages/LoginPage";
+import { SensorsAdminPage } from "./pages/SensorsAdminPage";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="catalogo" element={<CatalogPage />} />
             <Route path="operacoes" element={<ApiConsolePage />} />
             <Route path="disciplinas" element={<DisciplinasPage />} />
+            <Route path="sensores" element={<SensorsAdminPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

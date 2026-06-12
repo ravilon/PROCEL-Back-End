@@ -1,4 +1,4 @@
-package com.procel.ingestion.controller;
+package com.procel.ingestion.controller.missions;
 
 import com.procel.ingestion.dto.missions.MissaoDTOs;
 import com.procel.ingestion.entity.missions.AtividadeStatus;

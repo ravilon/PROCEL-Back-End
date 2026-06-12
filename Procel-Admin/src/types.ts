@@ -48,6 +48,49 @@ export interface Sensor {
   compartimentoNome: string;
 }
 
+export type SensorDataType = "NUMERIC" | "BOOLEAN" | "TEXT";
+
+export interface ParametroDef {
+  id: string;
+  tipoNome: string;
+  nome: string;
+  descricao?: string | null;
+  dataType: SensorDataType;
+  numericUnit?: string | null;
+}
+
+export interface TipoSensor {
+  nome: string;
+  parametros: ParametroDef[];
+}
+
+export interface GrupoRegra {
+  id: string;
+  nome: string;
+  descricao?: string | null;
+  ativo: boolean;
+  createdAt: string;
+}
+
+export interface RegraParametro {
+  id: string;
+  grupoRegraId: string;
+  parametroDefId: string;
+  parametroNome: string;
+  nome: string;
+  descricao?: string | null;
+  operador: string;
+  valorNumeric1?: number | null;
+  valorNumeric2?: number | null;
+  valorText?: string | null;
+  valorBoolean?: boolean | null;
+  resultado: string;
+  severidade: number;
+  prioridade: number;
+  ativo: boolean;
+  createdAt: string;
+}
+
 export interface Disciplina {
   id: number;
   nome: string;

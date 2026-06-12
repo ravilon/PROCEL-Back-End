@@ -1,5 +1,6 @@
 import {
   ApartmentOutlined,
+  AddOutlined,
   MenuBookOutlined,
   PersonSearchOutlined,
   SensorsOutlined,
@@ -9,11 +10,20 @@ import {
   Box,
   Chip,
   CircularProgress,
+  Button,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
+  InputLabel,
   List,
   ListItemButton,
   ListItemText,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Tab,
   Tabs,
@@ -26,7 +36,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiRequest } from "../lib/api";
@@ -39,6 +49,7 @@ import type {
   PessoaResumo,
   PessoaCurso,
   Sensor,
+  TipoSensor,
 } from "../types";
 
 function ErrorAlert({ error }: { error: Error | null }) {
@@ -58,6 +69,9 @@ function CompartimentosTree() {
   const [query, setQuery] = useState("");
   const [selectedRoom, setSelectedRoom] = useState<Compartimento | null>(null);
   const [selectedSensor, setSelectedSensor] = useState<Sensor | null>(null);
+  const [sensorDialogOpen, setSensorDialogOpen] = useState(false);
+  const [newSensor, setNewSensor] = useState({ externalId: "", nome: "", tipoNome: "" });
+  const queryClient = useQueryClient();
 
   const rooms = useQuery({
     queryKey: ["catalog", "rooms", query],
@@ -100,6 +114,35 @@ function CompartimentosTree() {
         session,
       ),
     enabled: Boolean(selectedSensor),
+  });
+
+  const sensorTypes = useQuery({
+    queryKey: ["sensor-admin", "types"],
+    queryFn: () => apiRequest<TipoSensor[]>("/api/sensor-admin/types", {}, session),
+    enabled: sensorDialogOpen,
+  });
+
+  const createSensor = useMutation({
+    mutationFn: () =>
+      apiRequest<Sensor>(
+        "/api/sensor-admin/sensors",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            ...newSensor,
+            compartimentoId: selectedRoom!.id,
+          }),
+        },
+        session,
+      ),
+    onSuccess: async (sensor) => {
+      setSensorDialogOpen(false);
+      setNewSensor({ externalId: "", nome: "", tipoNome: "" });
+      setSelectedSensor(sensor);
+      await queryClient.invalidateQueries({
+        queryKey: ["catalog", "room-sensors", selectedRoom?.id],
+      });
+    },
   });
 
   return (
@@ -165,10 +208,21 @@ function CompartimentosTree() {
               {hasAnyRole("ADMIN", "OPERADOR", "ANALISTA") && (
                 <Paper variant="outlined">
                   <Box sx={{ p: 2 }}>
-                    <Typography variant="h6">
-                      <SensorsOutlined sx={{ verticalAlign: "middle", mr: 1 }} />
-                      Sensores
-                    </Typography>
+                    <Stack direction="row" justifyContent="space-between" alignItems="center">
+                      <Typography variant="h6">
+                        <SensorsOutlined sx={{ verticalAlign: "middle", mr: 1 }} />
+                        Sensores
+                      </Typography>
+                      {hasAnyRole("ADMIN", "OPERADOR") && (
+                        <Button
+                          size="small"
+                          startIcon={<AddOutlined />}
+                          onClick={() => setSensorDialogOpen(true)}
+                        >
+                          Cadastrar
+                        </Button>
+                      )}
+                    </Stack>
                   </Box>
                   <Divider />
                   <List dense>
@@ -239,6 +293,62 @@ function CompartimentosTree() {
           )}
         </Stack>
       </Box>
+      <Dialog
+        open={sensorDialogOpen}
+        onClose={() => setSensorDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Cadastrar sensor em {selectedRoom?.nome}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Identificador externo"
+              value={newSensor.externalId}
+              onChange={(event) =>
+                setNewSensor({ ...newSensor, externalId: event.target.value })
+              }
+              required
+            />
+            <TextField
+              label="Nome"
+              value={newSensor.nome}
+              onChange={(event) => setNewSensor({ ...newSensor, nome: event.target.value })}
+              required
+            />
+            <FormControl required>
+              <InputLabel>Tipo de sensor</InputLabel>
+              <Select
+                label="Tipo de sensor"
+                value={newSensor.tipoNome}
+                onChange={(event) =>
+                  setNewSensor({ ...newSensor, tipoNome: event.target.value })
+                }
+              >
+                {sensorTypes.data?.map((item) => (
+                  <MenuItem key={item.nome} value={item.nome}>{item.nome}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <ErrorAlert error={createSensor.error} />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSensorDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => createSensor.mutate()}
+            disabled={
+              createSensor.isPending
+              || !newSensor.externalId.trim()
+              || !newSensor.nome.trim()
+              || !newSensor.tipoNome
+            }
+          >
+            Cadastrar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }

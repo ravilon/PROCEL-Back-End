@@ -1,4 +1,4 @@
-package com.procel.ingestion.controller;
+package com.procel.ingestion.controller.rooms;
 
 import com.procel.ingestion.service.rooms.AulasSyncJobResponse;
 import com.procel.ingestion.service.rooms.AulasSyncJobService;
