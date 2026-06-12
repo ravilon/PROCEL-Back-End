@@ -208,6 +208,7 @@ function CompartimentosTree() {
   const measurements = useQuery({
     queryKey: [
       "measurements",
+      selectedRoom?.id,
       selectedSensor?.externalId,
       measurementFrom,
       measurementTo,
@@ -215,7 +216,9 @@ function CompartimentosTree() {
     ],
     queryFn: () =>
       apiRequest<Medicao[]>(
-        `/api/sensors/${selectedSensor!.externalId}/medicoes?from=${encodeURIComponent(
+        `/api/${selectedSensor
+          ? `sensors/${selectedSensor.externalId}`
+          : `rooms/${selectedRoom!.id}`}/medicoes?from=${encodeURIComponent(
           new Date(measurementFrom).toISOString(),
         )}&to=${encodeURIComponent(new Date(measurementTo).toISOString())}&page=${
           measurementPage
@@ -223,14 +226,17 @@ function CompartimentosTree() {
         {},
         session,
       ),
-    enabled: Boolean(selectedSensor && measurementFrom && measurementTo),
+    enabled: Boolean(selectedRoom && measurementFrom && measurementTo),
   });
 
   const sensorTypes = useQuery({
     queryKey: ["sensor-admin", "types"],
     queryFn: () => apiRequest<TipoSensor[]>("/api/sensor-admin/types", {}, session),
-    enabled: sensorDialogOpen || Boolean(selectedSensor),
+    enabled: sensorDialogOpen || Boolean(selectedRoom),
   });
+  const visibleSensors = sensors.data?.filter(
+    (sensor) => showHiddenSensors || sensor.ativo,
+  ) ?? [];
 
   const visibleMeasurements = measurements.data?.filter(
     (measurement) =>
@@ -270,6 +276,18 @@ function CompartimentosTree() {
         { method: "DELETE" },
         session,
       ),
+    onMutate: (externalId) => {
+      if (selectedSensor?.externalId === externalId) setSelectedSensor(null);
+      queryClient.setQueryData<Sensor[]>(
+        ["catalog", "room-sensors", selectedRoom?.id, showHiddenSensors],
+        (current) =>
+          current
+            ?.map((sensor) =>
+              sensor.externalId === externalId ? { ...sensor, ativo: false } : sensor,
+            )
+            .filter((sensor) => showHiddenSensors || sensor.ativo),
+      );
+    },
     onSuccess: async () => {
       setSelectedSensor(null);
       await queryClient.invalidateQueries({
@@ -284,6 +302,15 @@ function CompartimentosTree() {
         { method: "POST" },
         session,
       ),
+    onMutate: (externalId) => {
+      queryClient.setQueryData<Sensor[]>(
+        ["catalog", "room-sensors", selectedRoom?.id, showHiddenSensors],
+        (current) =>
+          current?.map((sensor) =>
+            sensor.externalId === externalId ? { ...sensor, ativo: true } : sensor,
+          ),
+      );
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: ["catalog", "room-sensors", selectedRoom?.id],
@@ -454,7 +481,7 @@ function CompartimentosTree() {
                       gap: 1.5,
                     }}
                   >
-                    {sensors.data?.map((sensor) => (
+                    {visibleSensors.map((sensor) => (
                       <Paper
                         key={sensor.externalId}
                         variant="outlined"
@@ -508,15 +535,16 @@ function CompartimentosTree() {
                       </Paper>
                     ))}
                   </Box>
-                  {!sensors.isLoading && sensors.data?.length === 0 && (
+                  {!sensors.isLoading && visibleSensors.length === 0 && (
                     <Empty text="Nenhum sensor vinculado." />
                   )}
                   <ErrorAlert error={sensors.error} />
                 </Paper>
               )}
 
-              {selectedSensor && (
+              {selectedRoom && (
                 <Stack spacing={2}>
+                  {selectedSensor && (
                   <Paper variant="outlined" sx={{ p: 2 }}>
                     <Stack
                       direction={{ xs: "column", md: "row" }}
@@ -529,6 +557,15 @@ function CompartimentosTree() {
                           {selectedSensor.externalId} · {selectedSensor.tipoNome}
                         </Typography>
                       </Box>
+                      <Button
+                        size="small"
+                        onClick={() => {
+                          setSelectedSensor(null);
+                          setMeasurementPage(0);
+                        }}
+                      >
+                        Ver toda a sala
+                      </Button>
                       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                         {selectedSensorType?.parametros.map((parameter) => (
                           <Chip
@@ -543,10 +580,18 @@ function CompartimentosTree() {
                       </Stack>
                     </Stack>
                   </Paper>
+                  )}
 
                   <Paper variant="outlined" sx={{ p: 2 }}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                      <Typography variant="h6">Medições</Typography>
+                      <Box>
+                        <Typography variant="h6">Medições</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {selectedSensor
+                            ? `Sensor ${selectedSensor.nome}`
+                            : `Todos os sensores de ${selectedRoom.nome}`}
+                        </Typography>
+                      </Box>
                       <IconButton
                         aria-label={measurementsExpanded ? "Minimizar medições" : "Exibir medições"}
                         onClick={() => setMeasurementsExpanded((expanded) => !expanded)}
@@ -637,7 +682,11 @@ function CompartimentosTree() {
                       <MeasurementCard
                         key={measurement.id}
                         measurement={measurement}
-                        parameters={selectedSensorType?.parametros ?? []}
+                        parameters={
+                          sensorTypes.data?.find(
+                            (type) => type.nome === measurement.tipoNome,
+                          )?.parametros ?? []
+                        }
                       />
                     ))}
                   </Box>

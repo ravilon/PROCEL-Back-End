@@ -8,11 +8,12 @@ Covers:
 - Rooms sync
 - Classroom schedules sync
 - Sensors seed
-- Pessoa create/get/update
+- Pessoa create/get/update/delete
+- Sensor and parameter soft delete/restore
 - Missoes catalog create/list/get/update/delete
 - Atividades create/list/get/update/filter/expire
 - Presenca checkin
-- Rules / Parameter Qualification setup
+- Rules create/update/soft delete/restore and Parameter Qualification setup
 - Sensors ingest mock
 - Medicoes: latest + list by sensor + latest + list by room
 - Presenca occupancy + open presences
@@ -35,6 +36,10 @@ Assumes endpoints:
   GET /api/rooms/{compartimentoId}/medicoes/latest
   POST /api/rooms/aulas/sync?weekStart={yyyy-MM-dd}
   GET /api/rooms/aulas/sync/{jobId}
+  DELETE /api/sensor-admin/parameters/{parametroId}
+  POST /api/sensor-admin/parameters/{parametroId}/restore
+  DELETE /api/sensor-admin/sensors/{sensorExternalId}
+  POST /api/sensor-admin/sensors/{sensorExternalId}/restore
 #>
 
 param(
@@ -179,6 +184,7 @@ $from10m = $to.AddMinutes(-10)
 $FromIso = $from10m.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
 $ToIso   = $to.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
 $ClassScheduleWeekStart = [DateTime]::Today.AddDays(-[int][DateTime]::Today.DayOfWeek).ToString("yyyy-MM-dd")
+$SmokeRunId = [Guid]::NewGuid().ToString("N").Substring(0, 8)
 
 Write-Host "Target: $Target | BaseUrl: $BaseUrl" -ForegroundColor Yellow
 Write-Host "RoomId: $RoomId | SensorExternalId: $SensorExternalId | TestPessoaId: $PessoaId" -ForegroundColor Yellow
@@ -219,14 +225,23 @@ AssertSmoke "Classroom schedules sync returned a job" (
   @("PENDING", "RUNNING", "COMPLETED") -contains $classScheduleSync.status
 ) "schedule sync did not return a valid asynchronous job."
 
-$classScheduleJob = TryCall "GET /api/rooms/aulas/sync/$($classScheduleSync.jobId)" {
-  InvokeApi "/api/rooms/aulas/sync/$($classScheduleSync.jobId)" -Method GET
-}
+$classScheduleJob = $null
+$classScheduleDeadline = [DateTimeOffset]::UtcNow.AddMinutes(2)
+do {
+  $classScheduleJob = TryCall "GET /api/rooms/aulas/sync/$($classScheduleSync.jobId)" {
+    InvokeApi "/api/rooms/aulas/sync/$($classScheduleSync.jobId)" -Method GET
+  }
+  if ($classScheduleJob.status -in @("COMPLETED", "FAILED")) {
+    break
+  }
+  Start-Sleep -Seconds 2
+} while ([DateTimeOffset]::UtcNow -lt $classScheduleDeadline)
+
 PrintJson "Classroom schedules job status" $classScheduleJob
-AssertSmoke "Classroom schedules job is available" (
+AssertSmoke "Classroom schedules job completed" (
   "$($classScheduleJob.jobId)" -eq "$($classScheduleSync.jobId)" -and
-  $classScheduleJob.status -ne "FAILED"
-) "schedule sync job was not found or failed immediately."
+  $classScheduleJob.status -eq "COMPLETED"
+) "schedule sync job did not complete successfully within two minutes. Final status: $($classScheduleJob.status)"
 
 # ---------------------------
 # 4) Sensors seed
@@ -234,6 +249,42 @@ AssertSmoke "Classroom schedules job is available" (
 TryCall "POST /api/sensors/seed/from-resource" {
   InvokeApi "/api/sensors/seed/from-resource" -Method POST
 } | Out-Null
+
+$sensorRestored = $false
+try {
+  TryCall "DELETE /api/sensor-admin/sensors/$SensorExternalId (soft delete)" {
+    InvokeApi "/api/sensor-admin/sensors/$SensorExternalId" -Method DELETE
+  } | Out-Null
+
+  $visibleRoomSensors = TryCall "GET room sensors without hidden sensor" {
+    InvokeApi "/api/catalog/compartimentos/$RoomId/sensores" -Method GET
+  }
+  AssertSmoke "Soft-deleted sensor is hidden by default" (
+    @($visibleRoomSensors | Where-Object { $_.externalId -eq $SensorExternalId }).Count -eq 0
+  ) "sensor $SensorExternalId remained visible without includeHidden=true."
+
+  $allRoomSensors = TryCall "GET room sensors including hidden sensor" {
+    InvokeApi "/api/catalog/compartimentos/$RoomId/sensores?includeHidden=true" -Method GET
+  }
+  $hiddenSensor = $allRoomSensors | Where-Object { $_.externalId -eq $SensorExternalId } | Select-Object -First 1
+  AssertSmoke "Soft-deleted sensor is available as hidden" (
+    $null -ne $hiddenSensor -and $hiddenSensor.ativo -eq $false
+  ) "sensor $SensorExternalId was not returned as inactive with includeHidden=true."
+
+  $restoredSensor = TryCall "POST /api/sensor-admin/sensors/$SensorExternalId/restore" {
+    InvokeApi "/api/sensor-admin/sensors/$SensorExternalId/restore" -Method POST
+  }
+  $sensorRestored = $true
+  AssertSmoke "Sensor restore returns active sensor" (
+    $restoredSensor.externalId -eq $SensorExternalId -and $restoredSensor.ativo -eq $true
+  ) "sensor restore did not return the active sensor."
+} finally {
+  if (-not $sensorRestored) {
+    SoftCall "Restore sensor after soft-delete test failure" {
+      InvokeApi "/api/sensor-admin/sensors/$SensorExternalId/restore" -Method POST
+    } | Out-Null
+  }
+}
 
 # ---------------------------
 # 5) Test pessoa create (ignore conflict) + get + update
@@ -274,10 +325,33 @@ $UserJwtToken = $userLogin.accessToken
 if ([string]::IsNullOrWhiteSpace($UserJwtToken)) { throw "No accessToken returned from test user login." }
 Write-Host "[OK] Test user JWT token acquired. ExpiresAt: $($userLogin.expiresAt)" -ForegroundColor Green
 
+$DisposablePessoaId = "api-delete-$SmokeRunId"
+$DisposablePessoaEmail = "$DisposablePessoaId@procel.local"
+$disposablePessoa = TryCall "POST /api/pessoas (disposable delete test)" {
+  InvokeApi "/api/pessoas" -Method POST -Body @{
+    nome="API Disposable User"
+    email=$DisposablePessoaEmail
+    userId=$DisposablePessoaId
+    password="123456"
+    matricula="DEL-$SmokeRunId"
+    roles=@("USUARIO")
+  }
+}
+AssertSmoke "Disposable user was created" (
+  $disposablePessoa.id -eq $DisposablePessoaId -or $disposablePessoa.userId -eq $DisposablePessoaId
+) "created disposable user did not return the requested id."
+
+TryCall "DELETE /api/pessoas/$DisposablePessoaId" {
+  InvokeApi "/api/pessoas/$DisposablePessoaId" -Method DELETE
+} | Out-Null
+ExpectFailure "GET deleted disposable user returns not found" {
+  InvokeApi "/api/pessoas/$DisposablePessoaId" -Method GET
+} @(404)
+
 # ---------------------------
 # 5) Missoes catalog + atividades by pessoa
 # ---------------------------
-$MissionRunId = [Guid]::NewGuid().ToString("N").Substring(0, 8)
+$MissionRunId = $SmokeRunId
 
 $missao = TryCall "POST /api/missoes" {
   InvokeApi "/api/missoes" -Method POST -Body @{
@@ -551,6 +625,44 @@ if ($null -eq $ruleParam -or [string]::IsNullOrWhiteSpace($ruleParam.id)) {
   throw "ParametroDef not found for tipoNome=$SensorTipoNome nome=$RuleParametroNome"
 }
 
+$parameterRestored = $false
+try {
+  TryCall "DELETE /api/sensor-admin/parameters/$($ruleParam.id) (soft delete)" {
+    InvokeApi "/api/sensor-admin/parameters/$($ruleParam.id)" -Method DELETE
+  } | Out-Null
+
+  $visibleTypes = TryCall "GET sensor types without hidden parameters" {
+    InvokeApi "/api/sensor-admin/types" -Method GET
+  }
+  $visibleType = $visibleTypes | Where-Object { $_.nome -eq $SensorTipoNome } | Select-Object -First 1
+  AssertSmoke "Soft-deleted parameter is hidden by default" (
+    @($visibleType.parametros | Where-Object { $_.id -eq $ruleParam.id }).Count -eq 0
+  ) "parameter $RuleParametroNome remained visible without includeHidden=true."
+
+  $allTypes = TryCall "GET sensor types including hidden parameters" {
+    InvokeApi "/api/sensor-admin/types?includeHidden=true" -Method GET
+  }
+  $allType = $allTypes | Where-Object { $_.nome -eq $SensorTipoNome } | Select-Object -First 1
+  $hiddenParameter = $allType.parametros | Where-Object { $_.id -eq $ruleParam.id } | Select-Object -First 1
+  AssertSmoke "Soft-deleted parameter is available as hidden" (
+    $null -ne $hiddenParameter -and $hiddenParameter.ativo -eq $false
+  ) "parameter $RuleParametroNome was not returned as inactive with includeHidden=true."
+
+  $restoredParameter = TryCall "POST /api/sensor-admin/parameters/$($ruleParam.id)/restore" {
+    InvokeApi "/api/sensor-admin/parameters/$($ruleParam.id)/restore" -Method POST
+  }
+  $parameterRestored = $true
+  AssertSmoke "Parameter restore returns active parameter" (
+    "$($restoredParameter.id)" -eq "$($ruleParam.id)" -and $restoredParameter.ativo -eq $true
+  ) "parameter restore did not return the active parameter."
+} finally {
+  if (-not $parameterRestored) {
+    SoftCall "Restore parameter after soft-delete test failure" {
+      InvokeApi "/api/sensor-admin/parameters/$($ruleParam.id)/restore" -Method POST
+    } | Out-Null
+  }
+}
+
 $ruleGroupName = "API test DER - $SensorExternalId - $RuleParametroNome"
 $groups = TryCall "GET /api/rules/groups" {
   InvokeApi "/api/rules/groups" -Method GET
@@ -598,6 +710,57 @@ if ($null -eq $rule -or [string]::IsNullOrWhiteSpace($rule.id)) {
 }
 PrintJson "DER parameter rule" $rule
 
+$ruleId = "$($rule.id)"
+$ruleRequest = @{
+  parametroDefId=$ruleParam.id
+  nome="API test temperature qualification $SmokeRunId"
+  descricao="API test rule updated by ApiSmokeTest.ps1"
+  operador="GT"
+  valorNumeric1=0
+  resultado="ALERTA"
+  severidade=2
+  prioridade=100
+  ativo=$true
+}
+$rule = TryCall "PUT /api/rules/groups/$($ruleGroup.id)/rules/$($rule.id)" {
+  InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules/$($rule.id)" -Method PUT -Body $ruleRequest
+}
+AssertSmoke "Rule update keeps id and changes name" (
+  "$($rule.id)" -eq $ruleId -and
+  $rule.nome -eq $ruleRequest.nome -and
+  $rule.ativo -eq $true
+) "rule update did not return the requested active values."
+
+$ruleRestored = $true
+try {
+  TryCall "DELETE /api/rules/groups/$($ruleGroup.id)/rules/$ruleId" {
+    InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules/$ruleId" -Method DELETE
+  } | Out-Null
+  $ruleRestored = $false
+
+  $rulesAfterDelete = TryCall "GET rules after logical delete" {
+    InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules" -Method GET
+  }
+  $deletedRule = $rulesAfterDelete | Where-Object { "$($_.id)" -eq $ruleId } | Select-Object -First 1
+  AssertSmoke "Rule delete preserves inactive rule" (
+    $null -ne $deletedRule -and $deletedRule.ativo -eq $false
+  ) "deleted rule was not retained as inactive."
+
+  $rule = TryCall "PUT rule to reactivate it" {
+    InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules/$ruleId" -Method PUT -Body $ruleRequest
+  }
+  $ruleRestored = $true
+  AssertSmoke "Rule can be reactivated by update" (
+    "$($rule.id)" -eq $ruleId -and $rule.ativo -eq $true
+  ) "rule remained inactive after update."
+} finally {
+  if (-not $ruleRestored) {
+    SoftCall "Reactivate rule after logical-delete test failure" {
+      InvokeApi "/api/rules/groups/$($ruleGroup.id)/rules/$ruleId" -Method PUT -Body $ruleRequest
+    } | Out-Null
+  }
+}
+
 $sensorRuleLinks = TryCall "GET /api/rules/sensors/$SensorExternalId/groups" {
   InvokeApi "/api/rules/sensors/$SensorExternalId/groups" -Method GET
 }
@@ -635,6 +798,12 @@ Start-Sleep -Seconds 1
 # ---------------------------
 # 9) Medicoes queries
 # ---------------------------
+$measurementTo = [DateTimeOffset]::UtcNow.AddSeconds(5)
+$measurementFrom = $measurementTo.AddMinutes(-15)
+$FromIso = $measurementFrom.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
+$ToIso = $measurementTo.UtcDateTime.ToString("yyyy-MM-ddTHH:mm:ssZ")
+Write-Host "Measurement validation window: from=$FromIso to=$ToIso" -ForegroundColor Yellow
+
 $latestSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes/latest" {
   InvokeApi "/api/sensors/$SensorExternalId/medicoes/latest" -Method GET
 }
@@ -650,9 +819,15 @@ if ($temperatureQualifications.Count -lt 1) {
 Write-Host "[OK] DER Parameter Qualification generated for temperature_c ($($temperatureQualifications.Count) result(s))." -ForegroundColor Green
 
 $listSensor = TryCall "GET /api/sensors/$SensorExternalId/medicoes?from&to&limit" {
-  InvokeApi "/api/sensors/$SensorExternalId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
+  InvokeApi "/api/sensors/$SensorExternalId/medicoes?from=$FromIso&to=$ToIso&limit=100" -Method GET
 }
-PrintJson "Medicoes list (sensor, last 10m)" $listSensor
+PrintJson "Medicoes list (sensor, validation window)" $listSensor
+$smokeSensorMeasurements = @($listSensor | Where-Object {
+  $_.sensorExternalId -eq $SensorExternalId -and $_.source -eq "api-test"
+})
+AssertSmoke "Sensor measurement list includes mock ingest" (
+  $smokeSensorMeasurements.Count -gt 0
+) "sensor measurement list did not include source=api-test for $SensorExternalId."
 
 $latestRoom = TryCall "GET /api/rooms/$RoomId/medicoes/latest" {
   InvokeApi "/api/rooms/$RoomId/medicoes/latest" -Method GET
@@ -660,9 +835,17 @@ $latestRoom = TryCall "GET /api/rooms/$RoomId/medicoes/latest" {
 PrintJson "Medicao latest (room)" $latestRoom
 
 $listRoom = TryCall "GET /api/rooms/$RoomId/medicoes?from&to&limit" {
-  InvokeApi "/api/rooms/$RoomId/medicoes?from=$FromIso&to=$ToIso&limit=50" -Method GET
+  InvokeApi "/api/rooms/$RoomId/medicoes?from=$FromIso&to=$ToIso&limit=500" -Method GET
 }
-PrintJson "Medicoes list (room, last 10m)" $listRoom
+PrintJson "Medicoes list (room, validation window)" $listRoom
+$smokeRoomMeasurements = @($listRoom | Where-Object {
+  $_.sensorExternalId -eq $SensorExternalId -and
+  "$($_.compartimentoId)" -eq "$RoomId" -and
+  $_.source -eq "api-test"
+})
+AssertSmoke "Room measurement list includes mock ingest" (
+  $smokeRoomMeasurements.Count -gt 0
+) "room measurement list did not include source=api-test for sensor $SensorExternalId in room $RoomId."
 
 # ---------------------------
 # 10) Presenca occupancy + open list

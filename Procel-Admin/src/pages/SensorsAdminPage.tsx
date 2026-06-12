@@ -113,6 +113,9 @@ function SensorTypesPanel() {
       ),
   });
   const selected = types.data?.find((item) => item.nome === selectedType);
+  const visibleParameters = selected?.parametros.filter(
+    (item) => showHiddenParameters || item.ativo,
+  ) ?? [];
 
   const createType = useMutation({
     mutationFn: () =>
@@ -171,6 +174,21 @@ function SensorTypesPanel() {
         { method: "DELETE" },
         session,
       ),
+    onMutate: (parameterId) => {
+      if (editingParameter?.id === parameterId) setEditingParameter(null);
+      queryClient.setQueryData<TipoSensor[]>(
+        ["sensor-admin", "types", showHiddenParameters],
+        (current) =>
+          current?.map((type) => ({
+            ...type,
+            parametros: type.parametros
+              .map((parameter) =>
+                parameter.id === parameterId ? { ...parameter, ativo: false } : parameter,
+              )
+              .filter((parameter) => showHiddenParameters || parameter.ativo),
+          })),
+      );
+    },
     onSuccess: async () => {
       setEditingParameter(null);
       await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
@@ -183,6 +201,18 @@ function SensorTypesPanel() {
         { method: "POST" },
         session,
       ),
+    onMutate: (parameterId) => {
+      queryClient.setQueryData<TipoSensor[]>(
+        ["sensor-admin", "types", showHiddenParameters],
+        (current) =>
+          current?.map((type) => ({
+            ...type,
+            parametros: type.parametros.map((parameter) =>
+              parameter.id === parameterId ? { ...parameter, ativo: true } : parameter,
+            ),
+          })),
+      );
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
     },
@@ -277,7 +307,7 @@ function SensorTypesPanel() {
                 </Stack>
               </Stack>
               <Stack spacing={1} sx={{ mt: 2 }}>
-                {selected.parametros.map((item) => (
+                {visibleParameters.map((item) => (
                   <Box
                     key={item.id}
                     sx={{
@@ -333,7 +363,7 @@ function SensorTypesPanel() {
                     </Stack>
                   </Box>
                 ))}
-                {selected.parametros.length === 0 && (
+                {visibleParameters.length === 0 && (
                   <Typography color="text.secondary">Nenhum parâmetro cadastrado.</Typography>
                 )}
               </Stack>
