@@ -13,8 +13,27 @@ Database/
 Documentos/
   DER-BancoAnalitico/       # DER draw.io
   ApiSmokeTests/            # Script PowerShell de smoke test da API
+Procel-Admin/               # Console web React/TypeScript
 Procel-Ingestion/           # API Spring Boot principal
 ```
+
+## Procel-Admin
+
+Console web independente para operacao e gerenciamento, construido com React,
+TypeScript, Vite e Material UI. A imagem Docker usa Nginx e recebe a URL da API
+pela variavel `API_BASE_URL`.
+
+No Coolify, configure como uma aplicacao separada:
+
+```text
+Base directory: /Procel-Admin
+Port: 80
+Health check: /healthz
+Watch paths: /Procel-Admin/**
+```
+
+Isso evita que alteracoes exclusivas do console reiniciem o backend e
+interrompam jobs de ingestao.
 
 ## Procel-Ingestion
 
