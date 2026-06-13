@@ -1,5 +1,6 @@
 import {
   AccountTreeOutlined,
+  AddOutlined,
   ExpandMoreOutlined,
   MeetingRoomOutlined,
   SensorsOutlined,
@@ -10,21 +11,31 @@ import {
   AccordionSummary,
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControl,
   FormControlLabel,
   InputAdornment,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Switch,
   TextField,
   Typography,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiRequest } from "../lib/api";
 import type {
+  GrupoRegra,
   RegraParametro,
   Sensor,
   SensorGrupoRegra,
@@ -140,7 +151,13 @@ export function SensorRulesTreePanel() {
 
 function SensorTreeNode({ sensor }: { sensor: Sensor }) {
   const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [groupId, setGroupId] = useState("");
+  const [status, setStatus] = useState("ATIVO");
+  const [validFrom, setValidFrom] = useState("");
+  const [validUntil, setValidUntil] = useState("");
   const links = useQuery({
     queryKey: ["sensor-rules-tree", "links", sensor.externalId],
     queryFn: () =>
@@ -151,58 +168,190 @@ function SensorTreeNode({ sensor }: { sensor: Sensor }) {
       ),
     enabled: expanded,
   });
+  const groups = useQuery({
+    queryKey: ["rules", "groups"],
+    queryFn: () => apiRequest<GrupoRegra[]>("/api/rules/groups", {}, session),
+    enabled: linkDialogOpen,
+  });
+  const linkGroup = useMutation({
+    mutationFn: () =>
+      apiRequest<SensorGrupoRegra>(
+        `/api/rules/sensors/${encodeURIComponent(sensor.externalId)}/groups`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            grupoRegraId: groupId,
+            status,
+            validoDe: validFrom ? new Date(validFrom).toISOString() : null,
+            validoAte: validUntil ? new Date(validUntil).toISOString() : null,
+          }),
+        },
+        session,
+      ),
+    onSuccess: async () => {
+      setLinkDialogOpen(false);
+      setGroupId("");
+      setStatus("ATIVO");
+      setValidFrom("");
+      setValidUntil("");
+      await queryClient.invalidateQueries({
+        queryKey: ["sensor-rules-tree", "links", sensor.externalId],
+      });
+    },
+  });
 
   return (
-    <Accordion
-      expanded={expanded}
-      onChange={(_, value) => setExpanded(value)}
-      disableGutters
-    >
-      <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1}
-          alignItems={{ sm: "center" }}
-          useFlexGap
-          flexWrap="wrap"
-        >
-          <SensorsOutlined color={sensor.ativo ? "primary" : "disabled"} />
-          <Typography fontWeight={600}>{sensor.nome}</Typography>
-          <Chip size="small" label={sensor.externalId} />
-          <Chip size="small" variant="outlined" label={sensor.tipoNome} />
-          {!sensor.ativo && <Chip size="small" color="warning" label="Oculto" />}
-        </Stack>
-      </AccordionSummary>
-      <AccordionDetails>
-        <Stack
-          spacing={1.5}
-          sx={{ ml: { xs: 0, sm: 2 }, pl: 2, borderLeft: 2, borderColor: "divider" }}
-        >
-          <Stack direction="row" spacing={1} alignItems="center">
-            <MeetingRoomOutlined color="action" />
-            <Box>
-              <Typography variant="body2" fontWeight={600}>
-                Sala: {sensor.compartimentoNome}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                ID {sensor.compartimentoId}
-              </Typography>
-            </Box>
+    <>
+      <Accordion
+        expanded={expanded}
+        onChange={(_, value) => setExpanded(value)}
+        disableGutters
+      >
+        <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ sm: "center" }}
+            useFlexGap
+            flexWrap="wrap"
+          >
+            <SensorsOutlined color={sensor.ativo ? "primary" : "disabled"} />
+            <Typography fontWeight={600}>{sensor.nome}</Typography>
+            <Chip size="small" label={sensor.externalId} />
+            <Chip size="small" variant="outlined" label={sensor.tipoNome} />
+            {!sensor.ativo && <Chip size="small" color="warning" label="Oculto" />}
           </Stack>
+        </AccordionSummary>
+        <AccordionDetails>
+          <Stack
+            spacing={1.5}
+            sx={{ ml: { xs: 0, sm: 2 }, pl: 2, borderLeft: 2, borderColor: "divider" }}
+          >
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              alignItems={{ sm: "center" }}
+              justifyContent="space-between"
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <MeetingRoomOutlined color="action" />
+                <Box>
+                  <Typography variant="body2" fontWeight={600}>
+                    Sala: {sensor.compartimentoNome}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    ID {sensor.compartimentoId}
+                  </Typography>
+                </Box>
+              </Stack>
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddOutlined />}
+                disabled={!sensor.ativo}
+                onClick={() => setLinkDialogOpen(true)}
+              >
+                Vincular grupo de regras
+              </Button>
+            </Stack>
 
-          {links.isLoading && <CircularProgress size={20} />}
-          {links.isError && <Alert severity="error">{links.error.message}</Alert>}
-          {links.data?.length === 0 && (
-            <Typography variant="body2" color="text.secondary">
-              Nenhum grupo de regras vinculado.
-            </Typography>
-          )}
-          {links.data?.map((link) => (
-            <RuleGroupTreeNode key={link.id} link={link} />
-          ))}
-        </Stack>
-      </AccordionDetails>
-    </Accordion>
+            {!sensor.ativo && (
+              <Alert severity="info">
+                Reative o sensor para inserir novos vínculos de regras.
+              </Alert>
+            )}
+            {links.isLoading && <CircularProgress size={20} />}
+            {links.isError && <Alert severity="error">{links.error.message}</Alert>}
+            {links.data?.length === 0 && (
+              <Typography variant="body2" color="text.secondary">
+                Nenhum grupo de regras vinculado.
+              </Typography>
+            )}
+            {links.data?.map((link) => (
+              <RuleGroupTreeNode key={link.id} link={link} />
+            ))}
+          </Stack>
+        </AccordionDetails>
+      </Accordion>
+
+      <Dialog
+        open={linkDialogOpen}
+        onClose={() => setLinkDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Vincular regras ao sensor {sensor.nome}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              Somente grupos compatíveis com o tipo {sensor.tipoNome} podem ser
+              ativados. Conflitos com regras já vinculadas serão recusados pela API.
+            </Alert>
+            <FormControl required>
+              <InputLabel>Grupo de regras</InputLabel>
+              <Select
+                label="Grupo de regras"
+                value={groupId}
+                onChange={(event) => setGroupId(event.target.value)}
+              >
+                {groups.data
+                  ?.filter((group) => group.ativo)
+                  .map((group) => (
+                    <MenuItem key={group.id} value={group.id}>
+                      {group.nome}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+            {groups.isLoading && <CircularProgress size={20} />}
+            {groups.isError && <Alert severity="error">{groups.error.message}</Alert>}
+            <FormControl>
+              <InputLabel>Status do vínculo</InputLabel>
+              <Select
+                label="Status do vínculo"
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+              >
+                <MenuItem value="ATIVO">Ativo</MenuItem>
+                <MenuItem value="AGENDADO">Agendado</MenuItem>
+                <MenuItem value="RASCUNHO">Rascunho</MenuItem>
+              </Select>
+            </FormControl>
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Válido a partir de"
+                type="datetime-local"
+                value={validFrom}
+                onChange={(event) => setValidFrom(event.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+              <TextField
+                fullWidth
+                label="Válido até"
+                type="datetime-local"
+                value={validUntil}
+                onChange={(event) => setValidUntil(event.target.value)}
+                slotProps={{ inputLabel: { shrink: true } }}
+              />
+            </Stack>
+            {linkGroup.isError && (
+              <Alert severity="error">{linkGroup.error.message}</Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLinkDialogOpen(false)}>Cancelar</Button>
+          <Button
+            variant="contained"
+            onClick={() => linkGroup.mutate()}
+            disabled={linkGroup.isPending || !groupId}
+          >
+            {linkGroup.isPending ? "Vinculando..." : "Vincular regras"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 

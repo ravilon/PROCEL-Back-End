@@ -242,6 +242,43 @@ TryCall "POST /api/sensors/seed/from-resource" {
   InvokeApi "/api/sensors/seed/from-resource" -Method POST
 } | Out-Null
 
+$sensorSearch = [Uri]::EscapeDataString($SensorExternalId)
+$matchingSensors = TryCall "GET configured sensor including hidden" {
+  InvokeApi "/api/catalog/sensores?q=$sensorSearch&includeHidden=true" -Method GET
+}
+$configuredSensor = $matchingSensors |
+  Where-Object { $_.externalId -eq $SensorExternalId } |
+  Select-Object -First 1
+
+if ($null -eq $configuredSensor) {
+  $configuredSensor = TryCall "POST /api/sensor-admin/sensors (create configured smoke sensor)" {
+    InvokeApi "/api/sensor-admin/sensors" -Method POST -Body @{
+      externalId=$SensorExternalId
+      nome="API Smoke Sensor $SensorExternalId"
+      tipoNome=$SensorTipoNome
+      compartimentoId=$RoomId
+    }
+  }
+} else {
+  AssertSmoke "Configured sensor belongs to expected room and type" (
+    "$($configuredSensor.compartimentoId)" -eq "$RoomId" -and
+    $configuredSensor.tipoNome -eq $SensorTipoNome
+  ) "sensor $SensorExternalId already exists in room $($configuredSensor.compartimentoId) with type $($configuredSensor.tipoNome); expected room $RoomId and type $SensorTipoNome."
+
+  if (-not $configuredSensor.ativo) {
+    $configuredSensor = TryCall "POST /api/sensor-admin/sensors/$SensorExternalId/restore (prepare smoke sensor)" {
+      InvokeApi "/api/sensor-admin/sensors/$SensorExternalId/restore" -Method POST
+    }
+  }
+}
+
+AssertSmoke "Configured smoke sensor is ready" (
+  $configuredSensor.externalId -eq $SensorExternalId -and
+  "$($configuredSensor.compartimentoId)" -eq "$RoomId" -and
+  $configuredSensor.tipoNome -eq $SensorTipoNome -and
+  $configuredSensor.ativo -eq $true
+) "configured sensor could not be prepared for the smoke test."
+
 $sensorRestored = $false
 try {
   TryCall "DELETE /api/sensor-admin/sensors/$SensorExternalId (soft delete)" {
