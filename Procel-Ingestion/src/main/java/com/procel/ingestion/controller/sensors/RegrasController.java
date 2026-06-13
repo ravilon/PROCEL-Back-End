@@ -86,6 +86,15 @@ public class RegrasController {
         return service.listarVinculosDoSensor(sensorExternalId);
     }
 
+    @DeleteMapping("/sensors/{sensorExternalId}/groups/{vinculoId}")
+    @Operation(summary = "Remove o vinculo entre um grupo de regras e um sensor", description = "Requer ADMIN ou OPERADOR.")
+    public void removerVinculoDoSensor(
+            @PathVariable String sensorExternalId,
+            @PathVariable UUID vinculoId
+    ) {
+        service.removerVinculoDoSensor(sensorExternalId, vinculoId);
+    }
+
     @PostMapping("/groups/{grupoId}/rooms")
     @Operation(summary = "Vincula grupo aos sensores compativeis de varias salas")
     public RegraDTOs.GrupoSalasResponse vincularGrupoAsSalas(

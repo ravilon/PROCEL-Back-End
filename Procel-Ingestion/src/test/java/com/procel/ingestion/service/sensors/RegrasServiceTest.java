@@ -7,6 +7,9 @@ import com.procel.ingestion.entity.sensors.GrupoRegra;
 import com.procel.ingestion.entity.sensors.ParametroDef;
 import com.procel.ingestion.entity.sensors.RegraOperador;
 import com.procel.ingestion.entity.sensors.RegraParametro;
+import com.procel.ingestion.entity.sensors.Sensor;
+import com.procel.ingestion.entity.sensors.SensorGrupoRegra;
+import com.procel.ingestion.entity.sensors.SensorGrupoRegraStatus;
 import com.procel.ingestion.entity.sensors.TipoDeSensor;
 import com.procel.ingestion.repository.sensors.GrupoRegraRepository;
 import com.procel.ingestion.repository.sensors.ParametroDefRepository;
@@ -97,16 +100,50 @@ class RegrasServiceTest {
         verify(regraRepo).save(regra);
     }
 
+    @Test
+    void removesGroupLinkThatBelongsToSensor() {
+        SensorGrupoRegraRepository sensorGrupoRepo = mock(SensorGrupoRegraRepository.class);
+        RegrasService service = service(
+                mock(RegraParametroRepository.class),
+                mock(ParametroDefRepository.class),
+                sensorGrupoRepo
+        );
+        UUID vinculoId = UUID.randomUUID();
+        TipoDeSensor tipo = new TipoDeSensor("SII_SMART");
+        Sensor sensor = new Sensor("SII-001", "Sensor 1", tipo, null);
+        GrupoRegra grupo = new GrupoRegra("Grupo", null, true);
+        SensorGrupoRegra vinculo = new SensorGrupoRegra(
+                sensor,
+                grupo,
+                SensorGrupoRegraStatus.ATIVO,
+                null,
+                null
+        );
+        when(sensorGrupoRepo.findById(vinculoId)).thenReturn(Optional.of(vinculo));
+
+        service.removerVinculoDoSensor("SII-001", vinculoId);
+
+        verify(sensorGrupoRepo).delete(vinculo);
+    }
+
     private static RegrasService service(
             RegraParametroRepository regraRepo,
             ParametroDefRepository parametroRepo
+    ) {
+        return service(regraRepo, parametroRepo, mock(SensorGrupoRegraRepository.class));
+    }
+
+    private static RegrasService service(
+            RegraParametroRepository regraRepo,
+            ParametroDefRepository parametroRepo,
+            SensorGrupoRegraRepository sensorGrupoRepo
     ) {
         return new RegrasService(
                 mock(GrupoRegraRepository.class),
                 regraRepo,
                 parametroRepo,
                 mock(SensorRepository.class),
-                mock(SensorGrupoRegraRepository.class)
+                sensorGrupoRepo
         );
     }
 }

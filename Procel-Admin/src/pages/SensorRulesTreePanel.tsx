@@ -1,6 +1,7 @@
 import {
   AccountTreeOutlined,
   AddOutlined,
+  DeleteOutlined,
   ExpandMoreOutlined,
   MeetingRoomOutlined,
   SensorsOutlined,
@@ -10,6 +11,7 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
+  Autocomplete,
   Box,
   Button,
   Chip,
@@ -22,6 +24,7 @@ import {
   FormControlLabel,
   InputAdornment,
   InputLabel,
+  IconButton,
   MenuItem,
   Paper,
   Select,
@@ -199,6 +202,14 @@ function SensorTreeNode({ sensor }: { sensor: Sensor }) {
       });
     },
   });
+  const availableGroups =
+    groups.data?.filter(
+      (group) =>
+        group.ativo &&
+        !links.data?.some((link) => link.grupoRegraId === group.id),
+    ) ?? [];
+  const selectedGroup =
+    availableGroups.find((group) => group.id === groupId) ?? null;
 
   return (
     <>
@@ -268,7 +279,11 @@ function SensorTreeNode({ sensor }: { sensor: Sensor }) {
               </Typography>
             )}
             {links.data?.map((link) => (
-              <RuleGroupTreeNode key={link.id} link={link} />
+              <RuleGroupTreeNode
+                key={link.id}
+                link={link}
+                sensorExternalId={sensor.externalId}
+              />
             ))}
           </Stack>
         </AccordionDetails>
@@ -287,24 +302,40 @@ function SensorTreeNode({ sensor }: { sensor: Sensor }) {
               Somente grupos compatíveis com o tipo {sensor.tipoNome} podem ser
               ativados. Conflitos com regras já vinculadas serão recusados pela API.
             </Alert>
-            <FormControl required>
-              <InputLabel>Grupo de regras</InputLabel>
-              <Select
-                label="Grupo de regras"
-                value={groupId}
-                onChange={(event) => setGroupId(event.target.value)}
-              >
-                {groups.data
-                  ?.filter((group) => group.ativo)
-                  .map((group) => (
-                    <MenuItem key={group.id} value={group.id}>
+            <Autocomplete
+              options={availableGroups}
+              value={selectedGroup}
+              loading={groups.isLoading}
+              getOptionLabel={(group) => group.nome}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, group) => setGroupId(group?.id ?? "")}
+              noOptionsText="Nenhum grupo disponível"
+              loadingText="Carregando grupos..."
+              renderOption={(props, group) => (
+                <Box component="li" {...props} key={group.id}>
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>
                       {group.nome}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
-            {groups.isLoading && <CircularProgress size={20} />}
-            {groups.isError && <Alert severity="error">{groups.error.message}</Alert>}
+                    </Typography>
+                    {group.descricao && (
+                      <Typography variant="caption" color="text.secondary">
+                        {group.descricao}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  required
+                  label="Grupo de regras"
+                  placeholder="Digite para buscar um grupo"
+                  error={groups.isError}
+                  helperText={groups.isError ? groups.error.message : undefined}
+                />
+              )}
+            />
             <FormControl>
               <InputLabel>Status do vínculo</InputLabel>
               <Select
@@ -355,8 +386,15 @@ function SensorTreeNode({ sensor }: { sensor: Sensor }) {
   );
 }
 
-function RuleGroupTreeNode({ link }: { link: SensorGrupoRegra }) {
+function RuleGroupTreeNode({
+  link,
+  sensorExternalId,
+}: {
+  link: SensorGrupoRegra;
+  sensorExternalId: string;
+}) {
   const { session } = useAuth();
+  const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const rules = useQuery({
     queryKey: ["rules", "groups", link.grupoRegraId],
@@ -368,6 +406,28 @@ function RuleGroupTreeNode({ link }: { link: SensorGrupoRegra }) {
       ),
     enabled: expanded,
   });
+  const unlinkGroup = useMutation({
+    mutationFn: () =>
+      apiRequest<void>(
+        `/api/rules/sensors/${encodeURIComponent(sensorExternalId)}/groups/${link.id}`,
+        { method: "DELETE" },
+        session,
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["sensor-rules-tree", "links", sensorExternalId],
+      });
+    },
+  });
+  const handleUnlink = () => {
+    if (
+      window.confirm(
+        `Remover o vínculo do grupo "${link.grupoRegraNome}" deste sensor?`,
+      )
+    ) {
+      unlinkGroup.mutate();
+    }
+  };
 
   return (
     <Accordion
@@ -377,7 +437,7 @@ function RuleGroupTreeNode({ link }: { link: SensorGrupoRegra }) {
       disableGutters
     >
       <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
-        <Stack spacing={0.5}>
+        <Stack spacing={0.5} sx={{ flexGrow: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" useFlexGap flexWrap="wrap">
             <AccountTreeOutlined color="action" />
             <Typography variant="body2" fontWeight={600}>
@@ -392,9 +452,31 @@ function RuleGroupTreeNode({ link }: { link: SensorGrupoRegra }) {
             </Typography>
           )}
         </Stack>
+        <IconButton
+          size="small"
+          color="error"
+          aria-label={`Remover vínculo com ${link.grupoRegraNome}`}
+          title="Remover vínculo"
+          disabled={unlinkGroup.isPending}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleUnlink();
+          }}
+          onFocus={(event) => event.stopPropagation()}
+          sx={{ mr: 1 }}
+        >
+          {unlinkGroup.isPending ? (
+            <CircularProgress size={18} />
+          ) : (
+            <DeleteOutlined fontSize="small" />
+          )}
+        </IconButton>
       </AccordionSummary>
       <AccordionDetails>
         <Stack spacing={1} sx={{ pl: 2, borderLeft: 2, borderColor: "divider" }}>
+          {unlinkGroup.isError && (
+            <Alert severity="error">{unlinkGroup.error.message}</Alert>
+          )}
           {rules.isLoading && <CircularProgress size={20} />}
           {rules.isError && <Alert severity="error">{rules.error.message}</Alert>}
           {rules.data?.length === 0 && (

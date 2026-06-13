@@ -178,6 +178,26 @@ public class RegrasService {
     }
 
     @Transactional
+    public void removerVinculoDoSensor(String sensorExternalId, UUID vinculoId) {
+        if (sensorExternalId == null || sensorExternalId.isBlank()) {
+            throw new IllegalArgumentException("sensorExternalId is required");
+        }
+        if (vinculoId == null) {
+            throw new IllegalArgumentException("vinculoId is required");
+        }
+
+        SensorGrupoRegra vinculo = sensorGrupoRepo.findById(vinculoId)
+                .orElseThrow(() -> new NotFoundException(
+                        "SensorGrupoRegra not found id=" + vinculoId));
+        if (!vinculo.getSensor().getExternalId().equals(sensorExternalId.trim())) {
+            throw new NotFoundException(
+                    "SensorGrupoRegra not found sensorExternalId="
+                            + sensorExternalId + " id=" + vinculoId);
+        }
+        sensorGrupoRepo.delete(vinculo);
+    }
+
+    @Transactional
     public RegraDTOs.GrupoSalasResponse vincularGrupoAsSalas(
             UUID grupoId,
             RegraDTOs.GrupoSalasRequest req
