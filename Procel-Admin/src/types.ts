@@ -100,6 +100,17 @@ export interface RegraParametro {
   createdAt: string;
 }
 
+export interface SensorGrupoRegra {
+  id: string;
+  sensorExternalId: string;
+  grupoRegraId: string;
+  grupoRegraNome: string;
+  status: "RASCUNHO" | "AGENDADO" | "ATIVO" | "INATIVO";
+  validoDe?: string | null;
+  validoAte?: string | null;
+  createdAt: string;
+}
+
 export interface Missao {
   id: string;
   titulo: string;

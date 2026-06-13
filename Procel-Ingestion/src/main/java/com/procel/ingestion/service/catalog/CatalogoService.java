@@ -60,7 +60,8 @@ public class CatalogoService {
     ) {
         return compartimentoRepo.findAll().stream()
                 .filter(item -> matches(query, item.getId(), item.getNome(), item.getTipo(),
-                        item.getPredio().getNome(), item.getUnidade().getNome()))
+                        item.getPredio().getNome(), item.getPredio().getCampus().getNome(),
+                        item.getUnidade().getNome()))
                 .filter(item -> matchesFilter(tipo, item.getTipo()))
                 .filter(item -> matchesFilter(predio, item.getPredio().getNome()))
                 .filter(item -> matchesFilter(unidade, item.getUnidade().getNome()))

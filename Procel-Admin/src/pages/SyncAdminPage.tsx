@@ -16,10 +16,9 @@ import {
   Stack,
   TextField,
   Typography,
-  createFilterOptions,
 } from "@mui/material";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { ApiError, apiRequest } from "../lib/api";
 import type { AulasSyncJob, Compartimento, RoomsSyncResult } from "../types";
@@ -32,36 +31,44 @@ function todayIso() {
 
 const activeStatuses = new Set(["PENDING", "RUNNING"]);
 const JOB_STORAGE_PREFIX = "procel:aulas-sync-job:";
-const filterRooms = createFilterOptions<Compartimento>({
-  stringify: (room) =>
-    [
-      room.id,
-      room.nome,
-      room.tipo,
-      room.predioNome,
-      room.campusNome,
-      room.unidadeNome,
-    ]
-      .filter(Boolean)
-      .join(" "),
-});
 
 export function SyncAdminPage() {
   const { session } = useAuth();
   const jobStorageKey = `${JOB_STORAGE_PREFIX}${session?.userId ?? "anonymous"}`;
   const [weekStart, setWeekStart] = useState(todayIso);
-  const [roomId, setRoomId] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState<Compartimento | null>(null);
+  const [roomSearch, setRoomSearch] = useState("");
+  const [debouncedRoomSearch, setDebouncedRoomSearch] = useState("");
   const [jobId, setJobId] = useState<string | null>(() =>
     localStorage.getItem(jobStorageKey),
   );
 
+  useEffect(() => {
+    const timeout = window.setTimeout(
+      () => setDebouncedRoomSearch(roomSearch.trim()),
+      300,
+    );
+    return () => window.clearTimeout(timeout);
+  }, [roomSearch]);
+
   const rooms = useQuery({
-    queryKey: ["sync", "rooms"],
-    queryFn: () =>
-      apiRequest<Compartimento[]>("/api/catalog/compartimentos", {}, session),
+    queryKey: ["sync", "rooms", debouncedRoomSearch],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (debouncedRoomSearch) params.set("q", debouncedRoomSearch);
+      const query = params.toString();
+      return apiRequest<Compartimento[]>(
+        `/api/catalog/compartimentos${query ? `?${query}` : ""}`,
+        {},
+        session,
+      );
+    },
   });
-  const selectedRoom =
-    rooms.data?.find((room) => room.id === roomId) ?? null;
+  const roomOptions =
+    selectedRoom &&
+    !rooms.data?.some((room) => room.id === selectedRoom.id)
+      ? [selectedRoom, ...(rooms.data ?? [])]
+      : (rooms.data ?? []);
 
   const roomsSync = useMutation({
     mutationFn: () =>
@@ -195,13 +202,14 @@ export function SyncAdminPage() {
             />
             <Autocomplete
               fullWidth
-              options={rooms.data ?? []}
+              options={roomOptions}
               value={selectedRoom}
               loading={rooms.isLoading}
-              filterOptions={filterRooms}
+              filterOptions={(options) => options}
               getOptionLabel={(room) => `${room.nome} (${room.id})`}
               isOptionEqualToValue={(option, value) => option.id === value.id}
-              onChange={(_, room) => setRoomId(room?.id ?? "")}
+              onChange={(_, room) => setSelectedRoom(room)}
+              onInputChange={(_, value) => setRoomSearch(value)}
               noOptionsText="Nenhuma sala encontrada"
               loadingText="Carregando salas..."
               renderOption={(props, room) => (
@@ -245,8 +253,8 @@ export function SyncAdminPage() {
             <Button
               variant="outlined"
               startIcon={<RefreshOutlined />}
-              onClick={() => startPeriodsSync.mutate(roomId)}
-              disabled={!weekStart || !roomId || isPeriodsSyncing}
+              onClick={() => startPeriodsSync.mutate(selectedRoom?.id)}
+              disabled={!weekStart || !selectedRoom || isPeriodsSyncing}
             >
               Sincronizar sala selecionada
             </Button>

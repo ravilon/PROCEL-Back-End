@@ -2,6 +2,7 @@ import {
   AddOutlined,
   DeleteOutlined,
   EditOutlined,
+  AccountTreeOutlined,
   RuleOutlined,
   SensorsOutlined,
 } from "@mui/icons-material";
@@ -30,6 +31,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiRequest } from "../lib/api";
+import { SensorRulesTreePanel } from "./SensorRulesTreePanel";
 import type {
   GrupoRegra,
   ParametroDef,
@@ -76,9 +78,12 @@ export function SensorsAdminPage() {
         <Tabs value={tab} onChange={(_, value) => setTab(value)}>
           <Tab icon={<SensorsOutlined />} iconPosition="start" label="Tipos e parâmetros" />
           <Tab icon={<RuleOutlined />} iconPosition="start" label="Grupos de regras" />
+          <Tab icon={<AccountTreeOutlined />} iconPosition="start" label="Árvore de sensores" />
         </Tabs>
       </Paper>
-      {tab === 0 ? <SensorTypesPanel /> : <RuleGroupsPanel />}
+      {tab === 0 && <SensorTypesPanel />}
+      {tab === 1 && <RuleGroupsPanel />}
+      {tab === 2 && <SensorRulesTreePanel />}
     </Stack>
   );
 }
