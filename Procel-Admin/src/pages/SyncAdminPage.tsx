@@ -5,20 +5,18 @@ import {
 } from "@mui/icons-material";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
   Chip,
-  FormControl,
-  InputLabel,
   LinearProgress,
-  MenuItem,
   Paper,
-  Select,
   Stack,
   TextField,
   Typography,
+  createFilterOptions,
 } from "@mui/material";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -34,6 +32,19 @@ function todayIso() {
 
 const activeStatuses = new Set(["PENDING", "RUNNING"]);
 const JOB_STORAGE_PREFIX = "procel:aulas-sync-job:";
+const filterRooms = createFilterOptions<Compartimento>({
+  stringify: (room) =>
+    [
+      room.id,
+      room.nome,
+      room.tipo,
+      room.predioNome,
+      room.campusNome,
+      room.unidadeNome,
+    ]
+      .filter(Boolean)
+      .join(" "),
+});
 
 export function SyncAdminPage() {
   const { session } = useAuth();
@@ -49,6 +60,8 @@ export function SyncAdminPage() {
     queryFn: () =>
       apiRequest<Compartimento[]>("/api/catalog/compartimentos", {}, session),
   });
+  const selectedRoom =
+    rooms.data?.find((room) => room.id === roomId) ?? null;
 
   const roomsSync = useMutation({
     mutationFn: () =>
@@ -180,22 +193,45 @@ export function SyncAdminPage() {
               slotProps={{ inputLabel: { shrink: true } }}
               sx={{ minWidth: { md: 210 } }}
             />
-            <FormControl fullWidth>
-              <InputLabel id="sync-room-label">Sala para sincronização individual</InputLabel>
-              <Select
-                labelId="sync-room-label"
-                label="Sala para sincronização individual"
-                value={roomId}
-                onChange={(event) => setRoomId(event.target.value)}
-              >
-                <MenuItem value="">Selecione uma sala</MenuItem>
-                {rooms.data?.map((room) => (
-                  <MenuItem key={room.id} value={room.id}>
-                    {room.nome} ({room.id})
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Autocomplete
+              fullWidth
+              options={rooms.data ?? []}
+              value={selectedRoom}
+              loading={rooms.isLoading}
+              filterOptions={filterRooms}
+              getOptionLabel={(room) => `${room.nome} (${room.id})`}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, room) => setRoomId(room?.id ?? "")}
+              noOptionsText="Nenhuma sala encontrada"
+              loadingText="Carregando salas..."
+              renderOption={(props, room) => (
+                <Box component="li" {...props} key={room.id}>
+                  <Box>
+                    <Typography variant="body2" fontWeight={600}>
+                      {room.nome} ({room.id})
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {[room.tipo, room.predioNome, room.campusNome, room.unidadeNome]
+                        .filter(Boolean)
+                        .join(" - ")}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Sala para sincronização individual"
+                  placeholder="Busque por sala, ID, prédio, campus ou unidade"
+                  error={rooms.isError}
+                  helperText={
+                    rooms.isError
+                      ? `Não foi possível carregar as salas: ${rooms.error.message}`
+                      : "Digite para filtrar as salas disponíveis."
+                  }
+                />
+              )}
+            />
           </Stack>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
             <Button

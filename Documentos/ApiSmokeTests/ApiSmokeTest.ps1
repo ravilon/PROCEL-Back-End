@@ -72,8 +72,8 @@ if (-not [string]::IsNullOrWhiteSpace($BaseUrlOverride)) {
   $BaseUrl = $ApiTargets[$Target]
 }
 
-$RoomId = "2"
-$SensorExternalId = "SII-001"
+$RoomId = "393"
+$SensorExternalId = "SII-002"
 $SensorTipoNome = "SII_SMART"
 $RuleParametroNome = "temperature_c"
 
