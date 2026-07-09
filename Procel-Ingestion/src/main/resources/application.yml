@@ -3,6 +3,12 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/procel_analytics}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    hikari:
+      connection-timeout: ${SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS:10000}
+      validation-timeout: ${SPRING_DATASOURCE_VALIDATION_TIMEOUT_MS:5000}
+      initialization-fail-timeout: ${SPRING_DATASOURCE_INITIALIZATION_FAIL_TIMEOUT_MS:1}
+      data-source-properties:
+        loginTimeout: ${SPRING_DATASOURCE_LOGIN_TIMEOUT_SECONDS:10}
 
   flyway:
     enabled: true

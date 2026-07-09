@@ -102,6 +102,19 @@ SPRING_DATASOURCE_USERNAME=USUARIO_DO_BANCO
 SPRING_DATASOURCE_PASSWORD=SENHA_DO_BANCO
 ```
 
+Falhas fatais de autenticacao/permissao no PostgreSQL encerram a API imediatamente,
+em vez de manter tentativas indefinidas de conexao quando a senha, usuario, host ou
+permissao do banco estiverem incorretos.
+
+Os tempos de tentativa podem ser ajustados por variaveis de ambiente:
+
+```text
+SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS=10000
+SPRING_DATASOURCE_VALIDATION_TIMEOUT_MS=5000
+SPRING_DATASOURCE_INITIALIZATION_FAIL_TIMEOUT_MS=1
+SPRING_DATASOURCE_LOGIN_TIMEOUT_SECONDS=10
+```
+
 O banco local usa o volume Docker `postgres_data`, entao os dados persistem entre reinicios normais. Para manter os dados, pare os containers com:
 
 ```powershell
