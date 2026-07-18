@@ -9,12 +9,12 @@ API-Doc/
   Insomnia/                 # Workspace exportado do Insomnia
   Postman/                  # Collections/environments Postman
 Database/
-  PROCEL-Ingestion/         # DDL versionado do banco analitico
+  PROCEL-API/               # DDL versionado do banco analitico
 Documentos/
   DER-BancoAnalitico/       # DER draw.io
   ApiSmokeTests/            # Script PowerShell de smoke test da API
 Procel-Admin/               # Console web React/TypeScript
-Procel-Ingestion/           # API Spring Boot principal
+Procel-API/                 # API Spring Boot principal
 ```
 
 ## Procel-Admin
@@ -22,6 +22,15 @@ Procel-Ingestion/           # API Spring Boot principal
 Console web independente para operacao e gerenciamento, construido com React,
 TypeScript, Vite e Material UI. A imagem Docker usa Nginx e recebe a URL da API
 pela variavel `API_BASE_URL`.
+
+Organizacao principal do front-end:
+
+```text
+src/api/       # Clients HTTP por dominio
+src/features/  # Fluxos/telas organizados por area funcional
+src/pages/     # Entradas de rota
+src/types/     # Contratos TypeScript por dominio
+```
 
 No Coolify, configure como uma aplicacao separada:
 
@@ -35,7 +44,7 @@ Watch paths: /Procel-Admin/**
 Isso evita que alteracoes exclusivas do console reiniciem o backend e
 interrompam jobs de ingestao.
 
-## Procel-Ingestion
+## Procel-API
 
 API Spring Boot responsavel por:
 
@@ -73,7 +82,7 @@ Pre-requisitos:
 Suba o PostgreSQL local:
 
 ```powershell
-cd Procel-Ingestion
+cd Procel-API
 docker compose up -d
 ```
 
@@ -138,7 +147,7 @@ spring:
 As migrations ficam em:
 
 ```text
-Procel-Ingestion/src/main/resources/db/migration/
+Procel-API/src/main/resources/db/migration/
 ```
 
 `V2__mission_catalog_and_activity_expiration.sql` registra as 30 missoes padrao como tipo `Individual`, com `value` numerico de XP, e atualiza o status `EXPIRADA` para atividades. `V3__rename_legacy_activity_table.sql` renomeia bancos existentes para a tabela canonica `atividade`. `V4__mission_type_individual_seed.sql` garante `missao.tipo = Individual` em bancos que ja tinham recebido o seed antes desse campo. `V5__mission_seed_xp_values.sql` garante os valores de XP das missoes seed em bancos existentes.
@@ -531,7 +540,7 @@ API-Doc/Insomnia/Insomnia_2026-05-12.yaml
 Postman:
 
 ```text
-API-Doc/Postman/PROCEL-Ingestion/
+API-Doc/Postman/PROCEL-API/
 ```
 
 Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, catalogo e hierarquia de missoes via `parentId`, atividades com `CONCLUIDA`/`EXPIRADA`, administracao de tipos de sensor e parametros, DER/Parameter Qualification, ingestao mockada e consultas paginadas de medicoes com `qualificacoes`.
@@ -545,15 +554,15 @@ A interface inclui acesso direto ao Swagger da API em `{API_BASE_URL}/swagger-ui
 DDL versionado:
 
 ```text
-Database/PROCEL-Ingestion/createAnaliticalDB.sql
+Database/PROCEL-API/createAnaliticalDB.sql
 ```
 
-Esse arquivo deve ser mantido como referencia do schema analitico. A fonte automatica de evolucao do banco agora sao as migrations Flyway em `Procel-Ingestion/src/main/resources/db/migration`.
+Esse arquivo deve ser mantido como referencia do schema analitico. A fonte automatica de evolucao do banco agora sao as migrations Flyway em `Procel-API/src/main/resources/db/migration`.
 
 Historicamente, o DDL tambem podia ser gerado pelo Hibernate em:
 
 ```text
-Procel-Ingestion/target/schema.sql
+Procel-API/target/schema.sql
 ```
 
 O arquivo `target/schema.sql`, quando existir, e artefato de build e nao deve ser tratado como fonte versionada.
@@ -589,7 +598,7 @@ Documentos/DER-BancoAnalitico/DER-Salas.drawio
 
 ## Configuracao Cobalto
 
-Configuracoes principais em `Procel-Ingestion/src/main/resources/application.yml`:
+Configuracoes principais em `Procel-API/src/main/resources/application.yml`:
 
 ```yaml
 procel:
@@ -611,7 +620,7 @@ Se `source` for `resource`, a API usa o JSON local configurado em `resource-path
 Compilar e testar o modulo principal:
 
 ```powershell
-cd Procel-Ingestion
+cd Procel-API
 .\mvnw.cmd clean test
 ```
 

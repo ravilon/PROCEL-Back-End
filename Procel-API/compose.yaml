@@ -1,9 +1,9 @@
-name: procel-ingestion
+name: procel-api
 
 services:
   postgres:
     image: postgres:16
-    container_name: procel-ingestion-postgres
+    container_name: procel-api-postgres
     environment:
       POSTGRES_DB: procel_analytics
       POSTGRES_USER: postgres

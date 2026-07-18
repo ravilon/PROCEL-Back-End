@@ -11,7 +11,7 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>Procel-Ingestion</module>
+    <module>Procel-API</module>
   </modules>
 
 </project>

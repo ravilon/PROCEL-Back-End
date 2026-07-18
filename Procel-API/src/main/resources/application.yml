@@ -1,4 +1,7 @@
 spring:
+  application:
+    name: procel-api
+
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/procel_analytics}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}

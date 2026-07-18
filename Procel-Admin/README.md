@@ -21,6 +21,22 @@ npm run dev
 Por padrao, o console usa a API em `http://localhost:8080`. Para alterar durante
 o desenvolvimento, edite `public/config.js`.
 
+## Organizacao do codigo
+
+```text
+src/api/       # Clients HTTP por dominio, sobre lib/api.ts
+src/auth/      # Sessao, login e protecao de rotas
+src/components/# Componentes estruturais compartilhados
+src/features/  # Telas e componentes organizados por area funcional
+src/lib/       # Infraestrutura comum do front-end
+src/pages/     # Entradas de rota, finas, delegando para features
+src/types/     # Contratos TypeScript separados por dominio
+```
+
+`src/features/catalog` concentra o navegador de dados em componentes menores
+para compartimentos, disciplinas, cursos e pessoas. Novas telas devem preferir
+clients em `src/api` em vez de montar URLs diretamente dentro do JSX.
+
 ## Build
 
 ```bash
@@ -67,8 +83,8 @@ Configuracao sugerida:
 
 ```text
 admin.seudominio.com -> Procel-Admin
-api.seudominio.com   -> Procel-Ingestion
+api.seudominio.com   -> Procel-API
 ```
 
 Assim, alteracoes em `Procel-Admin` nao reiniciam o backend, e alteracoes em
-`Procel-Ingestion` nao republicam o console.
+`Procel-API` nao republicam o console.

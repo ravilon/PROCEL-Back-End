@@ -7,7 +7,7 @@
         <mxCell id="title" value="Arquitetura Geral PROCEL" style="text;html=1;strokeColor=none;fillColor=none;fontSize=28;fontStyle=1;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="30" width="520" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="Pipeline IoT antigo reinterpretado com o estado atual do Procel-Ingestion e a ingestao bruta futura de sensores" style="text;html=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="Pipeline IoT antigo reinterpretado com o estado atual do Procel-API e a ingestao bruta futura de sensores" style="text;html=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#666666;align=left;verticalAlign=middle;" vertex="1" parent="1">
           <mxGeometry x="60" y="72" width="900" height="28" as="geometry" />
         </mxCell>
         <mxCell id="legend-now" value="Atual" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;" vertex="1" parent="1">
@@ -26,7 +26,7 @@
         <mxCell id="zone-storage" value="3. Armazenamento" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#e2f0d9;strokeColor=#82b366;fontStyle=1;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="800" y="140" width="360" height="610" as="geometry" />
         </mxCell>
-        <mxCell id="zone-api" value="4. Procel-Ingestion - API e dominio atual" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+        <mxCell id="zone-api" value="4. Procel-API - API e dominio atual" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14;" vertex="1" parent="1">
           <mxGeometry x="1220" y="140" width="360" height="610" as="geometry" />
         </mxCell>
         <mxCell id="zone-consume" value="5. Consumo e operacao" style="swimlane;html=1;rounded=0;startSize=30;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontSize=14;" vertex="1" parent="1">
@@ -94,7 +94,7 @@
         <mxCell id="gamification" value="Aplicacao de gamificacao&lt;br&gt;consumo via API&lt;br&gt;rankings, feedback e engajamento" style="rounded=1;whiteSpace=wrap;html=1;arcSize=8;dashed=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" vertex="1" parent="1">
           <mxGeometry x="1010" y="855" width="250" height="70" as="geometry" />
         </mxCell>
-        <mxCell id="artifacts" value="Artefatos versionados&lt;br&gt;DER-BancoAnalitico/DER-Salas.drawio&lt;br&gt;Database/PROCEL-Ingestion/createAnaliticalDB.sql&lt;br&gt;README.md" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
+        <mxCell id="artifacts" value="Artefatos versionados&lt;br&gt;DER-BancoAnalitico/DER-Salas.drawio&lt;br&gt;Database/PROCEL-API/createAnaliticalDB.sql&lt;br&gt;README.md" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=12;" vertex="1" parent="1">
           <mxGeometry x="1320" y="845" width="220" height="90" as="geometry" />
         </mxCell>
 
