@@ -136,7 +136,7 @@ public class MedicoesQueryService {
     private List<MedicaoDTOs.MedicaoResponse> enrich(List<Medicao> medicoes) {
         if (medicoes.isEmpty()) return List.of();
 
-        List<UUID> ids = medicoes.stream().map(Medicao::getId).toList();
+        List<UUID> ids = medicoes.stream().map(medicao -> medicao.getId()).toList();
         List<ParametroValor> valores = valorRepo.findAllByMedicao_IdIn(ids);
 
         Map<UUID, List<ParametroValor>> byMedicao = valores.stream()
@@ -198,7 +198,7 @@ public class MedicoesQueryService {
 
     private Map<UUID, List<AvaliacaoParametroValor>> loadAvaliacoes(List<ParametroValor> valores) {
         if (valores.isEmpty()) return Map.of();
-        List<UUID> ids = valores.stream().map(ParametroValor::getId).toList();
+        List<UUID> ids = valores.stream().map(valor -> valor.getId()).toList();
         return avaliacaoRepo.findAllByParametroValor_IdIn(ids).stream()
                 .collect(Collectors.groupingBy(a -> a.getParametroValor().getId()));
     }

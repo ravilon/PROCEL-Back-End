@@ -222,8 +222,8 @@ public class RegrasService {
         }
         String tipoNome = tipos.iterator().next();
         List<String> roomIds = req.compartimentoIds().stream()
-                .filter(java.util.Objects::nonNull)
-                .map(String::trim)
+                .filter(id -> id != null)
+                .map(id -> id.trim())
                 .filter(id -> !id.isBlank())
                 .distinct()
                 .toList();

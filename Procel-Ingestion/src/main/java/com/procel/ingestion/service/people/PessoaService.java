@@ -133,7 +133,7 @@ public class PessoaService {
                 p.getTelefone(),
                 p.getMatricula(),
                 p.getCreatedAt(),
-                p.getRoles().stream().map(Role::name).collect(Collectors.toCollection(LinkedHashSet::new))
+                p.getRoles().stream().map(role -> role.name()).collect(Collectors.toCollection(LinkedHashSet::new))
         );
     }
 

@@ -81,9 +81,9 @@ public class AulasSyncJobService {
 
     public Optional<AulasSyncJobResponse> getLatestActive() {
         return jobs.values().stream()
-                .filter(JobState::isActive)
+                .filter(job -> job.isActive())
                 .max(Comparator.comparing(job -> job.createdAt))
-                .map(JobState::snapshot);
+                .map(job -> job.snapshot());
     }
 
     private void execute(JobState job) {

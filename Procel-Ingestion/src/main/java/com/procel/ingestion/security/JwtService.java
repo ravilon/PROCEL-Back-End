@@ -3,7 +3,6 @@ package com.procel.ingestion.security;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.procel.ingestion.entity.people.Pessoa;
-import com.procel.ingestion.entity.people.Role;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -49,7 +48,7 @@ public class JwtService {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("sub", pessoa.getId());
         payload.put("email", pessoa.getEmail());
-        payload.put("roles", pessoa.getRoles().stream().map(Role::name).sorted().toList());
+        payload.put("roles", pessoa.getRoles().stream().map(role -> role.name()).sorted().toList());
         payload.put("iat", now.getEpochSecond());
         payload.put("exp", expiresAt.getEpochSecond());
 
@@ -81,7 +80,10 @@ public class JwtService {
         Object rolesValue = payload.get("roles");
         Set<String> roles = new LinkedHashSet<>();
         if (rolesValue instanceof Collection<?> values) {
-            roles = values.stream().filter(Objects::nonNull).map(Object::toString).collect(Collectors.toCollection(LinkedHashSet::new));
+            roles = values.stream()
+                    .filter(value -> value != null)
+                    .map(value -> value.toString())
+                    .collect(Collectors.toCollection(LinkedHashSet::new));
         }
 
         return new Claims(subject, email, roles);

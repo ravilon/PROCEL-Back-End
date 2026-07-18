@@ -1,6 +1,5 @@
 package com.procel.ingestion.service.rooms;
 
-import com.procel.ingestion.entity.rooms.Compartimento;
 import com.procel.ingestion.repository.rooms.CompartimentoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,7 +140,7 @@ public class AulasSyncService {
             return List.of(normalizedRoomId);
         }
         return compartimentoRepository.findByTipoIn(CLASSROOM_TYPES).stream()
-                .map(Compartimento::getId)
+                .map(compartimento -> compartimento.getId())
                 .sorted()
                 .toList();
     }

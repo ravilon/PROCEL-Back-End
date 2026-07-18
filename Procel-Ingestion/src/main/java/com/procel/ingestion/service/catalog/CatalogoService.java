@@ -2,7 +2,6 @@ package com.procel.ingestion.service.catalog;
 
 import com.procel.ingestion.dto.catalog.CatalogoDTOs;
 import com.procel.ingestion.entity.people.Pessoa;
-import com.procel.ingestion.entity.people.Role;
 import com.procel.ingestion.entity.rooms.Compartimento;
 import com.procel.ingestion.entity.rooms.Disciplina;
 import com.procel.ingestion.entity.rooms.PeriodoAula;
@@ -66,7 +65,7 @@ public class CatalogoService {
                 .filter(item -> matchesFilter(predio, item.getPredio().getNome()))
                 .filter(item -> matchesFilter(unidade, item.getUnidade().getNome()))
                 .filter(item -> matchesFilter(campus, item.getPredio().getCampus().getNome()))
-                .sorted(Comparator.comparing(Compartimento::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(item -> item.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .limit(MAX_RESULTS)
                 .map(CatalogoService::toCompartimento)
                 .toList();
@@ -76,7 +75,7 @@ public class CatalogoService {
     public CatalogoDTOs.CompartimentoFilterOptionsResponse opcoesFiltrosCompartimentos() {
         List<Compartimento> compartimentos = compartimentoRepo.findAll();
         return new CatalogoDTOs.CompartimentoFilterOptionsResponse(
-                distinctSorted(compartimentos.stream().map(Compartimento::getTipo).toList()),
+                distinctSorted(compartimentos.stream().map(item -> item.getTipo()).toList()),
                 distinctSorted(compartimentos.stream().map(item -> item.getPredio().getNome()).toList()),
                 distinctSorted(compartimentos.stream().map(item -> item.getUnidade().getNome()).toList()),
                 distinctSorted(compartimentos.stream().map(item -> item.getPredio().getCampus().getNome()).toList())
@@ -89,7 +88,7 @@ public class CatalogoService {
                 .filter(item -> includeHidden || item.isAtivo())
                 .filter(item -> matches(query, item.getExternalId(), item.getNome(),
                         item.getTipo().getNome(), item.getCompartimento().getNome()))
-                .sorted(Comparator.comparing(Sensor::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(item -> item.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .limit(MAX_RESULTS)
                 .map(CatalogoService::toSensor)
                 .toList();
@@ -120,7 +119,7 @@ public class CatalogoService {
     public List<CatalogoDTOs.DisciplinaResponse> listarDisciplinas(String query) {
         return disciplinaRepo.findAll().stream()
                 .filter(item -> matches(query, String.valueOf(item.getId()), item.getNome(), item.getUnidadeSigla()))
-                .sorted(Comparator.comparing(Disciplina::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(item -> item.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .limit(MAX_RESULTS)
                 .map(CatalogoService::toDisciplina)
                 .toList();
@@ -148,7 +147,7 @@ public class CatalogoService {
     public List<CatalogoDTOs.PessoaResumoResponse> listarPessoas(String query) {
         return pessoaRepo.findAll().stream()
                 .filter(item -> matches(query, item.getId(), item.getNome(), item.getEmail(), item.getMatricula()))
-                .sorted(Comparator.comparing(Pessoa::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(item -> item.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .limit(MAX_RESULTS)
                 .map(CatalogoService::toPessoa)
                 .toList();
@@ -234,7 +233,7 @@ public class CatalogoService {
 
     private static CatalogoDTOs.PessoaResumoResponse toPessoa(Pessoa item) {
         Set<String> roles = item.getRoles().stream()
-                .map(Role::name)
+                .map(role -> role.name())
                 .collect(Collectors.toCollection(java.util.LinkedHashSet::new));
         return new CatalogoDTOs.PessoaResumoResponse(
                 item.getId(), item.getNome(), item.getEmail(), item.getMatricula(), roles

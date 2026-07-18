@@ -45,7 +45,7 @@ public class SensorAdminService {
     @Transactional(readOnly = true)
     public List<SensorAdminDTOs.TipoSensorResponse> listarTipos(boolean includeHidden) {
         return tipoRepo.findAll().stream()
-                .sorted(Comparator.comparing(TipoDeSensor::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(tipo -> tipo.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .map(tipo -> toTipoResponse(tipo, includeHidden))
                 .toList();
     }
@@ -220,8 +220,8 @@ public class SensorAdminService {
         List<SensorAdminDTOs.ParametroResponse> parametros =
                 parametroRepo.findAllByTipo_Nome(tipo.getNome()).stream()
                         .filter(parametro -> includeHidden || parametro.isAtivo())
-                        .sorted(Comparator.comparing(ParametroDef::getNome, String.CASE_INSENSITIVE_ORDER))
-                        .map(SensorAdminService::toParametroResponse)
+                        .sorted(Comparator.comparing(parametro -> parametro.getNome(), String.CASE_INSENSITIVE_ORDER))
+                        .map(parametro -> toParametroResponse(parametro))
                         .toList();
         return new SensorAdminDTOs.TipoSensorResponse(tipo.getNome(), parametros);
     }

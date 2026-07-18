@@ -34,7 +34,7 @@ public class CursoService {
                         || (item.getUnidadeSigla() != null
                         && item.getUnidadeSigla().toLowerCase(Locale.ROOT).contains(normalized))
                         || String.valueOf(item.getId()).contains(normalized))
-                .sorted(Comparator.comparing(Curso::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparing(curso -> curso.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .limit(200)
                 .map(CursoService::toResponse)
                 .toList();

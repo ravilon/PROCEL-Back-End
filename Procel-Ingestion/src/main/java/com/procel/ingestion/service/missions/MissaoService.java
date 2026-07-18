@@ -318,7 +318,7 @@ public class MissaoService {
         return missaoRepo.findByParent_IdOrderByCreatedAtAsc(parentActivity.getMissao().getId())
                 .stream()
                 .map(child -> atividadeRepo.findByPessoaIdAndMissaoId(pessoaId, child.getId()).orElse(null))
-                .filter(java.util.Objects::nonNull)
+                .filter(atividade -> atividade != null)
                 .toList();
     }
 

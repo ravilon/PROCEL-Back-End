@@ -44,7 +44,7 @@ public class AuthService {
         }
 
         JwtService.Token token = jwtService.issue(pessoa);
-        Set<String> roles = pessoa.getRoles().stream().map(Enum::name).collect(Collectors.toSet());
+        Set<String> roles = pessoa.getRoles().stream().map(role -> role.name()).collect(Collectors.toSet());
 
         return new AuthDTOs.LoginResponse(
                 token.value(),

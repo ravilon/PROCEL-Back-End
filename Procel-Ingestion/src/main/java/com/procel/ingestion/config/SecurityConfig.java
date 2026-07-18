@@ -11,7 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -43,9 +42,9 @@ public class SecurityConfig {
                         ObjectMapper objectMapper) throws Exception {
                 http
                                 .cors(Customizer.withDefaults())
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .httpBasic(AbstractHttpConfigurer::disable)
-                                .formLogin(AbstractHttpConfigurer::disable)
+                                .csrf(csrf -> csrf.disable())
+                                .httpBasic(httpBasic -> httpBasic.disable())
+                                .formLogin(formLogin -> formLogin.disable())
                                 .sessionManagement(session -> session.sessionCreationPolicy(
                                                 SessionCreationPolicy.STATELESS))
                                 .exceptionHandling(exceptions -> exceptions
@@ -137,7 +136,7 @@ public class SecurityConfig {
 
         private static List<String> splitConfigList(String value) {
                 return Arrays.stream(value.split(","))
-                                .map(String::trim)
+                                .map(item -> item.trim())
                                 .filter(item -> !item.isBlank())
                                 .toList();
         }
