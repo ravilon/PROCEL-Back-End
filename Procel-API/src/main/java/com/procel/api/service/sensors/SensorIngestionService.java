@@ -72,7 +72,7 @@ public class SensorIngestionService {
 
             ParametroDef def = parametroDefRepo.findByTipo_NomeAndNomeAndAtivoTrue(tipoNome, key)
                     .orElseThrow(() -> new ApiStatusException(
-                            HttpStatus.UNPROCESSABLE_ENTITY,
+                            HttpStatus.UNPROCESSABLE_CONTENT,
                             "PARAMETER_NOT_ACCEPTED",
                             "Active ParametroDef not found: tipo=" + tipoNome + " key=" + key
                     ));

@@ -381,12 +381,136 @@ Salas e sensores:
 ```text
 POST /api/rooms/sync
 POST /api/sensors/seed/from-resource
+POST /api/sensors/ingest
 POST /api/sensors/ingest/mock
 GET  /api/sensor-admin/types
 POST /api/sensor-admin/types
 POST /api/sensor-admin/types/{tipoNome}/parameters
 POST /api/sensor-admin/sensors
 ```
+
+### Contrato Canonico De Ingestao
+
+Endpoint:
+
+```http
+POST /api/sensors/ingest
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+O token precisa pertencer a um usuario com role `ADMIN` ou `INGESTOR`. O `producerId`
+usado para idempotencia nao vem no corpo: ele e derivado de `authentication.getName()`,
+ou seja, do usuario autenticado no JWT. Produtores diferentes podem reutilizar o mesmo
+`messageId` sem colisao entre si.
+
+Request:
+
+```json
+{
+  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
+  "sensorExternalId": "SII-001",
+  "timestamp": "2026-08-11T23:30:00Z",
+  "source": "MQTT",
+  "sourceReceivedAt": "2026-08-11T23:30:02Z",
+  "values": {
+    "temperature_c": 23.7,
+    "presence": true,
+    "label": "ok"
+  }
+}
+```
+
+Campos:
+
+- `messageId`: obrigatorio, texto nao vazio. Deve identificar uma mensagem de forma estavel dentro do produtor e do sensor.
+- `sensorExternalId`: obrigatorio, texto nao vazio. Deve apontar para um sensor ativo cadastrado.
+- `timestamp`: obrigatorio, ISO-8601. Representa o instante medido pelo sensor.
+- `source`: obrigatorio. Valores aceitos: `MQTT`, `REST`, `FILE`, `API`.
+- `sourceReceivedAt`: opcional, ISO-8601. Representa quando o produtor recebeu a mensagem da origem.
+- `values`: obrigatorio, objeto nao vazio. As chaves devem ser nomes de `ParametroDef` ativos para o tipo do sensor.
+
+Idempotencia:
+
+- A chave idempotente e `(producerId, sensorExternalId, messageId)`.
+- Se a primeira chamada for aceita, a API persiste a medicao e metadados de ingestao.
+- Se a mesma chave chegar novamente com payload canonico equivalente, a API retorna a medicao existente.
+- Se a mesma chave chegar com payload canonico divergente, a API retorna conflito.
+- A equivalencia considera `messageId`, `sensorExternalId`, `source`, `timestamp` e `values`; `sourceReceivedAt` nao participa do fingerprint.
+- Em `values`, a ordem das chaves nao altera o fingerprint. Numeros sao normalizados para evitar conflito entre representacoes equivalentes como `23.70` e `23.7`.
+
+Resposta `201 Created`:
+
+```json
+{
+  "status": "CREATED",
+  "code": "MEASUREMENT_INGESTED",
+  "duplicate": false,
+  "medicaoId": "cfd0d5e4-8ca4-45c8-9479-2e6108fc0d32",
+  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
+  "apiReceivedAt": "2026-08-11T23:30:03.123Z",
+  "originalApiReceivedAt": null,
+  "duplicateDetectedAt": null,
+  "conflictDetectedAt": null,
+  "message": null
+}
+```
+
+Resposta `200 OK` para duplicata equivalente:
+
+```json
+{
+  "status": "DUPLICATE",
+  "code": "DUPLICATE_MESSAGE",
+  "duplicate": true,
+  "medicaoId": "cfd0d5e4-8ca4-45c8-9479-2e6108fc0d32",
+  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
+  "apiReceivedAt": null,
+  "originalApiReceivedAt": "2026-08-11T23:30:03.123Z",
+  "duplicateDetectedAt": "2026-08-11T23:31:10.456Z",
+  "conflictDetectedAt": null,
+  "message": null
+}
+```
+
+Resposta `409 Conflict` para mesma chave com payload divergente:
+
+```json
+{
+  "status": "CONFLICT",
+  "code": "IDEMPOTENCY_CONFLICT",
+  "duplicate": true,
+  "medicaoId": "cfd0d5e4-8ca4-45c8-9479-2e6108fc0d32",
+  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
+  "apiReceivedAt": null,
+  "originalApiReceivedAt": "2026-08-11T23:30:03.123Z",
+  "duplicateDetectedAt": null,
+  "conflictDetectedAt": "2026-08-11T23:31:10.456Z",
+  "message": "A different payload was already ingested for this producer, sensor and messageId."
+}
+```
+
+Erros estruturados usam o formato:
+
+```json
+{
+  "message": "Active sensor not found: SII-999",
+  "error": "SENSOR_NOT_FOUND",
+  "timestamp": "2026-08-11T23:30:03.123Z"
+}
+```
+
+Codigos relevantes:
+
+- `400 BAD_REQUEST`: campos obrigatorios ausentes/vazios, `values` vazio ou corpo invalido.
+- `400 SOURCE_INVALID`: `source` fora de `MQTT`, `REST`, `FILE`, `API`.
+- `400 TIMESTAMP_INVALID`: timestamp sem formato ISO-8601 valido.
+- `401 UNAUTHORIZED`: token ausente ou invalido.
+- `403 FORBIDDEN`: usuario autenticado sem role `ADMIN` ou `INGESTOR`.
+- `404 SENSOR_NOT_FOUND`: `sensorExternalId` nao existe ou nao esta ativo.
+- `409 IDEMPOTENCY_CONFLICT`: mesma chave idempotente com payload divergente.
+- `422 PARAMETER_NOT_ACCEPTED`: chave em `values` nao aceita pelo tipo do sensor.
+- `422 VALUE_TYPE_INVALID`: valor nao conversivel para o tipo do parametro.
 
 Medicoes:
 

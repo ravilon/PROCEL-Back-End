@@ -164,7 +164,7 @@ class SensorIngestControllerTest {
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("msg-missing-param", Map.of("missing", 1)))))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().is(422))
                 .andExpect(jsonPath("$.error").value("PARAMETER_NOT_ACCEPTED"));
     }
 
@@ -209,6 +209,34 @@ class SensorIngestControllerTest {
                     .containsExactlyInAnyOrder("MEASUREMENT_INGESTED", "DUPLICATE_MESSAGE");
             assertThat(metadataRepo.findByProducerIdAndSensor_ExternalIdAndMessageId(
                     "producer-concurrent", sensorId, request.messageId())).isPresent();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void concurrentDivergentRequestsReturnCreatedAndConflict() throws Exception {
+        String messageId = "msg-concurrent-conflict-" + UUID.randomUUID();
+        var first = request(messageId, Map.of("temperature_c", new BigDecimal("23.7")));
+        var second = request(messageId, Map.of("temperature_c", new BigDecimal("24.1")));
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            List<Callable<SensorIngestOrchestrator.IngestOutcome>> tasks = List.of(
+                    () -> orchestrator.ingest("producer-concurrent", first),
+                    () -> orchestrator.ingest("producer-concurrent", second)
+            );
+            List<Future<SensorIngestOrchestrator.IngestOutcome>> futures = executor.invokeAll(tasks);
+            List<SensorIngestOrchestrator.IngestOutcome> outcomes = new ArrayList<>();
+            for (Future<SensorIngestOrchestrator.IngestOutcome> future : futures) {
+                outcomes.add(future.get(10, TimeUnit.SECONDS));
+            }
+
+            assertThat(outcomes).extracting(outcome -> outcome.response().code())
+                    .containsExactlyInAnyOrder("MEASUREMENT_INGESTED", "IDEMPOTENCY_CONFLICT");
+            assertThat(metadataRepo.findByProducerIdAndSensor_ExternalIdAndMessageId(
+                    "producer-concurrent", sensorId, messageId)).isPresent();
+            assertThat(medicaoRepo.count()).isGreaterThanOrEqualTo(1);
         } finally {
             executor.shutdownNow();
         }
