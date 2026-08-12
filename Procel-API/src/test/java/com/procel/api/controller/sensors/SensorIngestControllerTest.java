@@ -6,6 +6,7 @@ import com.procel.api.entity.rooms.*;
 import com.procel.api.entity.sensors.*;
 import com.procel.api.repository.rooms.*;
 import com.procel.api.repository.sensors.*;
+import com.procel.api.service.sensors.ParametroQualificacaoService;
 import com.procel.api.service.sensors.SensorIngestOrchestrator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -27,6 +29,7 @@ import java.util.concurrent.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -59,6 +62,7 @@ class SensorIngestControllerTest {
     @Autowired ParametroDefRepository parametroRepo;
     @Autowired MedicaoRepository medicaoRepo;
     @Autowired MedicaoIngestaoMetadataRepository metadataRepo;
+    @MockitoBean ParametroQualificacaoService qualificacaoService;
 
     private String sensorId;
 
@@ -78,7 +82,6 @@ class SensorIngestControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "ingestor-test", roles = "INGESTOR")
     void canonicalIngestCreatesMeasurementAndDuplicateReturnsExistingMeasurement() throws Exception {
         String body = objectMapper.writeValueAsString(request("msg-1", Map.of(
                 "temperature_c", new BigDecimal("23.70"),
@@ -87,6 +90,7 @@ class SensorIngestControllerTest {
         )));
 
         String created = mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(body))
@@ -95,6 +99,7 @@ class SensorIngestControllerTest {
                 .andReturn().getResponse().getContentAsString();
 
         String duplicate = mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(body))
@@ -111,9 +116,9 @@ class SensorIngestControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "ingestor-test", roles = "INGESTOR")
     void sameIdempotencyKeyWithDifferentPayloadReturnsConflict() throws Exception {
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("msg-conflict", Map.of(
@@ -122,6 +127,7 @@ class SensorIngestControllerTest {
                 .andExpect(status().isCreated());
 
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("msg-conflict", Map.of(
@@ -132,21 +138,23 @@ class SensorIngestControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "ingestor-test", roles = "INGESTOR")
     void validatesRequestAndDomainErrors() throws Exception {
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("", Map.of("temperature_c", 1)))))
                 .andExpect(status().isBadRequest());
 
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("msg-empty", Map.of()))))
                 .andExpect(status().isBadRequest());
 
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(new SensorIngestDTOs.CanonicalIngestRequest(
@@ -161,6 +169,7 @@ class SensorIngestControllerTest {
                 .andExpect(jsonPath("$.error").value("SENSOR_NOT_FOUND"));
 
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("msg-missing-param", Map.of("missing", 1)))))
@@ -178,9 +187,9 @@ class SensorIngestControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "ordinary-user", roles = "USUARIO")
     void rejectsUnauthorizedRole() throws Exception {
         mvc.perform(post("/api/sensors/ingest")
+                        .with(user("ordinary-user").roles("USUARIO"))
                         .with(csrf())
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(request("msg-role", Map.of("temperature_c", 1)))))
@@ -243,9 +252,9 @@ class SensorIngestControllerTest {
     }
 
     @Test
-    @WithMockUser(username = "ingestor-test", roles = "INGESTOR")
     void preservesMockIngestEndpoint() throws Exception {
         mvc.perform(post("/api/sensors/ingest/mock")
+                        .with(user("ingestor-test").roles("INGESTOR"))
                         .with(csrf())
                         .contentType("application/json")
                         .content("{}"))

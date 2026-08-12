@@ -4,16 +4,20 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class IdempotencyConstraintInspector {
-    static final String IDEMPOTENCY_CONSTRAINT = "ux_medicao_ingestao_producer_sensor_message";
+    static final String DIRECT_IDEMPOTENCY_CONSTRAINT = "ux_metadata_direct_idempotency";
+    static final String PROFILE_IDEMPOTENCY_CONSTRAINT = "ux_metadata_profile_idempotency";
 
-    public boolean isIdempotencyUniqueViolation(Throwable ex) {
+    public IdempotencyConstraint idempotencyConstraint(Throwable ex) {
         for (Throwable current = ex; current != null; current = current.getCause()) {
             String constraint = constraintName(current);
-            if (IDEMPOTENCY_CONSTRAINT.equals(constraint)) {
-                return true;
+            if (DIRECT_IDEMPOTENCY_CONSTRAINT.equals(constraint)) {
+                return IdempotencyConstraint.DIRECT;
+            }
+            if (PROFILE_IDEMPOTENCY_CONSTRAINT.equals(constraint)) {
+                return IdempotencyConstraint.PROFILE;
             }
         }
-        return false;
+        return IdempotencyConstraint.NONE;
     }
 
     private String constraintName(Throwable throwable) {
@@ -27,5 +31,11 @@ public class IdempotencyConstraintInspector {
         } catch (ReflectiveOperationException ex) {
             return null;
         }
+    }
+
+    public enum IdempotencyConstraint {
+        NONE,
+        DIRECT,
+        PROFILE
     }
 }

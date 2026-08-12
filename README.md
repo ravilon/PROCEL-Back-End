@@ -382,7 +382,10 @@ Salas e sensores:
 POST /api/rooms/sync
 POST /api/sensors/seed/from-resource
 POST /api/sensors/ingest
+POST /api/sensors/ingest/integrations/{profileId}
+POST /api/sensors/{sensorExternalId}/ingest/integrations/{profileId}
 POST /api/sensors/ingest/mock
+GET  /api/sensor-integrations/snapshot
 GET  /api/sensor-admin/types
 POST /api/sensor-admin/types
 POST /api/sensor-admin/types/{tipoNome}/parameters
@@ -511,6 +514,111 @@ Codigos relevantes:
 - `409 IDEMPOTENCY_CONFLICT`: mesma chave idempotente com payload divergente.
 - `422 PARAMETER_NOT_ACCEPTED`: chave em `values` nao aceita pelo tipo do sensor.
 - `422 VALUE_TYPE_INVALID`: valor nao conversivel para o tipo do parametro.
+
+### Perfis De Integracao E Parser
+
+Perfis de integracao permitem receber payloads externos e transforma-los no contrato
+canonico usando Jackson Tree e JSON Pointer. O escopo atual e REST dentro da
+Procel-API; MQTT, cache externo, retry de transporte e Procel-Telemetry ficam fora
+desta fatia.
+
+Endpoints administrativos exigem `ADMIN`:
+
+```text
+GET    /api/sensor-integrations/profiles?includeInactive=false
+POST   /api/sensor-integrations/profiles
+GET    /api/sensor-integrations/profiles/{profileId}
+PUT    /api/sensor-integrations/profiles/{profileId}
+POST   /api/sensor-integrations/profiles/{profileId}/activate
+DELETE /api/sensor-integrations/profiles/{profileId}
+POST   /api/sensor-integrations/profiles/{profileId}/versions
+GET    /api/sensor-integrations/profiles/{profileId}/versions
+GET    /api/sensor-integrations/profiles/{profileId}/versions/{versionId}
+PUT    /api/sensor-integrations/profiles/{profileId}/versions/{versionId}
+POST   /api/sensor-integrations/profiles/{profileId}/versions/{versionId}/activate
+POST   /api/sensor-integrations/profiles/{profileId}/bindings
+GET    /api/sensor-integrations/profiles/{profileId}/bindings?includeInactive=false
+POST   /api/sensor-integrations/bindings/{bindingId}/activate
+DELETE /api/sensor-integrations/bindings/{bindingId}
+```
+
+Versoes de parser nascem como `DRAFT`. Apenas `DRAFT` pode ser editada. Ao ativar,
+a versao vira `ACTIVE`, recebe `publishedAt` e passa a ser imutavel. Se ja existir
+uma versao `ACTIVE` do mesmo perfil, ela passa para `INACTIVE` na mesma transacao.
+A ativacao exige informar a versao ativa esperada para evitar atualizacao perdida:
+
+```json
+{
+  "expectedActiveVersionId": null
+}
+```
+
+Configuracao de parser:
+
+```json
+{
+  "sensorResolutionMode": "PAYLOAD_POINTER",
+  "messageIdPointer": "/meta/id",
+  "sensorExternalIdPointer": "/device/id",
+  "timestampPointer": "/measuredAt",
+  "sourceReceivedAtPointer": "/receivedAt",
+  "timestampFormat": "ISO_INSTANT",
+  "valueMappings": [
+    {
+      "parameterName": "temperature_c",
+      "valuePointer": "/readings/temperature",
+      "required": true
+    }
+  ]
+}
+```
+
+`sensorResolutionMode` aceita `PAYLOAD_POINTER` ou `ROUTE_SENSOR`. Em
+`PAYLOAD_POINTER`, o sensor vem do payload. Em `ROUTE_SENSOR`, use:
+
+```http
+POST /api/sensors/{sensorExternalId}/ingest/integrations/{profileId}
+```
+
+Ingestao com sensor extraido do payload:
+
+```http
+POST /api/sensors/ingest/integrations/{profileId}
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Para toda ingestao por perfil, a API exige perfil ativo, versao `ACTIVE`, sensor
+ativo e binding ativo entre perfil e sensor. `source` vem somente do perfil;
+`producerId` vem do JWT; `sourceReceivedAt` pode vir somente do JSON Pointer da
+versao e nao entra no fingerprint.
+
+Limites padrao:
+
+```text
+procel.integrations.parser.max-payload-bytes=262144
+procel.integrations.parser.max-mappings=100
+procel.integrations.parser.max-depth=64
+```
+
+Payload acima do limite e rejeitado antes da materializacao do JSON com:
+
+```json
+{
+  "error": "PAYLOAD_TOO_LARGE",
+  "message": "Integration payload exceeds max size",
+  "timestamp": "2026-08-11T23:30:03.123Z"
+}
+```
+
+Snapshot para produtores autorizados (`ADMIN` ou `INGESTOR`):
+
+```http
+GET /api/sensor-integrations/snapshot
+```
+
+Retorna apenas perfis ativos, versoes `ACTIVE`, bindings ativos e sensores ativos,
+sem segredos.
 
 Medicoes:
 

@@ -12,10 +12,6 @@ import java.util.UUID;
                 @UniqueConstraint(
                         name = "ux_medicao_ingestao_medicao",
                         columnNames = {"medicao_id"}
-                ),
-                @UniqueConstraint(
-                        name = "ux_medicao_ingestao_producer_sensor_message",
-                        columnNames = {"producer_id", "sensor_external_id", "message_id"}
                 )
         },
         indexes = {
@@ -66,6 +62,12 @@ public class MedicaoIngestaoMetadata {
     @Column(name = "completed_at")
     private Instant completedAt;
 
+    @Column(name = "integration_profile_id")
+    private UUID integrationProfileId;
+
+    @Column(name = "parser_version_id")
+    private UUID parserVersionId;
+
     protected MedicaoIngestaoMetadata() {}
 
     public MedicaoIngestaoMetadata(
@@ -88,6 +90,22 @@ public class MedicaoIngestaoMetadata {
         this.createdAt = Instant.now();
     }
 
+    public MedicaoIngestaoMetadata(
+            String producerId,
+            Sensor sensor,
+            String messageId,
+            MedicaoIngestaoSource source,
+            Instant sourceReceivedAt,
+            Instant apiReceivedAt,
+            String payloadFingerprint,
+            UUID integrationProfileId,
+            UUID parserVersionId
+    ) {
+        this(producerId, sensor, messageId, source, sourceReceivedAt, apiReceivedAt, payloadFingerprint);
+        this.integrationProfileId = integrationProfileId;
+        this.parserVersionId = parserVersionId;
+    }
+
     public UUID getId() { return id; }
     public Medicao getMedicao() { return medicao; }
     public String getProducerId() { return producerId; }
@@ -100,6 +118,8 @@ public class MedicaoIngestaoMetadata {
     public MedicaoIngestaoStatus getStatus() { return status; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getCompletedAt() { return completedAt; }
+    public UUID getIntegrationProfileId() { return integrationProfileId; }
+    public UUID getParserVersionId() { return parserVersionId; }
 
     public void complete(Medicao medicao, Instant completedAt) {
         this.medicao = medicao;

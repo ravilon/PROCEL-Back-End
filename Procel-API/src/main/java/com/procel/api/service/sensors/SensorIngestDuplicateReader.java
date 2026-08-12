@@ -45,6 +45,33 @@ public class SensorIngestDuplicateReader {
         );
     }
 
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+    public DuplicateLookupResult findByProfileSensorMessage(
+            UUID integrationProfileId,
+            String sensorExternalId,
+            String messageId
+    ) {
+        var metadata = metadataRepo.findByIntegrationProfileIdAndSensor_ExternalIdAndMessageId(
+                        integrationProfileId,
+                        sensorExternalId,
+                        messageId
+                )
+                .orElseThrow(() -> new ApiStatusException(
+                        HttpStatus.SERVICE_UNAVAILABLE,
+                        "IDEMPOTENCY_LOOKUP_UNAVAILABLE",
+                        "Idempotency conflict was detected but the winning row could not be loaded."
+                ));
+
+        UUID medicaoId = metadata.getMedicao() != null ? metadata.getMedicao().getId() : null;
+        return new DuplicateLookupResult(
+                medicaoId,
+                metadata.getMessageId(),
+                metadata.getPayloadFingerprint(),
+                metadata.getApiReceivedAt(),
+                Instant.now()
+        );
+    }
+
     public record DuplicateLookupResult(
             UUID medicaoId,
             String messageId,

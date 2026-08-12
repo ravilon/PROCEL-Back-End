@@ -5,6 +5,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class SensorIngestOrchestrator {
     private final SensorCanonicalIngestionTransaction ingestionTransaction;
@@ -26,34 +28,49 @@ public class SensorIngestOrchestrator {
 
     public IngestOutcome ingest(String producerId, SensorIngestDTOs.CanonicalIngestRequest request) {
         try {
-            return new IngestOutcome(
-                    HttpStatus.CREATED,
-                    ingestionTransaction.ingestNew(producerId, request)
-            );
+            return new IngestOutcome(HttpStatus.CREATED, ingestionTransaction.ingestNew(producerId, request));
         } catch (DataIntegrityViolationException ex) {
-            if (!constraintInspector.isIdempotencyUniqueViolation(ex)) {
+            if (constraintInspector.idempotencyConstraint(ex) != IdempotencyConstraintInspector.IdempotencyConstraint.DIRECT) {
                 throw ex;
             }
-            var duplicate = duplicateReader.findByProducerSensorMessage(
-                    producerId,
-                    request.sensorExternalId(),
-                    request.messageId()
+            return duplicateOutcome(
+                    duplicateReader.findByProducerSensorMessage(producerId, request.sensorExternalId(), request.messageId()),
+                    request
             );
-            String incomingFingerprint = fingerprintService.fingerprint(request);
-            if (incomingFingerprint.equals(duplicate.payloadFingerprint())) {
-                return new IngestOutcome(
-                        HttpStatus.OK,
-                        SensorIngestDTOs.CanonicalIngestResponse.duplicate(
-                                duplicate.medicaoId(),
-                                duplicate.messageId(),
-                                duplicate.originalApiReceivedAt(),
-                                duplicate.detectedAt()
-                        )
-                );
-            }
+        }
+    }
+
+    public IngestOutcome ingestWithProfile(
+            UUID integrationProfileId,
+            UUID parserVersionId,
+            String producerId,
+            SensorIngestDTOs.CanonicalIngestRequest request
+    ) {
+        try {
             return new IngestOutcome(
-                    HttpStatus.CONFLICT,
-                    SensorIngestDTOs.CanonicalIngestResponse.conflict(
+                    HttpStatus.CREATED,
+                    ingestionTransaction.ingestProfileNew(integrationProfileId, parserVersionId, producerId, request)
+            );
+        } catch (DataIntegrityViolationException ex) {
+            if (constraintInspector.idempotencyConstraint(ex) != IdempotencyConstraintInspector.IdempotencyConstraint.PROFILE) {
+                throw ex;
+            }
+            return duplicateOutcome(
+                    duplicateReader.findByProfileSensorMessage(integrationProfileId, request.sensorExternalId(), request.messageId()),
+                    request
+            );
+        }
+    }
+
+    private IngestOutcome duplicateOutcome(
+            SensorIngestDuplicateReader.DuplicateLookupResult duplicate,
+            SensorIngestDTOs.CanonicalIngestRequest request
+    ) {
+        String incomingFingerprint = fingerprintService.fingerprint(request);
+        if (incomingFingerprint.equals(duplicate.payloadFingerprint())) {
+            return new IngestOutcome(
+                    HttpStatus.OK,
+                    SensorIngestDTOs.CanonicalIngestResponse.duplicate(
                             duplicate.medicaoId(),
                             duplicate.messageId(),
                             duplicate.originalApiReceivedAt(),
@@ -61,6 +78,15 @@ public class SensorIngestOrchestrator {
                     )
             );
         }
+        return new IngestOutcome(
+                HttpStatus.CONFLICT,
+                SensorIngestDTOs.CanonicalIngestResponse.conflict(
+                        duplicate.medicaoId(),
+                        duplicate.messageId(),
+                        duplicate.originalApiReceivedAt(),
+                        duplicate.detectedAt()
+                )
+        );
     }
 
     public record IngestOutcome(HttpStatus status, SensorIngestDTOs.CanonicalIngestResponse response) {}

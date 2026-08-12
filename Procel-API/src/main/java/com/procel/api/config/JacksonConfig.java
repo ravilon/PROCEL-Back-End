@@ -11,6 +11,8 @@ public class JacksonConfig {
     @Bean
     public ObjectMapper objectMapper() {
         // JsonMapper é o builder moderno do Jackson; mantém comportamento padrão
-        return JsonMapper.builder().build();
+        return JsonMapper.builder()
+                .findAndAddModules()
+                .build();
     }
 }
