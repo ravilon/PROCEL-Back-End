@@ -92,6 +92,8 @@ public class SecurityConfig {
                                                 .hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
                                                 .requestMatchers(HttpMethod.POST, "/api/sensors/seed/from-resource")
                                                 .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.POST, "/api/sensors/ingest")
+                                                .hasAnyRole("ADMIN", "INGESTOR")
                                                 .requestMatchers(HttpMethod.POST, "/api/sensors/ingest/mock")
                                                 .hasAnyRole("ADMIN", "INGESTOR")
                                                 .requestMatchers(HttpMethod.GET, "/api/rules/**")

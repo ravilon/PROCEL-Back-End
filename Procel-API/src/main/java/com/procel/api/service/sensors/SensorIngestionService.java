@@ -6,7 +6,9 @@ import com.procel.api.repository.sensors.MedicaoRepository;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.repository.sensors.ParametroValorRepository;
 import com.procel.api.repository.sensors.SensorRepository;
+import com.procel.api.exception.ApiStatusException;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,10 +42,16 @@ public class SensorIngestionService {
     }
 
     public void ingest(RawSensorEvent event) {
+        ingestAndReturn(event);
+    }
+
+    public Medicao ingestAndReturn(RawSensorEvent event) {
         // Sensor PK = external_id (String)
         Sensor sensor = sensorRepo.findByExternalIdAndAtivoTrue(event.sensorExternalId())
-                .orElseThrow(() -> new IllegalStateException(
-                        "Active sensor not found for externalId=" + event.sensorExternalId()
+                .orElseThrow(() -> new ApiStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "SENSOR_NOT_FOUND",
+                        "Active sensor not found: " + event.sensorExternalId()
                 ));
 
         Instant measuredAt = nvl(event.timestamp(), Instant.now());
@@ -63,13 +71,17 @@ public class SensorIngestionService {
             Object rawValue = e.getValue();
 
             ParametroDef def = parametroDefRepo.findByTipo_NomeAndNomeAndAtivoTrue(tipoNome, key)
-                    .orElseThrow(() -> new IllegalStateException(
+                    .orElseThrow(() -> new ApiStatusException(
+                            HttpStatus.UNPROCESSABLE_ENTITY,
+                            "PARAMETER_NOT_ACCEPTED",
                             "Active ParametroDef not found: tipo=" + tipoNome + " key=" + key
                     ));
 
             // integridade: def deve ser do mesmo tipo do sensor
             if (!Objects.equals(def.getTipo().getNome(), tipoNome)) {
-                throw new IllegalStateException(
+                throw new ApiStatusException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "PARAMETER_NOT_ACCEPTED",
                         "ParametroDef tipo mismatch for key=" + key +
                         " (expected tipo=" + tipoNome + ", got tipo=" + def.getTipo().getNome() + ")"
                 );
@@ -78,15 +90,24 @@ public class SensorIngestionService {
             ParametroValor valor = new ParametroValor(medicao, def);
 
             // MVP: sem semântica avançada. Só tipagem e persistência.
-            switch (def.getDataType()) {
-                case BOOLEAN -> valor.setBooleanValue(coerceBoolean(rawValue));
-                case TEXT -> valor.setTextValue(rawValue != null ? rawValue.toString() : null);
-                case NUMERIC -> valor.setNumericValue(coerceNumeric(rawValue));
+            try {
+                switch (def.getDataType()) {
+                    case BOOLEAN -> valor.setBooleanValue(coerceBoolean(rawValue));
+                    case TEXT -> valor.setTextValue(rawValue != null ? rawValue.toString() : null);
+                    case NUMERIC -> valor.setNumericValue(coerceNumeric(rawValue));
+                }
+            } catch (IllegalArgumentException ex) {
+                throw new ApiStatusException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "VALUE_TYPE_INVALID",
+                        "Invalid value for parameter " + key + ": " + ex.getMessage()
+                );
             }
 
             valor = parametroValorRepo.save(valor);
             qualificacaoService.avaliar(valor, sensor, measuredAt);
         }
+        return medicao;
     }
 
     private Instant nvl(Instant v, Instant fallback) {
