@@ -80,7 +80,7 @@ public class SensorIngestionService {
             // integridade: def deve ser do mesmo tipo do sensor
             if (!Objects.equals(def.getTipo().getNome(), tipoNome)) {
                 throw new ApiStatusException(
-                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        HttpStatus.UNPROCESSABLE_CONTENT,
                         "PARAMETER_NOT_ACCEPTED",
                         "ParametroDef tipo mismatch for key=" + key +
                         " (expected tipo=" + tipoNome + ", got tipo=" + def.getTipo().getNome() + ")"
@@ -98,7 +98,7 @@ public class SensorIngestionService {
                 }
             } catch (IllegalArgumentException ex) {
                 throw new ApiStatusException(
-                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        HttpStatus.UNPROCESSABLE_CONTENT,
                         "VALUE_TYPE_INVALID",
                         "Invalid value for parameter " + key + ": " + ex.getMessage()
                 );

@@ -1,7 +1,6 @@
 package com.procel.api.controller.sensors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.procel.api.dto.sensors.SensorIntegrationAdminDTOs;
 import com.procel.api.entity.rooms.*;
 import com.procel.api.entity.sensors.*;
 import com.procel.api.exception.ApiStatusException;
@@ -16,8 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -215,7 +212,7 @@ class SensorIntegrationIngestControllerTest {
                         .with(csrf())
                         .contentType("application/json")
                         .content(payload("msg-inactive", "24.1")))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().is(422))
                 .andExpect(jsonPath("$.error").value("PROFILE_INACTIVE"));
     }
 

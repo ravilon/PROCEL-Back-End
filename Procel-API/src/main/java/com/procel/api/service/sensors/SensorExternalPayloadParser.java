@@ -11,7 +11,6 @@ import com.procel.api.exception.ApiStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -50,7 +49,7 @@ public class SensorExternalPayloadParser {
             JsonNode value = payload.at(mapping.getValuePointer());
             if (value instanceof MissingNode || value.isMissingNode()) {
                 if (mapping.isRequired()) {
-                    throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "MAPPING_REQUIRED_MISSING",
+                    throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "MAPPING_REQUIRED_MISSING",
                             "Required mapping is missing: " + mapping.getParameterName());
                 }
                 continue;
@@ -58,7 +57,7 @@ public class SensorExternalPayloadParser {
             values.put(mapping.getParameterName(), scalarValue(value));
         }
         if (values.isEmpty()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "VALUES_EMPTY", "No values were parsed from payload.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "VALUES_EMPTY", "No values were parsed from payload.");
         }
         return new SensorIngestDTOs.CanonicalIngestRequest(
                 messageId,
@@ -88,24 +87,24 @@ public class SensorExternalPayloadParser {
         if (value.isBoolean()) return value.booleanValue();
         if (value.isNumber()) return value.decimalValue().stripTrailingZeros();
         if (value.isTextual()) return value.textValue();
-        throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "VALUE_NOT_SCALAR", "Mapped value must be scalar.");
+        throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "VALUE_NOT_SCALAR", "Mapped value must be scalar.");
     }
 
     private String requiredText(JsonNode payload, String pointer, String error, String field) {
         JsonNode node = payload.at(pointer);
         if (node == null || node.isMissingNode() || node.isNull()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, error, field + " is required.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, error, field + " is required.");
         }
         return textNode(node, error, field);
     }
 
     private String textNode(JsonNode node, String error, String field) {
         if (!node.isTextual()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, error, field + " must be a string.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, error, field + " must be a string.");
         }
         String value = node.textValue().trim();
         if (value.isBlank()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, error, field + " must not be blank.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, error, field + " must not be blank.");
         }
         return value;
     }
@@ -120,7 +119,7 @@ public class SensorExternalPayloadParser {
 
     private void validateDepth(JsonNode node, int depth) {
         if (depth > properties.getMaxDepth()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "PAYLOAD_TOO_DEEP", "Integration payload is too deep.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "PAYLOAD_TOO_DEEP", "Integration payload is too deep.");
         }
         if (node.isContainerNode()) {
             for (JsonNode child : node) {

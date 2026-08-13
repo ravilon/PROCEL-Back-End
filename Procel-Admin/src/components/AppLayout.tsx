@@ -3,6 +3,7 @@ import {
   AccountTreeOutlined,
   ApiOutlined,
   DashboardOutlined,
+  HubOutlined,
   LogoutOutlined,
   MenuBookOutlined,
   MenuOutlined,
@@ -62,6 +63,12 @@ const navigation: NavigationItem[] = [
     path: "/sincronizacoes",
     icon: <SyncOutlined />,
     roles: ["ADMIN", "OPERADOR"],
+  },
+  {
+    label: "Integracoes",
+    path: "/integracoes",
+    icon: <HubOutlined />,
+    roles: ["ADMIN"],
   },
   {
     label: "Operacoes da API",

@@ -65,7 +65,7 @@ public class SensorCanonicalIngestionTransaction {
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND",
                         "Integration profile not found: " + integrationProfileId));
         if (!profile.isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "PROFILE_INACTIVE", "Integration profile is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "PROFILE_INACTIVE", "Integration profile is inactive.");
         }
 
         var parserVersion = parserVersionRepo.findById(parserVersionId)
@@ -94,7 +94,7 @@ public class SensorCanonicalIngestionTransaction {
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.NOT_FOUND, "SENSOR_NOT_FOUND",
                         "Sensor not found: " + request.sensorExternalId()));
         if (!sensor.isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "SENSOR_INACTIVE", "Sensor is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "SENSOR_INACTIVE", "Sensor is inactive.");
         }
 
         var binding = bindingRepo.findFirstByProfile_IdAndSensor_ExternalIdOrderByCreatedAtDesc(
@@ -102,11 +102,11 @@ public class SensorCanonicalIngestionTransaction {
                 request.sensorExternalId()
         );
         if (binding.isEmpty()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "BINDING_NOT_FOUND",
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "BINDING_NOT_FOUND",
                     "Binding not found for profile and sensor.");
         }
         if (!binding.get().isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "BINDING_INACTIVE", "Binding is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "BINDING_INACTIVE", "Binding is inactive.");
         }
 
         return persistMeasurement(producerId, sensor, request, integrationProfileId, parserVersionId);

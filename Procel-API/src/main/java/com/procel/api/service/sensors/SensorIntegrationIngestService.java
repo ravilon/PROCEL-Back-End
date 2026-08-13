@@ -49,7 +49,7 @@ public class SensorIntegrationIngestService {
         var profile = profileRepo.findById(profileId)
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND", "Integration profile not found."));
         if (!profile.isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "PROFILE_INACTIVE", "Integration profile is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "PROFILE_INACTIVE", "Integration profile is inactive.");
         }
         var version = versionRepo.findByProfile_IdAndStatus(profileId, SensorIntegrationParserStatus.ACTIVE)
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.CONFLICT, "PARSER_VERSION_NOT_ACTIVE", "No active parser version for profile."));
@@ -63,14 +63,14 @@ public class SensorIntegrationIngestService {
         var sensor = sensorRepo.findByExternalId(canonical.sensorExternalId())
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.NOT_FOUND, "SENSOR_NOT_FOUND", "Sensor not found."));
         if (!sensor.isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "SENSOR_INACTIVE", "Sensor is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "SENSOR_INACTIVE", "Sensor is inactive.");
         }
         bindingRepo.findByProfile_IdAndSensor_ExternalIdAndAtivoTrue(profileId, canonical.sensorExternalId())
                 .orElseThrow(() -> {
                     var inactive = bindingRepo.findFirstByProfile_IdAndSensor_ExternalIdOrderByCreatedAtDesc(profileId, canonical.sensorExternalId());
                     return inactive.isPresent()
-                            ? new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "BINDING_INACTIVE", "Binding is inactive.")
-                            : new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "BINDING_NOT_FOUND", "Binding not found.");
+                            ? new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "BINDING_INACTIVE", "Binding is inactive.")
+                            : new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "BINDING_NOT_FOUND", "Binding not found.");
                 });
         return orchestrator.ingestWithProfile(profileId, version.getId(), producerId, canonical);
     }

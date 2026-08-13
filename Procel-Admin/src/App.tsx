@@ -5,9 +5,12 @@ import { ApiConsolePage } from "./pages/ApiConsolePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DisciplinasPage } from "./pages/DisciplinasPage";
+import { IntegrationsAdminPage } from "./features/sensor-integrations/IntegrationsAdminPage";
 import { LoginPage } from "./pages/LoginPage";
 import { SensorsAdminPage } from "./pages/SensorsAdminPage";
 import { MissionsAdminPage } from "./pages/MissionsAdminPage";
+import { ProfileDetailsPage } from "./features/sensor-integrations/ProfileDetailsPage";
+import { SnapshotPage } from "./features/sensor-integrations/SnapshotPage";
 import { SyncAdminPage } from "./pages/SyncAdminPage";
 
 export default function App() {
@@ -24,6 +27,13 @@ export default function App() {
             <Route path="sensores" element={<SensorsAdminPage />} />
             <Route path="missoes" element={<MissionsAdminPage />} />
             <Route path="sincronizacoes" element={<SyncAdminPage />} />
+          </Route>
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+          <Route element={<AppLayout />}>
+            <Route path="integracoes" element={<IntegrationsAdminPage />} />
+            <Route path="integracoes/perfis/:profileId" element={<ProfileDetailsPage />} />
+            <Route path="integracoes/snapshot" element={<SnapshotPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

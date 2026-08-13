@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.*;
@@ -53,7 +52,6 @@ public class PayloadFingerprintService {
         return node;
     }
 
-    @SuppressWarnings("unchecked")
     private JsonNode canonicalValue(Object value) {
         if (value == null) {
             return NullNode.instance;

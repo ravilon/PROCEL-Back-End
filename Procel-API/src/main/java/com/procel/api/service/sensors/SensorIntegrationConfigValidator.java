@@ -36,7 +36,7 @@ public class SensorIntegrationConfigValidator {
             throw bad("valueMappings is required");
         }
         if (request.valueMappings().size() > properties.getMaxMappings()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "TOO_MANY_MAPPINGS", "Too many mappings.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "TOO_MANY_MAPPINGS", "Too many mappings.");
         }
         var names = new HashSet<String>();
         for (var mapping : request.valueMappings()) {

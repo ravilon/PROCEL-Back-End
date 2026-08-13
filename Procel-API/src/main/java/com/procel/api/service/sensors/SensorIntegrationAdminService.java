@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,7 +40,7 @@ public class SensorIntegrationAdminService {
     public List<SensorIntegrationAdminDTOs.ProfileResponse> listProfiles(boolean includeInactive) {
         return profileRepo.findAll().stream()
                 .filter(profile -> includeInactive || profile.isAtivo())
-                .sorted(Comparator.comparing(SensorIntegrationProfile::getNome, String.CASE_INSENSITIVE_ORDER))
+                .sorted((left, right) -> String.CASE_INSENSITIVE_ORDER.compare(left.getNome(), right.getNome()))
                 .map(this::toProfile)
                 .toList();
     }
@@ -82,7 +81,7 @@ public class SensorIntegrationAdminService {
         ));
         if (published) {
             if (request.source() != null && request.source() != profile.getSource()) {
-                throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "PROFILE_SOURCE_IMMUTABLE", "Profile source is immutable after first publication.");
+                throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "PROFILE_SOURCE_IMMUTABLE", "Profile source is immutable after first publication.");
             }
             profile.updatePublished(nome, blankToNull(request.descricao()));
         } else {
@@ -160,12 +159,12 @@ public class SensorIntegrationAdminService {
         }
         SensorIntegrationProfile profile = findProfile(profileId);
         if (!profile.isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "PROFILE_INACTIVE", "Integration profile is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "PROFILE_INACTIVE", "Integration profile is inactive.");
         }
         Sensor sensor = sensorRepo.findByExternalId(request.sensorExternalId().trim())
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.NOT_FOUND, "SENSOR_NOT_FOUND", "Sensor not found."));
         if (!sensor.isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "SENSOR_INACTIVE", "Sensor is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "SENSOR_INACTIVE", "Sensor is inactive.");
         }
         bindingRepo.findByProfile_IdAndSensor_ExternalIdAndAtivoTrue(profileId, sensor.getExternalId()).ifPresent(existing -> {
             throw new ApiStatusException(HttpStatus.CONFLICT, "BINDING_ALREADY_ACTIVE", "Binding is already active.");
@@ -189,10 +188,10 @@ public class SensorIntegrationAdminService {
             throw new ApiStatusException(HttpStatus.CONFLICT, "BINDING_ALREADY_ACTIVE", "Binding is already active.");
         }
         if (!binding.getProfile().isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "PROFILE_INACTIVE", "Integration profile is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "PROFILE_INACTIVE", "Integration profile is inactive.");
         }
         if (!binding.getSensor().isAtivo()) {
-            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "SENSOR_INACTIVE", "Sensor is inactive.");
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "SENSOR_INACTIVE", "Sensor is inactive.");
         }
         bindingRepo.findByProfile_IdAndSensor_ExternalIdAndAtivoTrue(
                 binding.getProfile().getId(),
