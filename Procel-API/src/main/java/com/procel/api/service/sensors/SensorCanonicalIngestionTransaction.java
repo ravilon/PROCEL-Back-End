@@ -1,6 +1,7 @@
 package com.procel.api.service.sensors;
 
 import com.procel.api.dto.sensors.SensorIngestDTOs;
+import com.procel.api.dto.sensors.SensorTelemetryIngestDTOs;
 import com.procel.api.entity.sensors.*;
 import com.procel.api.exception.ApiStatusException;
 import com.procel.api.repository.sensors.*;
@@ -61,6 +62,27 @@ public class SensorCanonicalIngestionTransaction {
             String producerId,
             SensorIngestDTOs.CanonicalIngestRequest request
     ) {
+        return ingestProfileNew(integrationProfileId, parserVersionId, producerId, request, null);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public SensorIngestDTOs.CanonicalIngestResponse ingestTelemetryRawProfileNew(
+            UUID integrationProfileId,
+            UUID parserVersionId,
+            String serviceProducerId,
+            SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest rawContext,
+            SensorIngestDTOs.CanonicalIngestRequest request
+    ) {
+        return ingestProfileNew(integrationProfileId, parserVersionId, serviceProducerId, request, rawContext);
+    }
+
+    private SensorIngestDTOs.CanonicalIngestResponse ingestProfileNew(
+            UUID integrationProfileId,
+            UUID parserVersionId,
+            String producerId,
+            SensorIngestDTOs.CanonicalIngestRequest request,
+            SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest rawContext
+    ) {
         var profile = profileRepo.findById(integrationProfileId)
                 .orElseThrow(() -> new ApiStatusException(HttpStatus.NOT_FOUND, "PROFILE_NOT_FOUND",
                         "Integration profile not found: " + integrationProfileId));
@@ -109,7 +131,7 @@ public class SensorCanonicalIngestionTransaction {
             throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "BINDING_INACTIVE", "Binding is inactive.");
         }
 
-        return persistMeasurement(producerId, sensor, request, integrationProfileId, parserVersionId);
+        return persistMeasurement(producerId, sensor, request, integrationProfileId, parserVersionId, rawContext);
     }
 
     private SensorIngestDTOs.CanonicalIngestResponse persistMeasurement(
@@ -119,19 +141,48 @@ public class SensorCanonicalIngestionTransaction {
             UUID integrationProfileId,
             UUID parserVersionId
     ) {
+        return persistMeasurement(producerId, sensor, request, integrationProfileId, parserVersionId, null);
+    }
+
+    private SensorIngestDTOs.CanonicalIngestResponse persistMeasurement(
+            String producerId,
+            Sensor sensor,
+            SensorIngestDTOs.CanonicalIngestRequest request,
+            UUID integrationProfileId,
+            UUID parserVersionId,
+            SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest rawContext
+    ) {
         Instant apiReceivedAt = Instant.now();
         String fingerprint = fingerprintService.fingerprint(request);
-        var metadata = metadataRepo.saveAndFlush(new MedicaoIngestaoMetadata(
-                producerId,
-                sensor,
-                request.messageId(),
-                request.source(),
-                request.sourceReceivedAt(),
-                apiReceivedAt,
-                fingerprint,
-                integrationProfileId,
-                parserVersionId
-        ));
+        MedicaoIngestaoMetadata metadata = rawContext == null
+                ? new MedicaoIngestaoMetadata(
+                        producerId,
+                        sensor,
+                        request.messageId(),
+                        request.source(),
+                        request.sourceReceivedAt(),
+                        apiReceivedAt,
+                        fingerprint,
+                        integrationProfileId,
+                        parserVersionId
+                )
+                : new MedicaoIngestaoMetadata(
+                        producerId,
+                        sensor,
+                        request.messageId(),
+                        request.source(),
+                        request.sourceReceivedAt(),
+                        apiReceivedAt,
+                        fingerprint,
+                        integrationProfileId,
+                        parserVersionId,
+                        rawContext.originalProducerId(),
+                        rawContext.rawMessageId(),
+                        rawContext.rawTelemetryEventId(),
+                        rawContext.rawReceivedAt(),
+                        rawContext.rawSourceTimestamp()
+                );
+        metadata = metadataRepo.saveAndFlush(metadata);
 
         Medicao medicao = sensorIngestionService.ingestAndReturn(new RawSensorEvent(
                 request.sensorExternalId(),

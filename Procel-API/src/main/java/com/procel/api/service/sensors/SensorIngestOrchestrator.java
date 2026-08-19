@@ -1,6 +1,7 @@
 package com.procel.api.service.sensors;
 
 import com.procel.api.dto.sensors.SensorIngestDTOs;
+import com.procel.api.dto.sensors.SensorTelemetryIngestDTOs;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -57,6 +58,40 @@ public class SensorIngestOrchestrator {
             }
             return duplicateOutcome(
                     duplicateReader.findByProfileSensorMessage(integrationProfileId, request.sensorExternalId(), request.messageId()),
+                    request
+            );
+        }
+    }
+
+    public IngestOutcome ingestTelemetryRawWithProfile(
+            UUID integrationProfileId,
+            UUID parserVersionId,
+            String serviceProducerId,
+            SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest rawContext,
+            SensorIngestDTOs.CanonicalIngestRequest request
+    ) {
+        try {
+            return new IngestOutcome(
+                    HttpStatus.CREATED,
+                    ingestionTransaction.ingestTelemetryRawProfileNew(
+                            integrationProfileId,
+                            parserVersionId,
+                            serviceProducerId,
+                            rawContext,
+                            request
+                    )
+            );
+        } catch (DataIntegrityViolationException ex) {
+            if (constraintInspector.idempotencyConstraint(ex) != IdempotencyConstraintInspector.IdempotencyConstraint.TELEMETRY_RAW) {
+                throw ex;
+            }
+            return duplicateOutcome(
+                    duplicateReader.findByTelemetryRawKey(
+                            integrationProfileId,
+                            request.sensorExternalId(),
+                            rawContext.originalProducerId(),
+                            rawContext.rawMessageId()
+                    ),
                     request
             );
         }

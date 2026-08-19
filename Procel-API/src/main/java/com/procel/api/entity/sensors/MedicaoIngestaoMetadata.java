@@ -68,6 +68,21 @@ public class MedicaoIngestaoMetadata {
     @Column(name = "parser_version_id")
     private UUID parserVersionId;
 
+    @Column(name = "original_producer_id", length = 80)
+    private String originalProducerId;
+
+    @Column(name = "raw_message_id", length = 160)
+    private String rawMessageId;
+
+    @Column(name = "raw_telemetry_event_id", length = 120)
+    private String rawTelemetryEventId;
+
+    @Column(name = "raw_received_at")
+    private Instant rawReceivedAt;
+
+    @Column(name = "raw_source_timestamp")
+    private Instant rawSourceTimestamp;
+
     protected MedicaoIngestaoMetadata() {}
 
     public MedicaoIngestaoMetadata(
@@ -106,6 +121,31 @@ public class MedicaoIngestaoMetadata {
         this.parserVersionId = parserVersionId;
     }
 
+    public MedicaoIngestaoMetadata(
+            String producerId,
+            Sensor sensor,
+            String messageId,
+            MedicaoIngestaoSource source,
+            Instant sourceReceivedAt,
+            Instant apiReceivedAt,
+            String payloadFingerprint,
+            UUID integrationProfileId,
+            UUID parserVersionId,
+            String originalProducerId,
+            String rawMessageId,
+            String rawTelemetryEventId,
+            Instant rawReceivedAt,
+            Instant rawSourceTimestamp
+    ) {
+        this(producerId, sensor, messageId, source, sourceReceivedAt, apiReceivedAt, payloadFingerprint,
+                integrationProfileId, parserVersionId);
+        this.originalProducerId = originalProducerId;
+        this.rawMessageId = rawMessageId;
+        this.rawTelemetryEventId = rawTelemetryEventId;
+        this.rawReceivedAt = rawReceivedAt;
+        this.rawSourceTimestamp = rawSourceTimestamp;
+    }
+
     public UUID getId() { return id; }
     public Medicao getMedicao() { return medicao; }
     public String getProducerId() { return producerId; }
@@ -120,6 +160,11 @@ public class MedicaoIngestaoMetadata {
     public Instant getCompletedAt() { return completedAt; }
     public UUID getIntegrationProfileId() { return integrationProfileId; }
     public UUID getParserVersionId() { return parserVersionId; }
+    public String getOriginalProducerId() { return originalProducerId; }
+    public String getRawMessageId() { return rawMessageId; }
+    public String getRawTelemetryEventId() { return rawTelemetryEventId; }
+    public Instant getRawReceivedAt() { return rawReceivedAt; }
+    public Instant getRawSourceTimestamp() { return rawSourceTimestamp; }
 
     public void complete(Medicao medicao, Instant completedAt) {
         this.medicao = medicao;

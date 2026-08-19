@@ -18,4 +18,11 @@ public interface MedicaoIngestaoMetadataRepository extends JpaRepository<Medicao
             String sensorExternalId,
             String messageId
     );
+
+    Optional<MedicaoIngestaoMetadata> findByIntegrationProfileIdAndSensor_ExternalIdAndOriginalProducerIdAndRawMessageId(
+            UUID integrationProfileId,
+            String sensorExternalId,
+            String originalProducerId,
+            String rawMessageId
+    );
 }

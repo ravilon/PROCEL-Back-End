@@ -1,12 +1,14 @@
 package com.procel.api.service.sensors;
 
 import com.procel.api.dto.sensors.SensorIngestDTOs;
+import com.procel.api.dto.sensors.SensorTelemetryIngestDTOs;
 import com.procel.api.entity.sensors.MedicaoIngestaoSource;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -21,6 +23,8 @@ class IdempotencyConstraintInspectorTest {
                 .isEqualTo(IdempotencyConstraintInspector.IdempotencyConstraint.DIRECT);
         assertThat(inspector.idempotencyConstraint(violation("ux_metadata_profile_idempotency")))
                 .isEqualTo(IdempotencyConstraintInspector.IdempotencyConstraint.PROFILE);
+        assertThat(inspector.idempotencyConstraint(violation("ux_metadata_telemetry_raw_idempotency")))
+                .isEqualTo(IdempotencyConstraintInspector.IdempotencyConstraint.TELEMETRY_RAW);
 
         assertThat(inspector.idempotencyConstraint(violation("ux_sensor_integration_profile_nome")))
                 .isEqualTo(IdempotencyConstraintInspector.IdempotencyConstraint.NONE);
@@ -53,6 +57,36 @@ class IdempotencyConstraintInspectorTest {
         verifyNoInteractions(fingerprintService);
     }
 
+    @Test
+    void unknownConstraintViolationsArePropagatedByTelemetryRawOrchestrator() {
+        var transaction = mock(SensorCanonicalIngestionTransaction.class);
+        var duplicateReader = mock(SensorIngestDuplicateReader.class);
+        var fingerprintService = mock(PayloadFingerprintService.class);
+        var orchestrator = new SensorIngestOrchestrator(
+                transaction,
+                duplicateReader,
+                inspector,
+                fingerprintService
+        );
+        UUID profileId = UUID.randomUUID();
+        UUID parserVersionId = UUID.randomUUID();
+        var rawContext = rawContext("raw-unknown");
+        var request = request("raw-unknown");
+        var violation = new DataIntegrityViolationException("unknown fk", violation("fk_metadata_parser_version_profile"));
+        when(transaction.ingestTelemetryRawProfileNew(profileId, parserVersionId, "telemetry-service", rawContext, request))
+                .thenThrow(violation);
+
+        assertThatThrownBy(() -> orchestrator.ingestTelemetryRawWithProfile(
+                profileId,
+                parserVersionId,
+                "telemetry-service",
+                rawContext,
+                request
+        )).isSameAs(violation);
+        verifyNoInteractions(duplicateReader);
+        verifyNoInteractions(fingerprintService);
+    }
+
     private SensorIngestDTOs.CanonicalIngestRequest request(String messageId) {
         return new SensorIngestDTOs.CanonicalIngestRequest(
                 messageId,
@@ -61,6 +95,17 @@ class IdempotencyConstraintInspectorTest {
                 MedicaoIngestaoSource.API,
                 null,
                 Map.of("temperature_c", 23.7)
+        );
+    }
+
+    private SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest rawContext(String rawMessageId) {
+        return new SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest(
+                "raw-event",
+                "original-producer",
+                rawMessageId,
+                Instant.parse("2026-08-12T10:00:00Z"),
+                Instant.parse("2026-08-12T09:59:58Z"),
+                null
         );
     }
 

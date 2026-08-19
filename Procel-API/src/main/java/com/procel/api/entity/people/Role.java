@@ -5,5 +5,6 @@ public enum Role {
     OPERADOR,
     ANALISTA,
     USUARIO,
-    INGESTOR
+    INGESTOR,
+    TELEMETRY_SERVICE
 }

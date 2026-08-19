@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 public class IdempotencyConstraintInspector {
     static final String DIRECT_IDEMPOTENCY_CONSTRAINT = "ux_metadata_direct_idempotency";
     static final String PROFILE_IDEMPOTENCY_CONSTRAINT = "ux_metadata_profile_idempotency";
+    static final String TELEMETRY_RAW_IDEMPOTENCY_CONSTRAINT = "ux_metadata_telemetry_raw_idempotency";
 
     public IdempotencyConstraint idempotencyConstraint(Throwable ex) {
         for (Throwable current = ex; current != null; current = current.getCause()) {
@@ -15,6 +16,9 @@ public class IdempotencyConstraintInspector {
             }
             if (PROFILE_IDEMPOTENCY_CONSTRAINT.equals(constraint)) {
                 return IdempotencyConstraint.PROFILE;
+            }
+            if (TELEMETRY_RAW_IDEMPOTENCY_CONSTRAINT.equals(constraint)) {
+                return IdempotencyConstraint.TELEMETRY_RAW;
             }
         }
         return IdempotencyConstraint.NONE;
@@ -36,6 +40,7 @@ public class IdempotencyConstraintInspector {
     public enum IdempotencyConstraint {
         NONE,
         DIRECT,
-        PROFILE
+        PROFILE,
+        TELEMETRY_RAW
     }
 }

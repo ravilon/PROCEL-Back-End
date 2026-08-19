@@ -1,6 +1,7 @@
 package com.procel.api.service.sensors;
 
 import com.procel.api.dto.sensors.SensorIngestDTOs;
+import com.procel.api.dto.sensors.SensorTelemetryIngestDTOs;
 import com.procel.api.entity.rooms.*;
 import com.procel.api.entity.sensors.*;
 import com.procel.api.repository.rooms.*;
@@ -61,6 +62,9 @@ class SensorIngestTransactionBoundaryTest {
     @Autowired MedicaoRepository medicaoRepo;
     @Autowired ParametroValorRepository parametroValorRepo;
     @Autowired MedicaoIngestaoMetadataRepository metadataRepo;
+    @Autowired SensorIntegrationProfileRepository profileRepo;
+    @Autowired SensorIntegrationParserVersionRepository versionRepo;
+    @Autowired SensorIntegrationBindingRepository bindingRepo;
     @MockitoBean ParametroQualificacaoService qualificacaoService;
 
     private String sensorId;
@@ -109,6 +113,53 @@ class SensorIngestTransactionBoundaryTest {
         assertDuplicateReaderBoundary(metadataAfterWinner, medicoesAfterWinner, valoresAfterWinner);
     }
 
+    @Test
+    void telemetryDuplicateReaderRunsAfterLosingTransactionRollbackInRequiresNewReadOnlyTransaction() {
+        var context = activeProfile();
+        String rawMessageId = "raw-boundary-" + UUID.randomUUID();
+        var rawContext = rawContext(rawMessageId);
+        var original = request(rawMessageId, new BigDecimal("23.70"));
+        var divergent = request(rawMessageId, new BigDecimal("24.10"));
+
+        var created = orchestrator.ingestTelemetryRawWithProfile(
+                context.profile().getId(),
+                context.version().getId(),
+                "telemetry-service",
+                rawContext,
+                original
+        );
+        assertThat(created.status().value()).isEqualTo(201);
+        assertThat(created.response().code()).isEqualTo("MEASUREMENT_INGESTED");
+
+        long metadataAfterWinner = metadataRepo.count();
+        long medicoesAfterWinner = medicaoRepo.count();
+        long valoresAfterWinner = parametroValorRepo.count();
+
+        duplicateReaderRecorder.reset();
+        var equivalentDuplicate = orchestrator.ingestTelemetryRawWithProfile(
+                context.profile().getId(),
+                context.version().getId(),
+                "telemetry-service",
+                rawContext,
+                original
+        );
+        assertThat(equivalentDuplicate.status().value()).isEqualTo(200);
+        assertThat(equivalentDuplicate.response().code()).isEqualTo("DUPLICATE_MESSAGE");
+        assertDuplicateReaderBoundary(metadataAfterWinner, medicoesAfterWinner, valoresAfterWinner);
+
+        duplicateReaderRecorder.reset();
+        var divergentDuplicate = orchestrator.ingestTelemetryRawWithProfile(
+                context.profile().getId(),
+                context.version().getId(),
+                "telemetry-service",
+                rawContext,
+                divergent
+        );
+        assertThat(divergentDuplicate.status().value()).isEqualTo(409);
+        assertThat(divergentDuplicate.response().code()).isEqualTo("IDEMPOTENCY_CONFLICT");
+        assertDuplicateReaderBoundary(metadataAfterWinner, medicoesAfterWinner, valoresAfterWinner);
+    }
+
     private void assertDuplicateReaderBoundary(long metadataAfterWinner, long medicoesAfterWinner, long valoresAfterWinner) {
         assertThat(duplicateReaderRecorder.calls).isEqualTo(1);
         assertThat(duplicateReaderRecorder.activeTransactionAtRead).isTrue();
@@ -131,6 +182,37 @@ class SensorIngestTransactionBoundaryTest {
                 Instant.parse("2026-08-11T23:30:02Z"),
                 Map.of("temperature_c", temperature)
         );
+    }
+
+    private SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest rawContext(String rawMessageId) {
+        return new SensorTelemetryIngestDTOs.TelemetryRawIntegrationIngestRequest(
+                "raw-event-" + UUID.randomUUID(),
+                "original-producer",
+                rawMessageId,
+                Instant.parse("2026-08-12T10:00:00Z"),
+                Instant.parse("2026-08-12T09:59:58Z"),
+                null
+        );
+    }
+
+    private ActiveContext activeProfile() {
+        var profile = profileRepo.save(new SensorIntegrationProfile("Profile " + UUID.randomUUID(), null, MedicaoIngestaoSource.MQTT));
+        var version = new SensorIntegrationParserVersion(
+                profile,
+                versionRepo.maxVersionByProfile(profile.getId()) + 1,
+                SensorResolutionMode.PAYLOAD_POINTER,
+                "/meta/id",
+                "/device/id",
+                "/measuredAt",
+                "/receivedAt"
+        );
+        version.replaceMappings(java.util.List.of(
+                new SensorIntegrationValueMapping("temperature_c", "/readings/temperature", true)
+        ));
+        version.activate(Instant.now());
+        version = versionRepo.save(version);
+        bindingRepo.save(new SensorIntegrationBinding(sensorRepo.findById(sensorId).orElseThrow(), profile));
+        return new ActiveContext(profile, version);
     }
 
     @TestConfiguration
@@ -198,6 +280,18 @@ class SensorIngestTransactionBoundaryTest {
             return super.findByProducerSensorMessage(producerId, sensorExternalId, messageId);
         }
 
+        @Override
+        @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
+        public DuplicateLookupResult findByTelemetryRawKey(
+                UUID integrationProfileId,
+                String sensorExternalId,
+                String originalProducerId,
+                String rawMessageId
+        ) {
+            recordTransactionState();
+            return super.findByTelemetryRawKey(integrationProfileId, sensorExternalId, originalProducerId, rawMessageId);
+        }
+
         private void recordTransactionState() {
             recorder.calls++;
             recorder.activeTransactionAtRead = TransactionSynchronizationManager.isActualTransactionActive();
@@ -229,4 +323,6 @@ class SensorIngestTransactionBoundaryTest {
             parametroValorCountAtRead = -1;
         }
     }
+
+    private record ActiveContext(SensorIntegrationProfile profile, SensorIntegrationParserVersion version) {}
 }

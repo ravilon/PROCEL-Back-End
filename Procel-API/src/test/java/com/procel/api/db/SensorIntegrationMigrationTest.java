@@ -18,7 +18,7 @@ class SensorIntegrationMigrationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
     @Test
-    void migratesEmptyDatabaseThroughV16() throws Exception {
+    void migratesEmptyDatabaseThroughV17() throws Exception {
         Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration")
@@ -33,11 +33,42 @@ class SensorIntegrationMigrationTest {
                          'sensor_integration_profile',
                          'sensor_integration_parser_version',
                          'sensor_integration_value_mapping',
-                         'sensor_integration_binding'
+                         'sensor_integration_binding',
+                         'medicao_ingestao_metadata'
                      )
                      """)) {
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(4);
+            assertThat(result.getInt(1)).isEqualTo(5);
+        }
+
+        try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             var result = connection.createStatement().executeQuery("""
+                     select indexdef
+                     from pg_indexes
+                     where schemaname = 'public'
+                       and tablename = 'medicao_ingestao_metadata'
+                       and indexname = 'ux_metadata_telemetry_raw_idempotency'
+                     """)) {
+            assertThat(result.next()).isTrue();
+            assertThat(result.getString(1))
+                    .contains("integration_profile_id", "sensor_external_id", "original_producer_id", "raw_message_id")
+                    .contains("raw_telemetry_event_id IS NOT NULL");
+        }
+
+        try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             var result = connection.createStatement().executeQuery("""
+                     select check_clause
+                     from information_schema.check_constraints
+                     where constraint_name = 'ck_metadata_telemetry_raw_context'
+                     """)) {
+            assertThat(result.next()).isTrue();
+            assertThat(result.getString(1))
+                    .contains("original_producer_id")
+                    .contains("raw_message_id")
+                    .contains("raw_telemetry_event_id")
+                    .contains("raw_received_at")
+                    .contains("integration_profile_id")
+                    .contains("parser_version_id");
         }
     }
 
@@ -104,6 +135,31 @@ class SensorIntegrationMigrationTest {
                 .load()
                 .migrate())
                 .hasMessageContaining("duplicate direct ingestion keys");
+    }
+
+    @Test
+    void v17RawContextCheckConstraintRejectsPartialRawMetadata() throws Exception {
+        String dbName = "v17_check_" + UUID.randomUUID().toString().replace("-", "");
+        postgres.execInContainer("createdb", "-U", postgres.getUsername(), dbName);
+        String url = postgres.getJdbcUrl().replace(postgres.getDatabaseName(), dbName);
+
+        Flyway.configure()
+                .dataSource(url, postgres.getUsername(), postgres.getPassword())
+                .locations("classpath:db/migration")
+                .load()
+                .migrate();
+        seedDirectMetadata(url);
+
+        try (var connection = DriverManager.getConnection(url, postgres.getUsername(), postgres.getPassword());
+             var statement = connection.createStatement()) {
+            assertThatThrownBy(() -> statement.execute("""
+                    insert into medicao_ingestao_metadata
+                    (producer_id, sensor_external_id, message_id, source, api_received_at, payload_fingerprint, status,
+                     raw_telemetry_event_id)
+                    values ('telemetry-service', 'SII-MIGRATION', 'raw-partial', 'API', now(), repeat('c', 64), 'PROCESSING',
+                            'raw-event-partial')
+                    """)).hasMessageContaining("ck_metadata_telemetry_raw_context");
+        }
     }
 
     private void seedDirectMetadata(String url) throws Exception {
