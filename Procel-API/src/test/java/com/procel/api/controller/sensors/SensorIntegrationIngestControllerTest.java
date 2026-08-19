@@ -153,6 +153,10 @@ class SensorIntegrationIngestControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.version").value(1))
                 .andReturn().getResponse().getContentAsString();
+        mvc.perform(get("/api/sensor-integrations/snapshot")
+                        .with(user("telemetry-service").roles("TELEMETRY_SERVICE")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.version").value(1));
         assertThat(objectMapper.readTree(snapshot).get("profiles"))
                 .anySatisfy(node -> {
                     assertThat(node.get("id").asText()).isEqualTo(profileId);

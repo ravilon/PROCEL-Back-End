@@ -21,6 +21,19 @@ procel:
   telemetry:
     max-payload-bytes: ${PROCEL_TELEMETRY_MAX_PAYLOAD_BYTES:262144}
     retention-days: ${PROCEL_TELEMETRY_RETENTION_DAYS:30}
+    canonical-worker:
+      enabled: ${PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED:false}
+      api-base-url: ${PROCEL_API_BASE_URL:http://localhost:8080}
+      poll-interval: ${PROCEL_TELEMETRY_WORKER_POLL_INTERVAL:PT5S}
+      lease-timeout: ${PROCEL_TELEMETRY_WORKER_LEASE_TIMEOUT:PT5M}
+      batch-size: ${PROCEL_TELEMETRY_WORKER_BATCH_SIZE:10}
+      max-attempts: ${PROCEL_TELEMETRY_WORKER_MAX_ATTEMPTS:5}
+      backoff: ${PROCEL_TELEMETRY_WORKER_BACKOFF:PT30S,PT2M,PT10M,PT30M,PT2H}
+      snapshot-cache-ttl: ${PROCEL_TELEMETRY_SNAPSHOT_CACHE_TTL:PT5M}
+      jwt:
+        subject: ${PROCEL_TELEMETRY_SERVICE_JWT_SUBJECT:procel-telemetry}
+        secret: ${PROCEL_TELEMETRY_SERVICE_JWT_SECRET:change-this-local-development-secret-32chars}
+        ttl: ${PROCEL_TELEMETRY_SERVICE_JWT_TTL:PT5M}
 
   cors:
     allowed-origin-patterns: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}

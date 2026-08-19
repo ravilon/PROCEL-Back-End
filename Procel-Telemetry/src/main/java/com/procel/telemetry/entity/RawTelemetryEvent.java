@@ -16,7 +16,9 @@ import java.time.Instant;
                 unique = true
         ),
         @CompoundIndex(name = "idx_raw_telemetry_sensor_received", def = "{'sensorId': 1, 'receivedAt': -1}"),
-        @CompoundIndex(name = "idx_raw_telemetry_status_received", def = "{'status': 1, 'receivedAt': -1}")
+        @CompoundIndex(name = "idx_raw_telemetry_status_received", def = "{'status': 1, 'receivedAt': -1}"),
+        @CompoundIndex(name = "idx_raw_telemetry_claim", def = "{'status': 1, 'processing.nextAttemptAt': 1, 'receivedAt': 1}"),
+        @CompoundIndex(name = "idx_raw_telemetry_processing_lock", def = "{'status': 1, 'processing.lockedAt': 1}")
 })
 public class RawTelemetryEvent {
     @Id
@@ -76,6 +78,9 @@ public class RawTelemetryEvent {
     public static class Processing {
         private int attempts;
         private Instant lastAttemptAt;
+        private Instant nextAttemptAt;
+        private Instant lockedAt;
+        private String workerId;
         private String lastError;
         private String canonicalMeasurementId;
         private String profileId;
@@ -83,6 +88,9 @@ public class RawTelemetryEvent {
 
         public int getAttempts() { return attempts; }
         public Instant getLastAttemptAt() { return lastAttemptAt; }
+        public Instant getNextAttemptAt() { return nextAttemptAt; }
+        public Instant getLockedAt() { return lockedAt; }
+        public String getWorkerId() { return workerId; }
         public String getLastError() { return lastError; }
         public String getCanonicalMeasurementId() { return canonicalMeasurementId; }
         public String getProfileId() { return profileId; }

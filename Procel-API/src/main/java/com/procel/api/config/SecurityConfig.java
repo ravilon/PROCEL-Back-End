@@ -105,7 +105,7 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.POST, "/api/sensors/ingest/mock")
                                                 .hasAnyRole("ADMIN", "INGESTOR")
                                                 .requestMatchers(HttpMethod.GET, "/api/sensor-integrations/snapshot")
-                                                .hasAnyRole("ADMIN", "INGESTOR")
+                                                .hasAnyRole("ADMIN", "INGESTOR", "TELEMETRY_SERVICE")
                                                 .requestMatchers("/api/sensor-integrations/**")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers(HttpMethod.GET, "/api/rules/**")
