@@ -70,7 +70,7 @@ procel:
 
   security:
     jwt:
-      secret: ${PROCEL_JWT_SECRET:change-this-local-development-secret-32chars}
+      secret: ${PROCEL_JWT_SECRET:${PROCEL_TELEMETRY_SERVICE_JWT_SECRET:change-this-local-development-secret-32chars}}
       expiration-minutes: ${PROCEL_JWT_EXPIRATION_MINUTES:60}
     bootstrap-admin:
       enabled: ${PROCEL_BOOTSTRAP_ADMIN_ENABLED:true}

@@ -243,13 +243,134 @@ Procel-Telemetry: http://localhost:8081/docs
 
 ## Docker e Deploy
 
-Cada aplicacao possui Dockerfile proprio. `Procel-API/compose.yaml` sobe somente PostgreSQL local (`postgres:16`) e `Procel-Telemetry/compose.yaml` sobe somente MongoDB local (`mongo:7`, sem autenticacao). Em Coolify, configure cada servico apontando para o diretorio correto:
+Existem dois modos oficiais de deploy.
+
+### Modo 1 - Stack integrado
+
+Executado pela raiz:
+
+```bash
+docker compose up -d
+```
+
+Esse modo sobe PostgreSQL, MongoDB, broker MQTT, `Procel-API`,
+`Procel-Telemetry` e `Procel-Admin`. Ele e destinado a desenvolvimento local,
+homologacao, testes E2E e validacao da arquitetura completa. Os hostnames
+internos `postgres`, `mongo`, `mqtt` e `procel-api` aparecem somente no
+`compose.yaml` integrado e em exemplos de ambiente desse modo.
+
+Validacao recomendada:
+
+```bash
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+```
+
+### Modo 2 - Aplicacoes independentes
+
+Cada aplicacao mantem Dockerfile proprio e pode ser construida diretamente a
+partir do seu diretorio:
+
+```bash
+docker build -t procel-api ./Procel-API
+docker build -t procel-telemetry ./Procel-Telemetry
+docker build -t procel-admin ./Procel-Admin
+```
+
+As imagens recebem dependencias externas por variaveis de ambiente, nao dependem
+do Compose da raiz e expoem somente a propria porta. Bancos, broker e aplicacoes
+podem estar no mesmo Compose, em recursos separados do Coolify, em servicos
+gerenciados ou em hosts diferentes.
+
+`Procel-API/compose.yaml` fornece ambiente minimo da API com PostgreSQL.
+`Procel-Telemetry/compose.yaml` fornece ambiente minimo da Telemetry com MongoDB
+e MQTT. Esses composes independentes nao dependem do Compose da raiz.
+
+Precedencia de configuracao:
+
+1. variavel fornecida pela plataforma;
+2. variavel declarada no Compose;
+3. default exclusivamente local no `application.yml`, Dockerfile ou entrypoint.
+
+Arquivos de exemplo:
+
+```text
+.env.example
+.env.integrated.example
+Procel-API/.env.example
+Procel-Telemetry/.env.example
+Procel-Admin/.env.example
+```
+
+Nao versionar `.env` real.
+
+### Coolify
+
+Publique cada modulo como recurso independente quando bancos, broker e
+aplicacoes forem separados.
 
 | Aplicacao | Diretorio de build |
 | --- | --- |
 | API | `Procel-API` |
 | Telemetry | `Procel-Telemetry` |
 | Admin | `Procel-Admin` |
+
+Configuracao sugerida:
+
+| Aplicacao | Base directory | Dockerfile | Healthcheck |
+| --- | --- | --- | --- |
+| Procel-API | `/Procel-API` | `/Dockerfile` | `/actuator/health` |
+| Procel-Telemetry | `/Procel-Telemetry` | `/Dockerfile` | `/actuator/health` |
+| Procel-Admin | `/Procel-Admin` | `/Dockerfile` | `/healthz` |
+
+Variaveis minimas da API:
+
+```text
+SPRING_DATASOURCE_URL
+SPRING_DATASOURCE_USERNAME
+SPRING_DATASOURCE_PASSWORD
+PROCEL_JWT_SECRET
+PROCEL_TELEMETRY_SERVICE_JWT_SECRET
+PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS
+```
+
+Variaveis minimas da Telemetry:
+
+```text
+SPRING_MONGODB_URI
+PROCEL_API_BASE_URL
+PROCEL_JWT_SECRET
+PROCEL_TELEMETRY_SERVICE_JWT_SECRET
+PROCEL_TELEMETRY_MQTT_ENABLED
+PROCEL_TELEMETRY_MQTT_BROKER_URL
+PROCEL_TELEMETRY_MQTT_USERNAME
+PROCEL_TELEMETRY_MQTT_PASSWORD
+PROCEL_TELEMETRY_MQTT_TLS_ENABLED
+```
+
+Variaveis minimas do Admin:
+
+```text
+API_BASE_URL
+TELEMETRY_API_URL
+```
+
+Dominios sugeridos: `api.seu-dominio`, `telemetry.seu-dominio` e
+`admin.seu-dominio`. Configure CORS na API e na Telemetry para permitir o
+dominio externo do Admin. `PROCEL_API_BASE_URL` na Telemetry deve usar a URL
+interna do recurso API quando estiverem na mesma rede privada do Coolify, ou a
+URL externa HTTPS quando estiverem em redes diferentes. `API_BASE_URL` e
+`TELEMETRY_API_URL` no Admin devem ser URLs acessiveis pelo navegador do usuario.
+
+Ordem recomendada: publicar PostgreSQL e MongoDB, publicar Procel-API, validar
+`/actuator/health`, publicar broker MQTT se usado, publicar Procel-Telemetry,
+validar `/actuator/health`, publicar Procel-Admin e validar `/healthz`.
+
+Teste isolado: acesse healthcheck de cada modulo, faca login no Admin contra a
+API configurada, liste eventos de Telemetry se `TELEMETRY_API_URL` estiver
+habilitada e valide a tela `/analiticos` contra a API.
 
 Nao use secrets padrao em producao. A URI do MongoDB deve incluir o database, por exemplo:
 
@@ -287,8 +408,7 @@ Documentos/Catalogo-Dados.md
 
 - A tela de analises limita o grafico a pagina atual dos buckets; uma API dedicada
   para series temporais densas fica reservada para a etapa 12.
-- Observabilidade completa, rate limiting, backup automatizado e E2E integrado ficam reservados para a etapa 12.
-- O `Procel-Admin` ainda nao injeta `TELEMETRY_API_URL` em runtime pelo entrypoint Docker.
+- Prometheus, metricas detalhadas, rate limiting, backup automatizado e E2E integrado ficam reservados para evolucao operacional da etapa 12.
 - `spring.jpa.hibernate.ddl-auto=update` ainda aparece na configuracao local da API, mas a criacao do schema deve ser feita por Flyway.
 
 ## Roadmap

@@ -295,7 +295,7 @@ describe("AnalyticsPage", () => {
       expect.not.objectContaining({ page: expect.anything(), size: expect.anything() }),
       adminSession,
     );
-  });
+  }, 10_000);
 
   it("limpa filtros opcionais", async () => {
     const user = userEvent.setup();

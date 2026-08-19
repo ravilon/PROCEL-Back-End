@@ -2,6 +2,10 @@
 
 `Procel-API` e a API principal do PROCEL. Ela mantem o dominio canonico no PostgreSQL, autentica usuarios, recebe medicoes, administra sensores, perfis de integracao e executa jobs analiticos por janela.
 
+A aplicacao e publicavel de forma independente. Ela depende somente de
+PostgreSQL acessivel por `SPRING_DATASOURCE_URL` e nao depende de Admin,
+Telemetry, MongoDB, MQTT ou do Compose integrado.
+
 ## Responsabilidades
 
 - Autenticacao JWT de usuarios e servicos.
@@ -129,6 +133,7 @@ Principais permissoes:
 | `SPRING_DATASOURCE_USERNAME` | Usuario PostgreSQL |
 | `SPRING_DATASOURCE_PASSWORD` | Senha PostgreSQL |
 | `PROCEL_JWT_SECRET` | Segredo JWT |
+| `PROCEL_TELEMETRY_SERVICE_JWT_SECRET` | Alias aceito para o segredo usado por JWT de servico quando `PROCEL_JWT_SECRET` nao for definido |
 | `PROCEL_JWT_EXPIRATION_MINUTES` | TTL JWT de usuario |
 | `PROCEL_BOOTSTRAP_ADMIN_EMAIL` | Admin inicial |
 | `PROCEL_BOOTSTRAP_ADMIN_PASSWORD` | Senha do admin inicial |
@@ -149,7 +154,32 @@ docker compose -f compose.yaml up -d
 ./mvnw spring-boot:run
 ```
 
-`compose.yaml` sobe apenas o PostgreSQL local `procel_analytics` na porta `5432`.
+`compose.yaml` sobe `Procel-API + PostgreSQL` para desenvolvimento isolado do
+modulo. Para usar apenas PostgreSQL local, suba somente o servico `postgres`.
+
+Build independente:
+
+```bash
+docker build -t procel-api .
+```
+
+Healthcheck:
+
+```text
+/actuator/health
+```
+
+No Coolify:
+
+```text
+Base directory: /Procel-API
+Dockerfile: /Dockerfile
+Healthcheck: /actuator/health
+```
+
+Configure `SPRING_DATASOURCE_URL`, usuario, senha, `PROCEL_JWT_SECRET` e CORS
+com valores da plataforma. O PostgreSQL pode estar em outro container, servico
+gerenciado ou outro host.
 
 Swagger:
 

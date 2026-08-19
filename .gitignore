@@ -4,6 +4,9 @@
 .env
 .env.*
 *.env
+!.env.example
+!.env.integrated.example
+!**/.env.example
 
 # =========================
 # Python cache / bytecode

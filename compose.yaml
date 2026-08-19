@@ -1,0 +1,105 @@
+name: procel
+
+x-api-env: &api-env
+  SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/procel_analytics}
+  SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+  SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+  PROCEL_JWT_SECRET: ${PROCEL_JWT_SECRET:-change-this-local-development-secret-32chars}
+  PROCEL_TELEMETRY_SERVICE_JWT_SECRET: ${PROCEL_TELEMETRY_SERVICE_JWT_SECRET:-change-this-local-development-secret-32chars}
+  PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+  PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED: ${PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED:-false}
+
+x-telemetry-env: &telemetry-env
+  SPRING_MONGODB_URI: ${SPRING_MONGODB_URI:-mongodb://mongo:27017/procel_telemetry}
+  PROCEL_API_BASE_URL: ${PROCEL_API_BASE_URL:-http://procel-api:8080}
+  PROCEL_JWT_SECRET: ${PROCEL_JWT_SECRET:-change-this-local-development-secret-32chars}
+  PROCEL_TELEMETRY_SERVICE_JWT_SECRET: ${PROCEL_TELEMETRY_SERVICE_JWT_SECRET:-change-this-local-development-secret-32chars}
+  PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED: ${PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED:-false}
+  PROCEL_TELEMETRY_MQTT_ENABLED: ${PROCEL_TELEMETRY_MQTT_ENABLED:-true}
+  PROCEL_TELEMETRY_MQTT_BROKER_URL: ${PROCEL_TELEMETRY_MQTT_BROKER_URL:-tcp://mqtt:1883}
+  PROCEL_TELEMETRY_MQTT_USERNAME: ${PROCEL_TELEMETRY_MQTT_USERNAME:-}
+  PROCEL_TELEMETRY_MQTT_PASSWORD: ${PROCEL_TELEMETRY_MQTT_PASSWORD:-}
+  PROCEL_TELEMETRY_MQTT_TLS_ENABLED: ${PROCEL_TELEMETRY_MQTT_TLS_ENABLED:-false}
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-procel_analytics}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mongo:
+    image: mongo:7
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "127.0.0.1", "-t", "$$SYS/#", "-C", "1", "-W", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  procel-api:
+    build:
+      context: ./Procel-API
+    environment: *api-env
+    ports:
+      - "${PROCEL_API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  procel-telemetry:
+    build:
+      context: ./Procel-Telemetry
+    environment: *telemetry-env
+    ports:
+      - "${PROCEL_TELEMETRY_PORT:-8081}:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+
+  procel-admin:
+    build:
+      context: ./Procel-Admin
+    environment:
+      API_BASE_URL: ${ADMIN_API_BASE_URL:-http://localhost:8080}
+      TELEMETRY_API_URL: ${ADMIN_TELEMETRY_API_URL:-http://localhost:8081}
+    ports:
+      - "${PROCEL_ADMIN_PORT:-3000}:80"
+    depends_on:
+      procel-api:
+        condition: service_started
+      procel-telemetry:
+        condition: service_started
+
+volumes:
+  postgres_data:
+  mongo_data:
+  mqtt_data:

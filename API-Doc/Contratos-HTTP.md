@@ -168,3 +168,29 @@ OpenAPI gerado em runtime:
 Procel-API:       /v3/api-docs
 Procel-Telemetry: /v3/api-docs
 ```
+
+## Deploy
+
+O projeto suporta dois modos oficiais.
+
+Modo integrado pela raiz:
+
+```bash
+docker compose up -d
+```
+
+Sobe PostgreSQL, MongoDB, MQTT, Procel-API, Procel-Telemetry e Procel-Admin. Os
+hostnames internos do Compose aparecem apenas como defaults desse modo.
+
+Modo independente:
+
+```bash
+docker build -t procel-api ./Procel-API
+docker build -t procel-telemetry ./Procel-Telemetry
+docker build -t procel-admin ./Procel-Admin
+```
+
+Cada imagem aceita dependencias externas por variaveis de ambiente e possui
+healthcheck proprio: API e Telemetry em `/actuator/health`, Admin em `/healthz`.
+No Coolify, publique cada modulo com seu diretorio base e configure CORS para o
+dominio externo do Admin.

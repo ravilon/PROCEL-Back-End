@@ -9,9 +9,31 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  procel-api:
+    build:
+      context: .
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/procel_analytics}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      PROCEL_JWT_SECRET: ${PROCEL_JWT_SECRET:-change-this-local-development-secret-32chars}
+      PROCEL_TELEMETRY_SERVICE_JWT_SECRET: ${PROCEL_TELEMETRY_SERVICE_JWT_SECRET:-change-this-local-development-secret-32chars}
+      PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+      PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED: ${PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED:-false}
+    ports:
+      - "${PROCEL_API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

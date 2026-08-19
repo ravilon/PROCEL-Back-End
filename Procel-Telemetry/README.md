@@ -4,6 +4,10 @@
 
 `Procel-Telemetry` nao acessa diretamente o PostgreSQL.
 
+A aplicacao e publicavel de forma independente. MongoDB, MQTT e Procel-API sao
+configurados por variaveis e podem estar em recursos separados, dominios
+externos, servicos gerenciados ou no Compose integrado.
+
 ## Entradas
 
 ### REST
@@ -166,7 +170,34 @@ docker compose -f compose.yaml up -d
 ../Procel-API/mvnw -f pom.xml spring-boot:run
 ```
 
-`compose.yaml` sobe apenas o MongoDB local na porta `27017`, sem autenticacao.
+`compose.yaml` sobe `Procel-Telemetry + MongoDB + MQTT` para desenvolvimento
+isolado do modulo. Com `PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED=false`, a
+Telemetry nao exige que a API esteja disponivel. Com
+`PROCEL_TELEMETRY_MQTT_ENABLED=false`, MQTT nao impede a inicializacao.
+
+Build independente:
+
+```bash
+docker build -t procel-telemetry .
+```
+
+Healthcheck:
+
+```text
+/actuator/health
+```
+
+No Coolify:
+
+```text
+Base directory: /Procel-Telemetry
+Dockerfile: /Dockerfile
+Healthcheck: /actuator/health
+```
+
+Configure `SPRING_MONGODB_URI`, `PROCEL_API_BASE_URL`, secrets JWT e variaveis
+MQTT conforme a topologia. `PROCEL_API_BASE_URL` deve ser uma URL resolvivel a
+partir do container da Telemetry.
 
 Swagger:
 

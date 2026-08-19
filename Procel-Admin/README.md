@@ -72,13 +72,44 @@ para series temporais extensas fica pendente para a etapa 12.
 
 O cliente principal usa `API_BASE_URL` em runtime via `window.__PROCEL_CONFIG__.API_BASE_URL`, com fallback local.
 
-A Telemetry usa `VITE_TELEMETRY_API_URL` em build-time ou `window.__PROCEL_CONFIG__.TELEMETRY_API_URL` se existir. O entrypoint Docker atual injeta somente `API_BASE_URL`; ele ainda nao injeta `TELEMETRY_API_URL` em runtime.
+A Telemetry usa `window.__PROCEL_CONFIG__.TELEMETRY_API_URL` em runtime, com fallback local para desenvolvimento. O entrypoint Docker injeta `API_BASE_URL` e `TELEMETRY_API_URL` em `config.js`.
 
 O JWT autenticado e enviado para `Procel-API` e `Procel-Telemetry`.
 
 ## Docker/Nginx
 
-O Dockerfile faz build com Node 24 Alpine e publica arquivos estaticos em Nginx Alpine. O script `docker-entrypoint.d/40-runtime-config.sh` gera `config.js` em runtime com `API_BASE_URL`.
+O Dockerfile faz build com Node 24 Alpine e publica arquivos estaticos em Nginx Alpine. O script `docker-entrypoint.d/40-runtime-config.sh` gera `config.js` em runtime:
+
+```javascript
+window.__PROCEL_CONFIG__ = {
+  API_BASE_URL: "...",
+  TELEMETRY_API_URL: "..."
+};
+```
+
+Isso permite publicar o Admin sozinho no Coolify, apontando API e Telemetry para
+o mesmo dominio, dominios diferentes ou servicos internos/exteriores.
+
+## Coolify
+
+Configuracao sugerida:
+
+```text
+Base directory: /Procel-Admin
+Dockerfile: /Dockerfile
+Port: 80
+Healthcheck: /healthz
+```
+
+Variaveis:
+
+```text
+API_BASE_URL=https://api.seu-dominio
+TELEMETRY_API_URL=https://telemetry.seu-dominio
+```
+
+As URLs devem ser acessiveis pelo navegador do usuario. Nenhuma URL de producao
+precisa ser fixada no bundle; a troca ocorre no runtime do container.
 
 ## Execucao
 
@@ -92,5 +123,4 @@ npm run build
 
 ## Pendencias Conhecidas
 
-- Injetar `TELEMETRY_API_URL` em runtime no entrypoint Docker.
 - Etapa 12: deploy integrado, observabilidade, seguranca operacional e E2E.

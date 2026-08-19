@@ -8,8 +8,8 @@ import type {
 } from "../types/telemetry";
 
 const configuredTelemetryBaseUrl =
-  import.meta.env.VITE_TELEMETRY_API_URL
-  ?? window.__PROCEL_CONFIG__?.TELEMETRY_API_URL
+  window.__PROCEL_CONFIG__?.TELEMETRY_API_URL
+  ?? import.meta.env.VITE_TELEMETRY_API_URL
   ?? "http://localhost:8081";
 
 export const telemetryApiBaseUrl = configuredTelemetryBaseUrl.replace(/\/+$/, "");
