@@ -1,92 +1,10 @@
 {
   "info": {
-    "name": "PROCEL Ingestion - API Smoke Test",
-    "_postman_id": "d36efd2c-3066-43bc-a091-e6438b5625d3",
-    "description": "Colecao Postman baseada no script PowerShell de smoke test da API (rooms sync, sensors seed, pessoa CRUD, catalogo de missoes com deprecacao logica, atividades com CONCLUIDA/EXPIRADA e resumo por status, presenca checkin/checkout, DER Parameter Qualification, ingest mock, medicoes queries).",
+    "_postman_id": "6b9f0a40-3f6c-4c2a-9d2f-procel-current",
+    "name": "PROCEL API e Telemetry - Contratos atuais",
+    "description": "Colecao local para validar contratos implementados. Nao contem credenciais de producao.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    {
-      "key": "baseUrl",
-      "value": "https://procel.servehttp.com"
-    },
-    {
-      "key": "roomId",
-      "value": "2"
-    },
-    {
-      "key": "sensorExternalId",
-      "value": "SII-001"
-    },
-    {
-      "key": "pessoaId",
-      "value": "api-test-user"
-    },
-    {
-      "key": "pessoaEmail",
-      "value": "api-test-user@procel.local"
-    },
-    {
-      "key": "fromIso",
-      "value": ""
-    },
-    {
-      "key": "toIso",
-      "value": ""
-    },
-    {
-      "key": "presencaId",
-      "value": ""
-    },
-    {
-      "key": "jwtToken",
-      "value": ""
-    },
-    {
-      "key": "adminEmail",
-      "value": "admin@procel.local"
-    },
-    {
-      "key": "adminPassword",
-      "value": "admin123"
-    },
-    {
-      "key": "sensorTipoNome",
-      "value": "SII_SMART"
-    },
-    {
-      "key": "ruleParametroNome",
-      "value": "temperature_c"
-    },
-    {
-      "key": "parametroDefId",
-      "value": ""
-    },
-    {
-      "key": "grupoRegraId",
-      "value": ""
-    },
-    {
-      "key": "regraParametroId",
-      "value": ""
-    },
-    {
-      "key": "sensorGrupoRegraId",
-      "value": ""
-    },
-    {
-      "key": "adminPessoaId",
-      "value": "admin"
-    },
-    {
-      "key": "missaoId",
-      "value": ""
-    },
-    {
-      "key": "atividadeId",
-      "value": ""
-    }
-  ],
   "auth": {
     "type": "bearer",
     "bearer": [
@@ -99,160 +17,40 @@
   },
   "item": [
     {
-      "name": "00 - Setup window (from/to)",
+      "name": "Health",
       "item": [
         {
-          "name": "Set fromIso/toIso (last 10 minutes)",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Define janela de consulta: ÃƒÂºltimos 10 minutos",
-                  "const to = new Date();",
-                  "const from = new Date(to.getTime() - 10*60*1000);",
-                  "pm.collectionVariables.set('toIso', to.toISOString().replace(/\\.\\d{3}Z$/, 'Z'));",
-                  "pm.collectionVariables.set('fromIso', from.toISOString().replace(/\\.\\d{3}Z$/, 'Z'));",
-                  "",
-                  "console.log('fromIso=', pm.collectionVariables.get('fromIso'));",
-                  "console.log('toIso=', pm.collectionVariables.get('toIso'));"
-                ]
-              }
-            }
-          ],
+          "name": "Procel-API health",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/actuator/health",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "actuator",
-                "health"
-              ]
-            }
+            "url": "{{baseUrl}}/actuator/health"
           },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "01 - Auth",
-      "item": [
-        {
-          "name": "POST /api/auth/login (admin bootstrap)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has accessToken', function () { pm.expect(data.accessToken).to.be.ok; });",
-                  "pm.collectionVariables.set('jwtToken', data.accessToken);",
-                  "console.log('jwtToken saved');"
+                  "pm.test('health ok', function () { pm.response.to.have.status(200); });"
                 ]
               }
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "auth",
-                "login"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "02 - Rooms & Sensors bootstrap",
-      "item": [
-        {
-          "name": "POST /api/rooms/sync",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rooms/sync",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "sync"
-              ]
-            }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "POST /api/sensors/seed/from-resource",
+          "name": "Procel-Telemetry health",
           "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/seed/from-resource",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "seed",
-                "from-resource"
-              ]
-            }
-          },
-          "response": []
+            "method": "GET",
+            "url": "{{telemetryUrl}}/actuator/health"
+          }
         }
       ]
     },
     {
-      "name": "03 - Pessoas",
+      "name": "Auth",
       "item": [
         {
-          "name": "POST /api/pessoas (create test user - may conflict)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "// Aceita 201 Created ou 409 Conflict (jÃƒÂ¡ existe)",
-                  "pm.test('Status is 200, 201 or 409', function () {",
-                  "  pm.expect([200, 201, 409]).to.include(pm.response.code);",
-                  "});"
-                ]
-              }
-            }
-          ],
+          "name": "Login admin",
           "request": {
             "method": "POST",
             "header": [
@@ -263,656 +61,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"API Test User\",\n  \"email\": \"{{pessoaEmail}}\",\n  \"userId\": \"{{pessoaId}}\",\n  \"password\": \"123456\",\n  \"telefone\": \"51000000000\",\n  \"matricula\": \"TEST-API-001\",\n  \"roles\": [\"USUARIO\"]\n}"
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas"
-              ]
-            }
+            "url": "{{baseUrl}}/api/auth/login"
           },
-          "response": []
-        },
-        {
-          "name": "GET /api/pessoas/{{pessoaId}}",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has userId', function () { pm.expect(data.userId || data.id || data.pessoaId).to.be.ok; });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{pessoaId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{pessoaId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "PUT /api/pessoas/{{pessoaId}} (update)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"API Test User Updated\",\n  \"telefone\": \"51000000001\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{pessoaId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{pessoaId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "04 - Missoes e Atividades",
-      "item": [
-        {
-          "name": "POST /api/missoes (seed modelo - ocupacao)",
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Validar ocupacao inicial\",\n  \"descricao\": \"Modelo de missao seed para uso no sistema.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 20\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has missao.id', function () { pm.expect(data.id).to.be.ok; });",
-                  "pm.collectionVariables.set('missaoId', data.id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "POST /api/missoes (seed modelo - sensores)",
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Acompanhar sensores ativos\",\n  \"descricao\": \"Modelo de missao seed para acompanhar medicoes e qualificacoes do ambiente.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 25\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "POST /api/missoes (seed modelo - dashboard)",
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Revisar dashboard operacional\",\n  \"descricao\": \"Modelo de missao seed para popular o catalogo.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 30\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/missoes?ativo=true",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes?ativo=true",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes"
-              ],
-              "query": [
-                {
-                  "key": "ativo",
-                  "value": "true"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/missoes/{{missaoId}}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes/{{missaoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes",
-                "{{missaoId}}"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "PUT /api/missoes/{{missaoId}}",
-          "request": {
-            "method": "PUT",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes/{{missaoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes",
-                "{{missaoId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"titulo\": \"Validar ocupacao inicial - atualizado\",\n  \"descricao\": \"Modelo de missao atualizado pela collection Postman.\",\n  \"ativo\": true,\n  \"tipo\": \"Individual\",\n  \"value\": 25\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "POST /api/pessoas/{{adminPessoaId}}/atividades (atribuir missao)",
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"missaoId\": \"{{missaoId}}\",\n  \"status\": \"PENDENTE\"\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has atividade.id', function () { pm.expect(data.id).to.be.ok; });",
-                  "pm.collectionVariables.set('atividadeId', data.id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/pessoas/{{adminPessoaId}}/atividades",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/pessoas/{{adminPessoaId}}/atividades/resumo",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/resumo",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades",
-                "resumo"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Resumo has concluidas and expiradas counters', function () { const data = pm.response.json(); pm.expect(data).to.have.property('concluidas'); pm.expect(data).to.have.property('expiradas'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/pessoas/{{adminPessoaId}}/atividades?status=PENDENTE",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades?status=PENDENTE",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades"
-              ],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "PENDENTE"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades",
-                "{{atividadeId}}"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "PUT /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}} (concluir)",
-          "request": {
-            "method": "PUT",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades",
-                "{{atividadeId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"CONCLUIDA\"\n}"
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Activity is CONCLUIDA', function () { pm.expect(pm.response.json().status).to.eql('CONCLUIDA'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "DELETE /api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}} (expirar atividade)",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades/{{atividadeId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades",
-                "{{atividadeId}}"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/204', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/pessoas/{{adminPessoaId}}/atividades?status=EXPIRADA",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/pessoas/{{adminPessoaId}}/atividades?status=EXPIRADA",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "pessoas",
-                "{{adminPessoaId}}",
-                "atividades"
-              ],
-              "query": [
-                {
-                  "key": "status",
-                  "value": "EXPIRADA"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "DELETE /api/missoes/{{missaoId}} (deprecar missao)",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes/{{missaoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes",
-                "{{missaoId}}"
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/204', function () { pm.expect([200, 204]).to.include(pm.response.code); });"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "GET /api/missoes?ativo=false",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/missoes?ativo=false",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "missoes"
-              ],
-              "query": [
-                {
-                  "key": "ativo",
-                  "value": "false"
-                }
-              ]
-            }
-          },
-          "response": [],
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                  "pm.test('Response is an array', function () { pm.expect(pm.response.json()).to.be.an('array'); });"
+                  "pm.test('login success', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('jwtToken', json.token || json.accessToken || json.jwt || '');"
                 ]
               }
             }
@@ -921,25 +82,10 @@
       ]
     },
     {
-      "name": "05 - Presencas",
+      "name": "Ingestao canonica",
       "item": [
         {
-          "name": "POST /api/presencas/checkin",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status 200/201', function () { pm.expect([200, 201]).to.include(pm.response.code); });",
-                  "const data = pm.response.json();",
-                  "pm.test('Has presenca.id', function () { pm.expect(data.id).to.be.ok; });",
-                  "pm.collectionVariables.set('presencaId', data.id);",
-                  "console.log('presencaId=', data.id);"
-                ]
-              }
-            }
-          ],
+          "name": "Criar medicao canonica",
           "request": {
             "method": "POST",
             "header": [
@@ -950,272 +96,26 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"compartimentoId\": \"{{roomId}}\",\n  \"source\": \"api-test\"\n}"
+              "raw": "{\"messageId\":\"postman-canonical-{{$timestamp}}\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{fromIso}}\",\"source\":\"POSTMAN\",\"sourceReceivedAt\":\"{{fromIso}}\",\"values\":[{\"parameter\":\"temperature\",\"numericValue\":24.50}]}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/checkin",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "checkin"
-              ]
-            }
+            "url": "{{baseUrl}}/api/sensors/ingest"
           },
-          "response": []
-        },
-        {
-          "name": "GET /api/presencas/ocupacao/compartimentos/{{roomId}}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "ocupacao",
-                "compartimentos",
-                "{{roomId}}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/presencas/abertas/compartimentos/{{roomId}}",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/abertas/compartimentos/{{roomId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "abertas",
-                "compartimentos",
-                "{{roomId}}"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "06 - Rules / Parameter Qualification",
-      "item": [
-        {
-          "name": "GET /api/rules/parameter-defs?tipoNome",
-          "event": {
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                "const list = pm.response.json();",
-                "const param = list.find(p => p.nome === pm.collectionVariables.get('ruleParametroNome'));",
-                "pm.test('Found parametroDef', function () { pm.expect(param && param.id).to.be.ok; });",
-                "pm.collectionVariables.set('parametroDefId', param.id);"
-              ]
-            }
-          },
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rules/parameter-defs?tipoNome={{sensorTipoNome}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rules",
-                "parameter-defs"
-              ],
-              "query": [
-                {
-                  "key": "tipoNome",
-                  "value": "{{sensorTipoNome}}"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/rules/groups",
-          "event": {
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                "const data = pm.response.json();",
-                "pm.test('Has group id', function () { pm.expect(data.id).to.be.ok; });",
-                "pm.collectionVariables.set('grupoRegraId', data.id);"
-              ]
-            }
-          },
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"API test DER - {{sensorExternalId}} - {{ruleParametroNome}}\",\n  \"descricao\": \"API test rule group created by Postman\",\n  \"ativo\": true\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/rules/groups",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rules",
-                "groups"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/rules/groups/{{grupoRegraId}}/rules",
-          "event": {
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                "const data = pm.response.json();",
-                "pm.test('Has rule id', function () { pm.expect(data.id).to.be.ok; });",
-                "pm.collectionVariables.set('regraParametroId', data.id);"
-              ]
-            }
-          },
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"parametroDefId\": \"{{parametroDefId}}\",\n  \"nome\": \"API test temperature qualification\",\n  \"descricao\": \"API test rule: generated temperature above zero\",\n  \"operador\": \"GT\",\n  \"valorNumeric1\": 0,\n  \"resultado\": \"ALERTA\",\n  \"severidade\": 2,\n  \"prioridade\": 100,\n  \"ativo\": true\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/rules/groups/{{grupoRegraId}}/rules",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rules",
-                "groups",
-                "{{grupoRegraId}}",
-                "rules"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/rules/sensors/{{sensorExternalId}}/groups",
-          "event": {
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                "const data = pm.response.json();",
-                "pm.test('Has sensor-group link id', function () { pm.expect(data.id).to.be.ok; });",
-                "pm.collectionVariables.set('sensorGrupoRegraId', data.id);"
-              ]
-            }
-          },
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"grupoRegraId\": \"{{grupoRegraId}}\",\n  \"status\": \"ATIVO\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/rules/sensors/{{sensorExternalId}}/groups",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rules",
-                "sensors",
-                "{{sensorExternalId}}",
-                "groups"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "POST /api/rules/groups/{{grupoRegraId}}/rooms",
-          "request": {
-            "method": "POST",
-            "header": {
-              "key": "Content-Type",
-              "value": "application/json"
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"compartimentoIds\": [\"{{roomId}}\"],\n  \"status\": \"ATIVO\",\n  \"validoDe\": null,\n  \"validoAte\": null\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/rules/groups/{{grupoRegraId}}/rooms",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rules",
-                "groups",
-                "{{grupoRegraId}}",
-                "rooms"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Configura DER Parameter Qualification. Inclui vinculo individual e em lote aos sensores compativeis das salas selecionadas."
-    },
-    {
-      "name": "07 - Sensors ingest mock",
-      "item": [
-        {
-          "name": "POST /api/sensors/ingest/mock",
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test('Status 200/202', function () { pm.expect([200, 202]).to.include(pm.response.code); });"
+                  "pm.test('created or duplicate', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "if (json.medicaoId) pm.environment.set('canonicalMeasurementId', json.medicaoId);"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Duplicata equivalente",
           "request": {
             "method": "POST",
             "header": [
@@ -1226,181 +126,167 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"sensorExternalId\": \"{{sensorExternalId}}\",\n  \"minutesBack\": 10,\n  \"everySeconds\": 10,\n  \"source\": \"api-test\"\n}"
+              "raw": "{\"messageId\":\"{{telemetryMessageId}}\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{fromIso}}\",\"source\":\"POSTMAN\",\"sourceReceivedAt\":\"{{fromIso}}\",\"values\":[{\"parameter\":\"temperature\",\"numericValue\":24.50}]}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/ingest/mock",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "ingest",
-                "mock"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "08 - Medicoes",
-      "item": [
-        {
-          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes/latest",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes/latest",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "{{sensorExternalId}}",
-                "medicoes",
-                "latest"
-              ]
-            }
-          },
-          "response": [],
-          "event": {
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "pm.test('Status 200', function () { pm.response.to.have.status(200); });",
-                "const data = pm.response.json();",
-                "pm.test('Has temperature qualification', function () {",
-                "  pm.expect(data.qualificacoes).to.be.ok;",
-                "  pm.expect(data.qualificacoes.temperature_c).to.be.an('array').that.is.not.empty;",
-                "});"
-              ]
-            }
+            "url": "{{baseUrl}}/api/sensors/ingest"
           }
         },
         {
-          "name": "GET /api/sensors/{{sensorExternalId}}/medicoes?from&to&page&limit",
+          "name": "Conflito idempotente",
           "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/medicoes?from={{fromIso}}&to={{toIso}}&page=0&limit=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "sensors",
-                "{{sensorExternalId}}",
-                "medicoes"
-              ],
-              "query": [
-                {
-                  "key": "from",
-                  "value": "{{fromIso}}"
-                },
-                {
-                  "key": "to",
-                  "value": "{{toIso}}"
-                },
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "limit",
-                  "value": "50"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/rooms/{{roomId}}/medicoes/latest",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes/latest",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "{{roomId}}",
-                "medicoes",
-                "latest"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "GET /api/rooms/{{roomId}}/medicoes?from&to&page&limit",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/rooms/{{roomId}}/medicoes?from={{fromIso}}&to={{toIso}}&page=0&limit=50",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "rooms",
-                "{{roomId}}",
-                "medicoes"
-              ],
-              "query": [
-                {
-                  "key": "from",
-                  "value": "{{fromIso}}"
-                },
-                {
-                  "key": "to",
-                  "value": "{{toIso}}"
-                },
-                {
-                  "key": "page",
-                  "value": "0"
-                },
-                {
-                  "key": "limit",
-                  "value": "50"
-                }
-              ]
-            }
-          },
-          "response": []
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"{{telemetryMessageId}}\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{toIso}}\",\"source\":\"POSTMAN\",\"sourceReceivedAt\":\"{{toIso}}\",\"values\":[{\"parameter\":\"temperature\",\"numericValue\":99.99}]}"
+            },
+            "url": "{{baseUrl}}/api/sensors/ingest"
+          }
         }
       ]
     },
     {
-      "name": "09 - Checkout",
+      "name": "Integracoes",
       "item": [
         {
-          "name": "POST /api/presencas/checkout/by-pessoa (optional)",
+          "name": "Listar perfis",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles"
+          }
+        },
+        {
+          "name": "Detalhar perfil",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles/{{profileId}}"
+          }
+        },
+        {
+          "name": "Listar versoes do perfil",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles/{{profileId}}/versions"
+          }
+        },
+        {
+          "name": "Ativar versao",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles/{{profileId}}/versions/{{parserVersionId}}/activate"
+          }
+        },
+        {
+          "name": "Listar bindings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/bindings?profileId={{profileId}}"
+          }
+        },
+        {
+          "name": "Ativar binding",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/sensor-integrations/bindings/{{bindingId}}/activate"
+          }
+        },
+        {
+          "name": "Snapshot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/snapshot"
+          }
+        },
+        {
+          "name": "Ingestao externa PAYLOAD_POINTER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"profile-msg-{{$timestamp}}\",\"sensorId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{fromIso}}\",\"payload\":{\"temperature\":24.5}}"
+            },
+            "url": "{{baseUrl}}/api/sensors/ingest/integrations/{{profileId}}"
+          }
+        },
+        {
+          "name": "Ingestao externa ROUTE_SENSOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"profile-route-msg-{{$timestamp}}\",\"timestamp\":\"{{fromIso}}\",\"payload\":{\"temperature\":24.5}}"
+            },
+            "url": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/ingest/integrations/{{profileId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telemetry",
+      "item": [
+        {
+          "name": "Ingestao REST bruta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"source\":\"REST\",\"messageId\":\"{{telemetryMessageId}}\",\"sensorId\":\"{{sensorExternalId}}\",\"sourceTimestamp\":\"{{fromIso}}\",\"payload\":{\"temperature\":24.5}}"
+            },
+            "url": "{{telemetryUrl}}/api/telemetry/events"
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "// Esse endpoint ÃƒÂ© opcional; se nÃƒÂ£o existir, pode retornar 404.",
-                  "pm.test('Status is 200/201/404', function () {",
-                  "  pm.expect([200, 201, 404]).to.include(pm.response.code);",
-                  "});"
+                  "pm.test('accepted or duplicate', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.environment.set('rawTelemetryEventId', json.id);"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Listar eventos",
+          "request": {
+            "method": "GET",
+            "url": "{{telemetryUrl}}/api/telemetry/events?page=0&size=20&sensorId={{sensorExternalId}}"
+          }
+        },
+        {
+          "name": "Detalhar evento",
+          "request": {
+            "method": "GET",
+            "url": "{{telemetryUrl}}/api/telemetry/events/{{rawTelemetryEventId}}"
+          }
+        },
+        {
+          "name": "Reprocessar evento",
           "request": {
             "method": "POST",
             "header": [
@@ -1411,84 +297,52 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\"\n}"
+              "raw": "{\"reason\":\"Reprocessamento manual de exemplo local\"}"
             },
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/checkout/by-pessoa",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "checkout",
-                "by-pessoa"
-              ]
-            }
-          },
-          "response": []
-        },
+            "url": "{{telemetryUrl}}/api/telemetry/events/{{rawTelemetryEventId}}/reprocess"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agregacoes",
+      "item": [
         {
-          "name": "POST /api/presencas/checkout (fallback by presencaId)",
+          "name": "Criar job de agregacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"from\":\"{{fromIso}}\",\"to\":\"{{toIso}}\",\"windowDuration\":\"PT15M\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"compartimentoId\":\"{{roomId}}\"}"
+            },
+            "url": "{{baseUrl}}/api/analytics/aggregation-jobs"
+          },
           "event": [
             {
-              "listen": "prerequest",
+              "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (!pm.collectionVariables.get('presencaId')) {",
-                  "  console.warn('presencaId vazio. Rode o checkin primeiro.');",
-                  "}"
+                  "pm.test('accepted', function () { pm.response.to.have.status(202); });",
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.environment.set('aggregationJobId', json.id);"
                 ]
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"presencaId\": \"{{presencaId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/checkout",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "checkout"
-              ]
-            }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "GET /api/presencas/ocupacao/compartimentos/{{roomId}} (after checkout)",
+          "name": "Consultar job de agregacao",
           "request": {
             "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/presencas/ocupacao/compartimentos/{{roomId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "presencas",
-                "ocupacao",
-                "compartimentos",
-                "{{roomId}}"
-              ]
-            }
-          },
-          "response": []
+            "url": "{{baseUrl}}/api/analytics/aggregation-jobs/{{aggregationJobId}}"
+          }
         }
       ]
     }

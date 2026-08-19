@@ -1,901 +1,295 @@
-# PROCEL Back-End
+# PROCEL
 
-Repositorio dos artefatos de backend do PROCEL: API de ingestao analitica, documentacao de API, scripts de teste, DER e DDL do banco.
+PROCEL e uma plataforma para receber telemetria bruta, transformar eventos em medicoes canonicas, administrar sensores e perfis de integracao, e preparar processamento analitico por periodos.
+
+O repositorio contem tres aplicacoes principais:
+
+| Aplicacao | Responsabilidade | Banco |
+| --- | --- | --- |
+| `Procel-API` | API principal, autenticacao, dominio academico, sensores, medicoes canonicas, perfis de integracao e jobs analiticos | PostgreSQL |
+| `Procel-Telemetry` | Recebimento bruto REST/MQTT, idempotencia bruta, armazenamento no MongoDB, worker canonico para envio ao `Procel-API` e operacao administrativa da telemetria | MongoDB |
+| `Procel-Admin` | Console web administrativo para catalogo, sensores, regras, integracoes, sincronizacoes e operacao da telemetria | N/A |
 
 ## Estrutura
 
 ```text
-API-Doc/
-  Insomnia/                 # Workspace exportado do Insomnia
-  Postman/                  # Collections/environments Postman
-Database/
-  PROCEL-API/               # DDL versionado do banco analitico
-Documentos/
-  DER-BancoAnalitico/       # DER draw.io
-  ApiSmokeTests/            # Script PowerShell de smoke test da API
-Procel-Admin/               # Console web React/TypeScript
-Procel-API/                 # API Spring Boot principal
+.
+|-- Procel-API/          # Spring Boot, PostgreSQL, Flyway, dominio canonico
+|-- Procel-Telemetry/    # Spring Boot, MongoDB, MQTT 5, worker canonico
+|-- Procel-Admin/        # React/Vite, console administrativo
+|-- API-Doc/             # Postman, Insomnia e orientacao dos contratos
+|-- Database/            # SQL legado e consultas auxiliares
+|-- Documentos/          # Arquitetura, DER, MongoDB, MQTT, seguranca e catalogo de dados
+`-- README.md
 ```
 
-## Procel-Admin
+## Tecnologias
 
-Console web independente para operacao e gerenciamento, construido com React,
-TypeScript, Vite e Material UI. A imagem Docker usa Nginx e recebe a URL da API
-pela variavel `API_BASE_URL`.
+| Area | Tecnologia |
+| --- | --- |
+| Backend | Java 21, Spring Boot 4.0.3, Spring Security, Spring Data JPA/MongoDB |
+| Banco canonico | PostgreSQL, Flyway |
+| Banco bruto | MongoDB |
+| MQTT | MQTT 5, Eclipse Paho MQTT v5, QoS 1 |
+| Frontend | React 19, TypeScript, Vite 7, MUI 7, React Query |
+| Testes | JUnit 5, Testcontainers, Vitest, Testing Library |
+| Documentacao API | springdoc OpenAPI, Postman 2.1, Insomnia YAML |
 
-Organizacao principal do front-end:
+## Arquitetura Atual
+
+Dispositivos e produtores podem enviar telemetria bruta por REST ou MQTT para o `Procel-Telemetry`. O evento bruto e persistido em `raw_telemetry_events` no MongoDB, com payload original, hash, identidade do produtor, `messageId`, timestamps e estado de processamento.
+
+O worker canonico do `Procel-Telemetry`, desabilitado por padrao, faz claim atomico de eventos `RECEIVED`, consulta o snapshot de integracao do `Procel-API`, seleciona o perfil/parser sem resolver ambiguidades silenciosamente e chama a rota interna de ingestao do `Procel-API` com JWT curto de role fixa `TELEMETRY_SERVICE`.
+
+O `Procel-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao e buckets numericos. O `Procel-Admin` consome `Procel-API` e `Procel-Telemetry` usando o JWT do usuario autenticado.
+
+`Procel-Telemetry` nao acessa diretamente o PostgreSQL.
+
+## Fluxos
+
+### Ingestao REST Canonica
+
+Clientes autorizados como `ADMIN` ou `INGESTOR` podem enviar medicoes canonicas diretamente ao `Procel-API`:
 
 ```text
-src/api/       # Clients HTTP por dominio
-src/features/  # Fluxos/telas organizados por area funcional
-src/pages/     # Entradas de rota
-src/types/     # Contratos TypeScript por dominio
-```
-
-No Coolify, configure como uma aplicacao separada:
-
-```text
-Base directory: /Procel-Admin
-Port: 80
-Health check: /healthz
-Watch paths: /Procel-Admin/**
-```
-
-Isso evita que alteracoes exclusivas do console reiniciem o backend e
-interrompam jobs de ingestao.
-
-## Procel-API
-
-API Spring Boot responsavel por:
-
-- sincronizar salas/compartimentos a partir do Cobalto ou arquivo local;
-- carregar seed de sensores;
-- cadastrar e autenticar pessoas;
-- registrar check-in/checkout de presencas;
-- cadastrar modelos de missoes e acompanhar atividades;
-- gerar ingestao mockada de medicoes de sensores;
-- consultar medicoes por sensor ou compartimento;
-- cadastrar grupos/regras de qualificacao de parametros por sensor;
-- avaliar medicoes contra regras DER/Parameter Qualification;
-- expor documentacao Swagger/OpenAPI.
-
-Stack principal:
-
-- Java 21
-- Spring Boot 4.0.3
-- Spring Web
-- Spring Data JPA
-- Spring Security
-- JWT stateless
-- PostgreSQL
-- Flyway
-- springdoc-openapi/Swagger UI
-
-## Como Rodar Localmente
-
-Pre-requisitos:
-
-- Java 21
-- Docker ou PostgreSQL local
-- PowerShell, se for usar o script de smoke test
-
-Suba o PostgreSQL local:
-
-```powershell
-cd Procel-API
-docker compose up -d
-```
-
-Execute a API:
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-Por padrao, a aplicacao usa:
-
-```text
-PostgreSQL: localhost:5432
-Database:   procel_analytics
-User:       postgres
-Password:   postgres
-```
-
-Em deploy, sobrescreva esses valores por variaveis de ambiente. Em bancos gerenciados
-que exigem TLS/SSL, como costuma ocorrer em hospedagens externas, inclua
-`sslmode=require` na URL JDBC:
-
-```text
-SPRING_DATASOURCE_URL=jdbc:postgresql://HOST:PORTA/NOME_DO_BANCO?sslmode=require
-SPRING_DATASOURCE_USERNAME=USUARIO_DO_BANCO
-SPRING_DATASOURCE_PASSWORD=SENHA_DO_BANCO
-```
-
-Falhas fatais de autenticacao/permissao no PostgreSQL encerram a API imediatamente,
-em vez de manter tentativas indefinidas de conexao quando a senha, usuario, host ou
-permissao do banco estiverem incorretos.
-
-Os tempos de tentativa podem ser ajustados por variaveis de ambiente:
-
-```text
-SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS=10000
-SPRING_DATASOURCE_VALIDATION_TIMEOUT_MS=5000
-SPRING_DATASOURCE_INITIALIZATION_FAIL_TIMEOUT_MS=1
-SPRING_DATASOURCE_LOGIN_TIMEOUT_SECONDS=10
-```
-
-O banco local usa o volume Docker `postgres_data`, entao os dados persistem entre reinicios normais. Para manter os dados, pare os containers com:
-
-```powershell
-docker compose down
-```
-
-Nao use `docker compose down -v` se quiser preservar o banco, porque `-v` remove o volume do PostgreSQL.
-
-O schema e seeds versionados sao aplicados automaticamente pelo Flyway:
-
-```yaml
-spring:
-  flyway:
-    enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 1
-    encoding: UTF-8
-```
-
-As migrations ficam em:
-
-```text
-Procel-API/src/main/resources/db/migration/
-```
-
-`V2__mission_catalog_and_activity_expiration.sql` registra as 30 missoes padrao como tipo `Individual`, com `value` numerico de XP, e atualiza o status `EXPIRADA` para atividades. `V3__rename_legacy_activity_table.sql` renomeia bancos existentes para a tabela canonica `atividade`. `V4__mission_type_individual_seed.sql` garante `missao.tipo = Individual` em bancos que ja tinham recebido o seed antes desse campo. `V5__mission_seed_xp_values.sql` garante os valores de XP das missoes seed em bancos existentes.
-
-O Hibernate ainda esta configurado para atualizar ajustes de schema durante desenvolvimento:
-
-```yaml
-spring:
-  jpa:
-    hibernate:
-      ddl-auto: update
-```
-
-## CORS E Front-End
-
-A API habilita CORS para permitir chamadas feitas por navegadores a partir de outro origin, por exemplo um front-end rodando no computador de um desenvolvedor enquanto a API esta publicada em um servidor.
-
-Configuracao principal:
-
-```yaml
-procel:
-  cors:
-    allowed-origin-patterns: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}
-```
-
-Com essa configuracao, um front-end local como `http://localhost:5173` ou `http://127.0.0.1:3000` pode chamar uma API publicada, por exemplo `https://seu-dominio.com/api/...`.
-
-Para producao, restrinja a variavel ao dominio real do front-end:
-
-```powershell
-$env:PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS = "https://seu-front-end.com"
-```
-
-Se o front-end de desenvolvimento usar HTTPS local, adicione tambem:
-
-```powershell
-$env:PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS = "http://localhost:*,http://127.0.0.1:*,https://localhost:*,https://127.0.0.1:*"
-```
-
-No front-end, use sempre a URL completa da API publicada. `localhost` no navegador do usuario aponta para o proprio computador do usuario, nao para o servidor.
-
-## Servidor De Testes
-
-Tambem existe uma instancia publicada via Coolify para testes sem rodar o backend localmente:
-
-```text
-https://procel.servehttp.com
-```
-
-Documentacao Swagger nesse ambiente:
-
-```text
-https://procel.servehttp.com/docs
-https://procel.servehttp.com/swagger-ui/index.html
-```
-
-Use esse host como `baseUrl` no Insomnia, Postman ou no script de smoke test quando quiser testar contra o servidor remoto.
-
-## Documentacao Da API
-
-Com a API em execucao:
-
-```text
-http://localhost:8080/docs
-http://localhost:8080/swagger-ui/index.html
-```
-
-OpenAPI bruto:
-
-```text
-http://localhost:8080/v3/api-docs
-http://localhost:8080/v3/api-docs.yaml
-```
-
-O Swagger possui suporte a Bearer JWT. Faca login em `POST /api/auth/login`, copie o `accessToken`, clique em `Authorize` e informe o token.
-
-## Autenticacao E Acesso
-
-A API usa JWT stateless via header:
-
-```http
-Authorization: Bearer <token>
-```
-
-Roles disponiveis:
-
-```text
-ADMIN
-OPERADOR
-ANALISTA
-USUARIO
-INGESTOR
-```
-
-Usuarios para desenvolvimento/testes:
-
-```text
-Admin bootstrap:
-  email:    admin@procel.local
-  password: admin123
-  role:     ADMIN
-
-Usuario criado pelo smoke test:
-  userId:   api-test-user
-  email:    api-test-user@procel.local
-  password: 123456
-  role:     USUARIO
-```
-
-Essas credenciais existem para facilitar testes locais e no ambiente remoto de homologacao. Nao use esses valores como credenciais reais de producao.
-
-Variaveis relevantes:
-
-```text
-PROCEL_JWT_SECRET
-PROCEL_JWT_EXPIRATION_MINUTES
-PROCEL_BOOTSTRAP_ADMIN_ENABLED
-PROCEL_BOOTSTRAP_ADMIN_USER_ID
-PROCEL_BOOTSTRAP_ADMIN_NOME
-PROCEL_BOOTSTRAP_ADMIN_EMAIL
-PROCEL_BOOTSTRAP_ADMIN_PASSWORD
-```
-
-Em producao, configure um `PROCEL_JWT_SECRET` forte e altere/desabilite o usuario bootstrap:
-
-```text
-PROCEL_BOOTSTRAP_ADMIN_ENABLED=false
-```
-
-## Fluxo De Usuario
-
-Auto cadastro publico:
-
-```http
-POST /api/auth/register
-```
-
-Cria sempre uma pessoa com role:
-
-```text
-USUARIO
-```
-
-Login:
-
-```http
-POST /api/auth/login
-```
-
-Gestao administrativa de pessoas:
-
-```http
-POST   /api/pessoas
-GET    /api/pessoas/{id}
-PUT    /api/pessoas/{id}
-DELETE /api/pessoas/{id}
-```
-
-Regras:
-
-- `POST /api/auth/register` e publico e nao aceita escolha de role.
-- `POST /api/pessoas` exige `ADMIN` e permite criar usuarios com roles especificas.
-- `PUT /api/pessoas/{id}` permite que o proprio usuario atualize seus dados, mas roles enviadas por usuario comum sao ignoradas.
-- Apenas `ADMIN` altera roles.
-
-## Endpoints Principais
-
-Autenticacao:
-
-```text
-POST /api/auth/register
-POST /api/auth/login
-```
-
-Pessoas:
-
-```text
-POST   /api/pessoas
-GET    /api/pessoas/{id}
-PUT    /api/pessoas/{id}
-DELETE /api/pessoas/{id}
-```
-
-Presencas:
-
-```text
-POST /api/presencas/checkin
-POST /api/presencas/checkout
-POST /api/presencas/checkout/by-pessoa
-GET  /api/presencas/ocupacao/compartimentos/{compartimentoId}
-GET  /api/presencas/abertas/compartimentos/{compartimentoId}
-```
-
-Missoes:
-
-```text
-POST   /api/missoes
-GET    /api/missoes
-GET    /api/missoes?ativo=true
-GET    /api/missoes/{missaoId}
-PUT    /api/missoes/{missaoId}
-DELETE /api/missoes/{missaoId}
-```
-
-`DELETE /api/missoes/{missaoId}` nao remove a linha. Ele depreca a missao, marcando `ativo=false`, e expira atividades abertas dessa missao.
-
-Modelos de missao possuem `tipo` e `value`. O seed padrao usa `tipo = Individual` e grava em `value` apenas o numero de XP recomendado.
-
-Atividades:
-
-```text
-POST   /api/pessoas/{pessoaId}/atividades
-GET    /api/pessoas/{pessoaId}/atividades
-GET    /api/pessoas/{pessoaId}/atividades?status={status}
-GET    /api/pessoas/{pessoaId}/atividades/resumo
-GET    /api/pessoas/{pessoaId}/atividades/{atividadeId}
-PUT    /api/pessoas/{pessoaId}/atividades/{atividadeId}
-DELETE /api/pessoas/{pessoaId}/atividades/{atividadeId}
-```
-
-Status suportados para atividades:
-
-```text
-PENDENTE, EM_ANDAMENTO, CONCLUIDA, EXPIRADA, CANCELADA
-```
-
-`missao` e o modelo/catalogo. Uma missao pode informar `parentId` para formar uma arvore de objetivos e etapas filhas; ciclos e autorreferencia sao rejeitados. Na atualizacao, `parentId: null` move a missao para a raiz. Ao atribuir uma missao pai, a API cria atividades para toda a subarvore ativa. O status e o progresso da atividade pai sao derivados das filhas: quando todas as filhas diretas estao `CONCLUIDA`, a pai e concluida automaticamente. As respostas de atividade incluem `missaoParentId`, `totalFilhas`, `filhasConcluidas` e `progressoPercentual`. Atividades nao sao apagadas; o delete logico marca `EXPIRADA`.
-
-Salas e sensores:
-
-```text
-POST /api/rooms/sync
-POST /api/sensors/seed/from-resource
 POST /api/sensors/ingest
-POST /api/sensors/ingest/integrations/{profileId}
-POST /api/sensors/{sensorExternalId}/ingest/integrations/{profileId}
 POST /api/sensors/ingest/mock
-GET  /api/sensor-integrations/snapshot
-GET  /api/sensor-admin/types
-POST /api/sensor-admin/types
-POST /api/sensor-admin/types/{tipoNome}/parameters
-POST /api/sensor-admin/sensors
 ```
 
-### Contrato Canonico De Ingestao
+A idempotencia canonica usa metadata de ingestao no PostgreSQL. Duplicatas equivalentes retornam sucesso idempotente; conflitos retornam erro sem sobrescrever a medicao original.
 
-Endpoint:
+### Integracao por Perfil
 
-```http
-POST /api/sensors/ingest
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-O token precisa pertencer a um usuario com role `ADMIN` ou `INGESTOR`. O `producerId`
-usado para idempotencia nao vem no corpo: ele e derivado de `authentication.getName()`,
-ou seja, do usuario autenticado no JWT. Produtores diferentes podem reutilizar o mesmo
-`messageId` sem colisao entre si.
-
-Request:
-
-```json
-{
-  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
-  "sensorExternalId": "SII-001",
-  "timestamp": "2026-08-11T23:30:00Z",
-  "source": "MQTT",
-  "sourceReceivedAt": "2026-08-11T23:30:02Z",
-  "values": {
-    "temperature_c": 23.7,
-    "presence": true,
-    "label": "ok"
-  }
-}
-```
-
-Campos:
-
-- `messageId`: obrigatorio, texto nao vazio. Deve identificar uma mensagem de forma estavel dentro do produtor e do sensor.
-- `sensorExternalId`: obrigatorio, texto nao vazio. Deve apontar para um sensor ativo cadastrado.
-- `timestamp`: obrigatorio, ISO-8601. Representa o instante medido pelo sensor.
-- `source`: obrigatorio. Valores aceitos: `MQTT`, `REST`, `FILE`, `API`.
-- `sourceReceivedAt`: opcional, ISO-8601. Representa quando o produtor recebeu a mensagem da origem.
-- `values`: obrigatorio, objeto nao vazio. As chaves devem ser nomes de `ParametroDef` ativos para o tipo do sensor.
-
-Idempotencia:
-
-- A chave idempotente e `(producerId, sensorExternalId, messageId)`.
-- Se a primeira chamada for aceita, a API persiste a medicao e metadados de ingestao.
-- Se a mesma chave chegar novamente com payload canonico equivalente, a API retorna a medicao existente.
-- Se a mesma chave chegar com payload canonico divergente, a API retorna conflito.
-- A equivalencia considera `messageId`, `sensorExternalId`, `source`, `timestamp` e `values`; `sourceReceivedAt` nao participa do fingerprint.
-- Em `values`, a ordem das chaves nao altera o fingerprint. Numeros sao normalizados para evitar conflito entre representacoes equivalentes como `23.70` e `23.7`.
-
-Resposta `201 Created`:
-
-```json
-{
-  "status": "CREATED",
-  "code": "MEASUREMENT_INGESTED",
-  "duplicate": false,
-  "medicaoId": "cfd0d5e4-8ca4-45c8-9479-2e6108fc0d32",
-  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
-  "apiReceivedAt": "2026-08-11T23:30:03.123Z",
-  "originalApiReceivedAt": null,
-  "duplicateDetectedAt": null,
-  "conflictDetectedAt": null,
-  "message": null
-}
-```
-
-Resposta `200 OK` para duplicata equivalente:
-
-```json
-{
-  "status": "DUPLICATE",
-  "code": "DUPLICATE_MESSAGE",
-  "duplicate": true,
-  "medicaoId": "cfd0d5e4-8ca4-45c8-9479-2e6108fc0d32",
-  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
-  "apiReceivedAt": null,
-  "originalApiReceivedAt": "2026-08-11T23:30:03.123Z",
-  "duplicateDetectedAt": "2026-08-11T23:31:10.456Z",
-  "conflictDetectedAt": null,
-  "message": null
-}
-```
-
-Resposta `409 Conflict` para mesma chave com payload divergente:
-
-```json
-{
-  "status": "CONFLICT",
-  "code": "IDEMPOTENCY_CONFLICT",
-  "duplicate": true,
-  "medicaoId": "cfd0d5e4-8ca4-45c8-9479-2e6108fc0d32",
-  "messageId": "sii-smart-001-2026-08-11T23:30:00Z",
-  "apiReceivedAt": null,
-  "originalApiReceivedAt": "2026-08-11T23:30:03.123Z",
-  "duplicateDetectedAt": null,
-  "conflictDetectedAt": "2026-08-11T23:31:10.456Z",
-  "message": "A different payload was already ingested for this producer, sensor and messageId."
-}
-```
-
-Erros estruturados usam o formato:
-
-```json
-{
-  "message": "Active sensor not found: SII-999",
-  "error": "SENSOR_NOT_FOUND",
-  "timestamp": "2026-08-11T23:30:03.123Z"
-}
-```
-
-Codigos relevantes:
-
-- `400 BAD_REQUEST`: campos obrigatorios ausentes/vazios, `values` vazio ou corpo invalido.
-- `400 SOURCE_INVALID`: `source` fora de `MQTT`, `REST`, `FILE`, `API`.
-- `400 TIMESTAMP_INVALID`: timestamp sem formato ISO-8601 valido.
-- `401 UNAUTHORIZED`: token ausente ou invalido.
-- `403 FORBIDDEN`: usuario autenticado sem role `ADMIN` ou `INGESTOR`.
-- `404 SENSOR_NOT_FOUND`: `sensorExternalId` nao existe ou nao esta ativo.
-- `409 IDEMPOTENCY_CONFLICT`: mesma chave idempotente com payload divergente.
-- `422 PARAMETER_NOT_ACCEPTED`: chave em `values` nao aceita pelo tipo do sensor.
-- `422 VALUE_TYPE_INVALID`: valor nao conversivel para o tipo do parametro.
-
-### Perfis De Integracao E Parser
-
-Perfis de integracao permitem receber payloads externos e transforma-los no contrato
-canonico usando Jackson Tree e JSON Pointer. O escopo atual e REST dentro da
-Procel-API; MQTT, cache externo, retry de transporte e Procel-Telemetry ficam fora
-desta fatia.
-
-Endpoints administrativos exigem `ADMIN`:
+Perfis de integracao definem o modo de rota (`ROUTE_SENSOR` ou `PAYLOAD_POINTER`), versoes de parser e bindings ativos. As rotas publicas de ingestao por perfil permanecem separadas das rotas internas usadas pela telemetria:
 
 ```text
-GET    /api/sensor-integrations/profiles?includeInactive=false
-POST   /api/sensor-integrations/profiles
-GET    /api/sensor-integrations/profiles/{profileId}
-PUT    /api/sensor-integrations/profiles/{profileId}
-POST   /api/sensor-integrations/profiles/{profileId}/activate
-DELETE /api/sensor-integrations/profiles/{profileId}
-POST   /api/sensor-integrations/profiles/{profileId}/versions
-GET    /api/sensor-integrations/profiles/{profileId}/versions
-GET    /api/sensor-integrations/profiles/{profileId}/versions/{versionId}
-PUT    /api/sensor-integrations/profiles/{profileId}/versions/{versionId}
-POST   /api/sensor-integrations/profiles/{profileId}/versions/{versionId}/activate
-POST   /api/sensor-integrations/profiles/{profileId}/bindings
-GET    /api/sensor-integrations/profiles/{profileId}/bindings?includeInactive=false
-POST   /api/sensor-integrations/bindings/{bindingId}/activate
-DELETE /api/sensor-integrations/bindings/{bindingId}
-```
-
-Versoes de parser nascem como `DRAFT`. Apenas `DRAFT` pode ser editada. Ao ativar,
-a versao vira `ACTIVE`, recebe `publishedAt` e passa a ser imutavel. Se ja existir
-uma versao `ACTIVE` do mesmo perfil, ela passa para `INACTIVE` na mesma transacao.
-A ativacao exige informar a versao ativa esperada para evitar atualizacao perdida:
-
-```json
-{
-  "expectedActiveVersionId": null
-}
-```
-
-Configuracao de parser:
-
-```json
-{
-  "sensorResolutionMode": "PAYLOAD_POINTER",
-  "messageIdPointer": "/meta/id",
-  "sensorExternalIdPointer": "/device/id",
-  "timestampPointer": "/measuredAt",
-  "sourceReceivedAtPointer": "/receivedAt",
-  "timestampFormat": "ISO_INSTANT",
-  "valueMappings": [
-    {
-      "parameterName": "temperature_c",
-      "valuePointer": "/readings/temperature",
-      "required": true
-    }
-  ]
-}
-```
-
-`sensorResolutionMode` aceita `PAYLOAD_POINTER` ou `ROUTE_SENSOR`. Em
-`PAYLOAD_POINTER`, o sensor vem do payload. Em `ROUTE_SENSOR`, use:
-
-```http
+POST /api/sensors/ingest/integrations/{profileId}
 POST /api/sensors/{sensorExternalId}/ingest/integrations/{profileId}
 ```
 
-Ingestao com sensor extraido do payload:
+### Entrada MQTT
 
-```http
-POST /api/sensors/ingest/integrations/{profileId}
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-Para toda ingestao por perfil, a API exige perfil ativo, versao `ACTIVE`, sensor
-ativo e binding ativo entre perfil e sensor. `source` vem somente do perfil;
-`producerId` vem do JWT; `sourceReceivedAt` pode vir somente do JSON Pointer da
-versao e nao entra no fingerprint.
-
-Limites padrao:
+O `Procel-Telemetry` assina, quando habilitado:
 
 ```text
-procel.integrations.parser.max-payload-bytes=262144
-procel.integrations.parser.max-mappings=100
-procel.integrations.parser.max-depth=64
+procel/telemetry/v1/+/+/events
+procel/telemetry/v1/+/events
 ```
 
-Payload acima do limite e rejeitado antes da materializacao do JSON com:
+O `producerId` vem exclusivamente do topico. O `sensorId` do topico prevalece sobre o envelope; divergencia entre topico e envelope e descartada com ACK. O `messageId` e obrigatorio no envelope JSON e nao usa o packet identifier MQTT. O ACK manual ocorre somente depois de persistencia, duplicata equivalente, conflito idempotente ou descarte permanente. Falha transitoria do MongoDB nao recebe ACK para permitir redelivery.
 
-```json
-{
-  "error": "PAYLOAD_TOO_LARGE",
-  "message": "Integration payload exceeds max size",
-  "timestamp": "2026-08-11T23:30:03.123Z"
-}
-```
+### Worker Telemetry -> Procel-API
 
-Snapshot para produtores autorizados (`ADMIN` ou `INGESTOR`):
+O worker canonico:
 
-```http
-GET /api/sensor-integrations/snapshot
-```
+- faz claim atomico `RECEIVED -> PROCESSING` via MongoDB;
+- processa sequencialmente ate `batch-size` por ciclo;
+- usa lease individual por evento;
+- recupera eventos presos em `PROCESSING`;
+- reaproveita snapshot por TTL configuravel;
+- classifica respostas `201`, `200`, `409` e falhas permanentes/transitorias;
+- usa retry com backoff e limite de tentativas;
+- preserva payload bruto, `messageId`, `producerId`, timestamps e contexto.
 
-Retorna apenas perfis ativos, versoes `ACTIVE`, bindings ativos e sensores ativos,
-sem segredos.
+### Reprocessamento Administrativo
 
-Medicoes:
+Administradores podem recolocar eventos em `RECEIVED` sem editar payload bruto e sem chamar a ingestao canonica dentro da requisicao:
 
 ```text
-GET /api/sensors/{sensorExternalId}/medicoes/latest
-GET /api/sensors/{sensorExternalId}/medicoes?from={fromIso}&to={toIso}&page=0&limit=50
-GET /api/rooms/{compartimentoId}/medicoes/latest
-GET /api/rooms/{compartimentoId}/medicoes?from={fromIso}&to={toIso}&page=0&limit=50
+POST /api/telemetry/events/{id}/reprocess
 ```
 
-Datas `from` e `to` devem estar em ISO-8601, por exemplo:
+O reprocessamento e permitido somente para `CANONICAL_FAILED`, `CANONICAL_CONFLICT` e `DISCARDED`. O historico embutido preserva estado anterior, erro, tentativas, ids canonicos, usuario, data e motivo.
 
-```text
-2026-03-04T05:00:00Z
-```
+### Agregacoes Assincronas
 
-`page` inicia em zero e `limit` aceita ate 1000 registros. As qualificacoes `IDEAL` e `NORMAL` podem ser apresentadas como aprovadas; `ALERTA`, `CRITICO` e `INVALIDO` como reprovadas. Ausencia de qualificacao significa que nenhuma regra ativa foi disparada para o parametro, nao uma aprovacao implicita.
-
-### Agregacoes Analiticas
-
-A API possui orquestracao administrativa para jobs assincronos de agregacao por
-periodo:
+O `Procel-API` permite criar jobs administrativos para dividir um periodo em janelas deterministicas:
 
 ```text
 POST /api/analytics/aggregation-jobs
 GET  /api/analytics/aggregation-jobs/{id}
 ```
 
-A etapa atual persiste buckets numericos em `analytics_numeric_bucket`. Cada bucket
-representa um intervalo semiaberto `[bucket_start, bucket_end)`, um sensor, um
-`parametro_def` numerico e uma versao de agregacao. A identidade logica e:
+A etapa atual inclui orquestracao, claim atomico de janelas, lease, retry, retomada e persistencia de buckets numericos por janela. A API ampla de consulta analitica e a interface de graficos ainda nao existem.
+
+### Buckets Analiticos
+
+Os buckets numericos sao persistidos em `analytics_numeric_bucket`, agrupando `ParametroValor.numericValue` por:
 
 ```text
 sensor_external_id + parametro_def_id + bucket_start + bucket_end + aggregation_version
 ```
 
-As estatisticas gravadas sao media, minimo, maximo e quantidade de amostras,
-considerando apenas `parametro_valor.numeric_value` nao nulo e parametros com
-`data_type = NUMERIC`. Valores booleanos e textuais nao sao agregados nesta etapa.
-A precisao gravada usa escala decimal de 6 casas, sem conversao para `double`.
+O intervalo e semiaberto: `timestamp >= bucket_start` e `timestamp < bucket_end`. Valores booleanos e textuais nao sao agregados nesta etapa.
 
-Reexecucoes recalculam somente o bucket da janela exata em processamento, removendo
-o resultado anterior daquele intervalo e reinserindo os grupos encontrados na mesma
-transacao. Se uma recomputacao nao encontrar amostras, o bucket anterior da janela e
-removido. O `compartimento_id` registrado vem do sensor no modelo relacional atual;
-historico de movimentacao de sensores entre compartimentos fica fora desta etapa.
+## Bancos
 
-A consulta publica ampla de series analiticas e filtros de leitura dos buckets sera
-implementada em etapa posterior.
+### PostgreSQL
 
-Regras e qualificacao de parametros:
+O PostgreSQL armazena dominio canonico: pessoas, cursos, disciplinas, presencas, sensores, medicoes, parametros, regras, perfis de integracao, metadata de ingestao, jobs de agregacao, janelas e buckets numericos.
 
-```text
-GET  /api/rules/parameter-defs?tipoNome={tipoNome}
-POST /api/rules/groups
-GET  /api/rules/groups
-POST /api/rules/groups/{grupoId}/rules
-GET  /api/rules/groups/{grupoId}/rules
-POST /api/rules/groups/{grupoId}/rooms
-POST /api/rules/sensors/{sensorExternalId}/groups
-GET  /api/rules/sensors/{sensorExternalId}/groups
-```
+Flyway e a fonte de verdade do schema. Migrations antigas nao devem ser alteradas.
 
-Esses endpoints permitem criar grupos de regras, cadastrar regras por `parametro_def`, vincular grupos a sensores e ativar uma configuracao de qualificacao. Durante a ingestao, cada `parametro_valor` medido e avaliado contra os grupos ativos do sensor. Resultados sao persistidos em `avaliacao_parametro_valor` e retornados nas consultas de medicoes no campo `qualificacoes`.
+### MongoDB
 
-Cardinalidade aplicada na API:
+O MongoDB armazena eventos brutos em `raw_telemetry_events`. A collection possui indice unico de idempotencia bruta, indices operacionais por estado/sensor/data e TTL por `expiresAt`.
 
-- Um `parametro_def` pode ter varias `regra_parametro` globalmente, porque regras diferentes podem existir para estudos, grupos ou sensores diferentes.
-- Um `grupo_regra` nao pode ter duas regras ativas para o mesmo `parametro_def`.
-- Um sensor so pode ter um vinculo ativo/agendado, com janela de validade sobreposta, que produza regra ativa para um mesmo `parametro_def`.
-- Regras vinculadas a um sensor precisam pertencer ao mesmo `tipo_de_sensor` do sensor.
-- O vinculo em lote por salas aplica o grupo somente aos sensores compativeis com o unico tipo de sensor usado pelas regras ativas do grupo.
+## Autenticacao e Roles
 
-Filtros de compartimentos:
+| Role | Uso |
+| --- | --- |
+| `ADMIN` | Administracao geral, integracoes, telemetria e criacao de jobs |
+| `OPERADOR` | Operacao funcional e criacao de jobs analiticos |
+| `ANALISTA` | Consulta de jobs analiticos |
+| `INGESTOR` | Ingestao canonica e por perfil |
+| `TELEMETRY_SERVICE` | Rotas internas usadas exclusivamente pelo `Procel-Telemetry` |
+| `USUARIO` | Acesso basico ao console |
 
-```text
-GET /api/catalog/compartimentos?q={texto}&tipo={tipo}&predio={predio}&unidade={unidade}&campus={campus}
-```
+O JWT de servico usado pelo worker e curto, assinado com segredo configurado e nunca deve ser registrado em logs.
 
-Operadores suportados:
+## Variaveis de Ambiente
 
-```text
-NUMERIC: GT, GTE, LT, LTE, EQ, NEQ, BETWEEN, OUTSIDE
-BOOLEAN: EQ, NEQ
-TEXT:    EQ, NEQ, CONTAINS
-```
+### Procel-API
 
-Resultados possiveis:
+| Variavel | Finalidade |
+| --- | --- |
+| `SPRING_DATASOURCE_URL` | JDBC do PostgreSQL |
+| `SPRING_DATASOURCE_USERNAME` | Usuario do PostgreSQL |
+| `SPRING_DATASOURCE_PASSWORD` | Senha do PostgreSQL |
+| `PROCEL_JWT_SECRET` | Segredo JWT de usuarios e servicos |
+| `PROCEL_JWT_EXPIRATION_MINUTES` | TTL do JWT de usuario |
+| `PROCEL_BOOTSTRAP_ADMIN_EMAIL` | Email do admin inicial |
+| `PROCEL_BOOTSTRAP_ADMIN_PASSWORD` | Senha do admin inicial |
+| `PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS` | Origens permitidas |
+| `PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED` | Habilita worker de agregacao |
+| `PROCEL_ANALYTICS_AGGREGATION_VERSION` | Versao logica do algoritmo de buckets |
 
-```text
-IDEAL
-NORMAL
-ALERTA
-CRITICO
-INVALIDO
-```
+### Procel-Telemetry
 
-## Smoke Test Da API
+| Variavel | Finalidade |
+| --- | --- |
+| `SPRING_MONGODB_URI` / `SPRING_DATA_MONGODB_URI` | URI MongoDB, incluindo database |
+| `PROCEL_TELEMETRY_MAX_PAYLOAD_BYTES` | Limite do payload bruto |
+| `PROCEL_TELEMETRY_RETENTION_DAYS` | Retencao TTL |
+| `PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED` | Habilita worker canonico |
+| `PROCEL_API_BASE_URL` | Base URL do `Procel-API` |
+| `PROCEL_TELEMETRY_SERVICE_JWT_SUBJECT` | Subject do JWT de servico |
+| `PROCEL_TELEMETRY_SERVICE_JWT_SECRET` | Segredo do JWT de servico |
+| `PROCEL_TELEMETRY_SERVICE_JWT_TTL` | TTL do JWT de servico |
+| `PROCEL_TELEMETRY_MQTT_ENABLED` | Habilita entrada MQTT |
+| `PROCEL_TELEMETRY_MQTT_BROKER_URL` | URL do broker MQTT |
+| `PROCEL_TELEMETRY_MQTT_USERNAME` | Usuario MQTT |
+| `PROCEL_TELEMETRY_MQTT_PASSWORD` | Senha MQTT |
+| `PROCEL_TELEMETRY_MQTT_TLS_ENABLED` | TLS MQTT |
 
-Script PowerShell:
+### Procel-Admin
 
-```powershell
-.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
-```
+| Variavel | Finalidade |
+| --- | --- |
+| `API_BASE_URL` | Injetada pelo entrypoint Docker em runtime para o `Procel-API` |
+| `VITE_TELEMETRY_API_URL` | URL da Telemetry em build-time |
 
-Por padrao, o script usa o ambiente remoto:
+O entrypoint Docker atual injeta `API_BASE_URL`, mas nao injeta `TELEMETRY_API_URL` em runtime. Para trocar a URL da Telemetry no container atual, a variavel deve estar definida no build do frontend ou o entrypoint precisa ser evoluido em etapa separada.
 
-```powershell
-.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
-```
+## Execucao Local
 
-Para executar contra a API local:
-
-```powershell
-.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1 -Target local
-```
-
-Para informar uma URL manualmente:
-
-```powershell
-.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1 -BaseUrlOverride "http://localhost:8080"
-```
-
-Tambem e possivel usar variaveis de ambiente:
-
-```powershell
-$env:PROCEL_API_TARGET = "local"
-.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
-
-$env:PROCEL_API_BASE_URL = "http://localhost:8081"
-.\Documentos\ApiSmokeTests\ApiSmokeTest.ps1
-```
-
-O script executa:
-
-- login JWT;
-- sync de salas;
-- seed de sensores;
-- criacao/busca/atualizacao de pessoa;
-- catalogo de missoes, atividades, resumo por status e expiracao/deprecacao logica;
-- check-in;
-- criacao de grupo/regra DER para `temperature_c`;
-- vinculo do grupo de regra ao sensor `SII-001`;
-- ingestao mockada;
-- verificacao de `qualificacoes.temperature_c` na ultima medicao;
-- consultas de medicoes;
-- ocupacao/presencas abertas;
-- checkout.
-
-Antes de executar, confira no script:
-
-```powershell
-$RoomId
-$SensorExternalId
-$SensorTipoNome
-$RuleParametroNome
-$PessoaId
-$PessoaEmail
-$AdminEmail
-$AdminPassword
-```
-
-Depois de executar o smoke test localmente, use as queries abaixo para estudar e validar os dados gravados no PostgreSQL:
-
-```powershell
-psql -h localhost -p 5432 -U postgres -d procel_analytics -f .\Documentos\ApiSmokeTests\VerifyParameterQualification.sql
-```
-
-Arquivo:
-
-```text
-Documentos/ApiSmokeTests/VerifyParameterQualification.sql
-```
-
-## Documentacao De API Para Clientes
-
-Insomnia:
-
-```text
-API-Doc/Insomnia/Insomnia_2026-05-12.yaml
-```
-
-Postman:
-
-```text
-API-Doc/Postman/PROCEL-API/
-```
-
-Ambos documentam o fluxo de smoke test com login JWT, `Authorization: Bearer {{jwtToken}}`, catalogo e hierarquia de missoes via `parentId`, atividades com `CONCLUIDA`/`EXPIRADA`, administracao de tipos de sensor e parametros, DER/Parameter Qualification, ingestao mockada e consultas paginadas de medicoes com `qualificacoes`.
-
-O Procel-Admin disponibiliza fluxos visuais para cadastro de cursos, sensores, tipos e parametros, composicao de grupos de regras, associacao em lote por salas, consulta de medicoes por periodo, administracao hierarquica de missoes, progresso de atividades, vinculacao de disciplinas e edicao de usuarios.
-
-A interface inclui acesso direto ao Swagger da API em `{API_BASE_URL}/swagger-ui/index.html`. Versao administrativa atual: `0.1`, desenvolvida para o PROCEL. Contato: Ravilon Aguiar, 2026, `ravilonaguiardossantos@gmail.com`.
-
-## Banco Analitico
-
-DDL versionado:
-
-```text
-Database/PROCEL-API/createAnaliticalDB.sql
-```
-
-Esse arquivo deve ser mantido como referencia do schema analitico. A fonte automatica de evolucao do banco agora sao as migrations Flyway em `Procel-API/src/main/resources/db/migration`.
-
-Historicamente, o DDL tambem podia ser gerado pelo Hibernate em:
-
-```text
-Procel-API/target/schema.sql
-```
-
-O arquivo `target/schema.sql`, quando existir, e artefato de build e nao deve ser tratado como fonte versionada.
-
-Modelo atual inclui:
-
-```text
-campus
-predio
-unidade
-compartimento
-pessoa
-pessoa_role
-presenca
-tipo_de_sensor
-sensor
-medicao
-parametro_def
-parametro_valor
-missao
-atividade
-grupo_regra
-regra_parametro
-sensor_grupo_regra
-avaliacao_parametro_valor
-```
-
-DER:
-
-```text
-Documentos/DER-BancoAnalitico/DER-Salas.drawio
-```
-
-## Configuracao Cobalto
-
-Configuracoes principais em `Procel-API/src/main/resources/application.yml`:
-
-```yaml
-procel:
-  rooms:
-    source: cobalto # cobalto | resource
-    resource-path: seed/cobalto-compartimentos.sample.json
-  cobalto:
-    rooms:
-      url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaSalas/
-      timeout-ms: 60000
-      page-size: 1000
-      php-sessid: ""
-```
-
-Se `source` for `resource`, a API usa o JSON local configurado em `resource-path`.
-
-## Comandos Uteis
-
-Compilar e testar o modulo principal:
-
-```powershell
+```bash
 cd Procel-API
-.\mvnw.cmd clean test
+./mvnw test
+./mvnw spring-boot:run
 ```
 
-Gerar/atualizar `target/schema.sql` via build da aplicacao:
-
-```powershell
-.\mvnw.cmd test
+```bash
+cd Procel-Telemetry
+../Procel-API/mvnw -f pom.xml test
+../Procel-API/mvnw -f pom.xml spring-boot:run
 ```
 
-Parar o PostgreSQL local:
-
-```powershell
-docker compose down
+```bash
+cd Procel-Admin
+npm ci
+npm run dev
+npm run lint
+npm run test
+npm run build
 ```
+
+Swagger:
+
+```text
+Procel-API:       http://localhost:8080/docs
+Procel-Telemetry: http://localhost:8081/docs
+```
+
+## Docker e Deploy
+
+Cada aplicacao possui Dockerfile proprio. `Procel-API/compose.yaml` sobe somente PostgreSQL local (`postgres:16`) e `Procel-Telemetry/compose.yaml` sobe somente MongoDB local (`mongo:7`, sem autenticacao). Em Coolify, configure cada servico apontando para o diretorio correto:
+
+| Aplicacao | Diretorio de build |
+| --- | --- |
+| API | `Procel-API` |
+| Telemetry | `Procel-Telemetry` |
+| Admin | `Procel-Admin` |
+
+Nao use secrets padrao em producao. A URI do MongoDB deve incluir o database, por exemplo:
+
+```text
+mongodb://usuario:senha@host:27017/procel_telemetry?authSource=admin&directConnection=true
+```
+
+## Testes
+
+`Procel-API` usa Testcontainers para PostgreSQL em testes de integracao. `Procel-Telemetry` usa Testcontainers para MongoDB e HiveMQ nos testes MQTT. Quando Docker nao estiver disponivel, os testes dependentes de containers podem falhar ou ser ignorados conforme a configuracao do teste.
+
+## Postman e Insomnia
+
+Contratos manuais ficam em:
+
+```text
+API-Doc/Postman/
+API-Doc/Insomnia/
+```
+
+As colecoes cobrem autenticacao, ingestao canonica, integracoes, snapshot, telemetria bruta, reprocessamento, jobs de agregacao e consultas de progresso.
+
+## Documentacao Adicional
+
+```text
+Documentos/ArquiteturaGeral/
+Documentos/DER-BancoAnalitico/
+Documentos/Modelo-MongoDB/
+Documentos/MQTT.md
+Documentos/Seguranca-e-Operacao.md
+Documentos/Catalogo-Dados.md
+```
+
+## Limitacoes Conhecidas
+
+- API ampla de consulta analitica ainda nao foi implementada.
+- Graficos analiticos no `Procel-Admin` ainda nao foram implementados.
+- Observabilidade completa, rate limiting, backup automatizado e E2E integrado ficam reservados para a etapa 12.
+- O `Procel-Admin` ainda nao injeta `TELEMETRY_API_URL` em runtime pelo entrypoint Docker.
+- `spring.jpa.hibernate.ddl-auto=update` ainda aparece na configuracao local da API, mas a criacao do schema deve ser feita por Flyway.
+
+## Roadmap
+
+| Etapa | Descricao | Estado |
+| --- | --- | --- |
+| 1 | Ingestao canonica e idempotente | Concluida |
+| 2 | Perfis, parsers e bindings | Concluida |
+| 3 | Console administrativo | Concluida |
+| 4 | Armazenamento bruto no MongoDB | Concluida |
+| 5 | Worker `Telemetry -> Procel-API` | Concluida |
+| 6 | Entrada MQTT | Concluida |
+| 7 | Reprocessamento e operacao administrativa | Concluida |
+| 8 | Agregacoes assincronas por periodo | Concluida |
+| 9 | Buckets e medias analiticas | Concluida |
+| 10 | API de consulta analitica | Nao iniciada |
+| 11 | Interface analitica e graficos | Nao iniciada |
+| 12 | Deploy integrado, observabilidade, seguranca e E2E | Parcial |
+
+Progresso atual: **79,2%** (`9,5/12`).
+
+Etapa atual: **10 - API de consulta analitica**.
+
+Proxima etapa: implementar endpoints de consulta dos buckets analiticos sem alterar a ingestao ou a orquestracao ja existente.

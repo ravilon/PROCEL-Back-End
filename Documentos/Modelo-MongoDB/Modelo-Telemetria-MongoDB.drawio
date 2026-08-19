@@ -1,0 +1,37 @@
+<mxfile host="app.diagrams.net" modified="2026-08-19T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="modelo-telemetria-mongodb" name="Modelo Telemetria MongoDB">
+    <mxGraphModel dx="1400" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="rootdoc" value="raw_telemetry_events&#xa;_id&#xa;producerId&#xa;source&#xa;messageId&#xa;sensorId&#xa;sourceTimestamp&#xa;receivedAt&#xa;payload&#xa;payloadHash&#xa;status&#xa;expiresAt" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="280" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="processing" value="processing&#xa;attempts&#xa;lastAttemptAt&#xa;nextAttemptAt&#xa;lockedAt&#xa;workerId&#xa;lastError&#xa;canonicalMeasurementId&#xa;profileId&#xa;parserVersionId" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="70" width="260" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="reprocessing" value="reprocessing&#xa;count&#xa;lastRequestedAt&#xa;lastRequestedBy&#xa;lastReason" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="470" y="360" width="260" height="150" as="geometry"/>
+        </mxCell>
+        <mxCell id="audit" value="reprocessAudit[]&#xa;previousStatus&#xa;lastError&#xa;attempts&#xa;canonicalMeasurementId&#xa;profileId&#xa;parserVersionId&#xa;requestedBy&#xa;requestedAt&#xa;reason" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="820" y="320" width="290" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="idx" value="Indices&#xa;ux_raw_telemetry_idempotency unique producerId+source+messageId&#xa;idx_raw_telemetry_sensor_received&#xa;idx_raw_telemetry_status_received&#xa;idx_raw_telemetry_claim&#xa;idx_raw_telemetry_processing_lock&#xa;idx_raw_telemetry_received&#xa;ttl_raw_telemetry_expires_at" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8f9fa;strokeColor=#6c757d;" vertex="1" parent="1">
+          <mxGeometry x="80" y="560" width="420" height="210" as="geometry"/>
+        </mxCell>
+        <mxCell id="states" value="Estados&#xa;RECEIVED -> PROCESSING&#xa;PROCESSING -> CANONICAL_ACCEPTED&#xa;PROCESSING -> CANONICAL_DUPLICATE&#xa;PROCESSING -> CANONICAL_CONFLICT&#xa;PROCESSING -> CANONICAL_FAILED&#xa;invalidos -> DISCARDED&#xa;reprocessavel -> RECEIVED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="600" y="600" width="340" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="pg" value="Ligacao logica PostgreSQL&#xa;medicao&#xa;medicao_ingestao_metadata&#xa;sem FK fisica" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e9ecef;strokeColor=#adb5bd;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="80" width="250" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c757d;endArrow=block;" edge="1" parent="1" source="rootdoc" target="processing"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c757d;endArrow=block;" edge="1" parent="1" source="rootdoc" target="reprocessing"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c757d;endArrow=block;" edge="1" parent="1" source="reprocessing" target="audit"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c757d;endArrow=block;" edge="1" parent="1" source="rootdoc" target="idx"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#6c757d;endArrow=block;" edge="1" parent="1" source="rootdoc" target="states"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#adb5bd;dashed=1;endArrow=block;" edge="1" parent="1" source="processing" target="pg"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

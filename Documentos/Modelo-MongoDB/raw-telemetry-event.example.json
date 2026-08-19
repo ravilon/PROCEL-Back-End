@@ -1,0 +1,46 @@
+{
+  "_id": "66c4f1b2a7f4a73d2c95d001",
+  "producerId": "building-a-gateway",
+  "source": "MQTT",
+  "messageId": "mqtt-20260819-0001",
+  "sensorId": "sensor-temp-101",
+  "sourceTimestamp": "2026-08-19T08:00:00Z",
+  "receivedAt": "2026-08-19T08:00:03.250Z",
+  "payload": {
+    "temperature": 24.5,
+    "humidity": 61.2
+  },
+  "payloadHash": "sha256:4e9447e7b8a2b9a9e7c4a1b32d1d7a11b0f2e4b18fba1c067f3a4e9d9d44f001",
+  "status": "CANONICAL_ACCEPTED",
+  "processing": {
+    "attempts": 1,
+    "lastAttemptAt": "2026-08-19T08:00:05.000Z",
+    "nextAttemptAt": null,
+    "lockedAt": null,
+    "workerId": "telemetry-worker-01",
+    "lastError": null,
+    "canonicalMeasurementId": "0f6e7bb3-9a8f-4638-8323-06f0d5f2c101",
+    "profileId": "a4b5c6d7-1111-2222-3333-444455556666",
+    "parserVersionId": "d6b60c42-7777-8888-9999-0000aaaabbbb"
+  },
+  "reprocessing": {
+    "count": 1,
+    "lastRequestedAt": "2026-08-19T09:15:00Z",
+    "lastRequestedBy": "admin@procel.local",
+    "lastReason": "Reprocessar apos ativacao de binding correto"
+  },
+  "reprocessAudit": [
+    {
+      "previousStatus": "CANONICAL_FAILED",
+      "lastError": "PROFILE_NOT_FOUND",
+      "attempts": 3,
+      "canonicalMeasurementId": null,
+      "profileId": null,
+      "parserVersionId": null,
+      "requestedBy": "admin@procel.local",
+      "requestedAt": "2026-08-19T09:15:00Z",
+      "reason": "Reprocessar apos ativacao de binding correto"
+    }
+  ],
+  "expiresAt": "2026-09-18T08:00:03.250Z"
+}
