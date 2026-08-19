@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: procel-telemetry
+
+  mongodb:
+    uri: ${SPRING_MONGODB_URI:${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/procel_telemetry}}
+
+  data:
+    mongodb:
+      auto-index-creation: true
+
+springdoc:
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+procel:
+  telemetry:
+    max-payload-bytes: ${PROCEL_TELEMETRY_MAX_PAYLOAD_BYTES:262144}
+    retention-days: ${PROCEL_TELEMETRY_RETENTION_DAYS:30}
+
+  cors:
+    allowed-origin-patterns: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}
+
+  security:
+    jwt:
+      secret: ${PROCEL_JWT_SECRET:change-this-local-development-secret-32chars}
+      expiration-minutes: ${PROCEL_JWT_EXPIRATION_MINUTES:60}

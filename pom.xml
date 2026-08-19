@@ -12,6 +12,7 @@
 
   <modules>
     <module>Procel-API</module>
+    <module>Procel-Telemetry</module>
   </modules>
 
 </project>
