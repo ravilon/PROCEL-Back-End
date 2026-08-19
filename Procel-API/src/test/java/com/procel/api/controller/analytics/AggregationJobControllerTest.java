@@ -141,7 +141,7 @@ class AggregationJobControllerTest {
     }
 
     @Test
-    void createsExactAndPartialWindowsWithoutBuckets() throws Exception {
+    void createsExactAndPartialWindowsBeforeProcessingBuckets() throws Exception {
         String exactJobId = createJob("2026-08-19T00:00:00Z", "2026-08-19T00:15:00Z", "PT5M", sensorId, null)
                 .get("id").asText();
         mvc.perform(get("/api/analytics/aggregation-jobs/" + exactJobId)
@@ -162,13 +162,11 @@ class AggregationJobControllerTest {
                 .andExpect(jsonPath("$.windows[2].from").value("2026-08-19T00:10:00Z"))
                 .andExpect(jsonPath("$.windows[2].to").value("2026-08-19T00:12:00Z"));
 
-        Integer bucketTables = jdbcTemplate.queryForObject("""
+        Integer bucketRows = jdbcTemplate.queryForObject("""
                 select count(*)
-                from information_schema.tables
-                where table_schema = 'public'
-                  and table_name like 'analytics_%bucket%'
+                from analytics_numeric_bucket
                 """, Integer.class);
-        assertThat(bucketTables).isZero();
+        assertThat(bucketRows).isZero();
     }
 
     @Test

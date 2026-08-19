@@ -18,7 +18,7 @@ class SensorIntegrationMigrationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
     @Test
-    void migratesEmptyDatabaseThroughV18() throws Exception {
+    void migratesEmptyDatabaseThroughV19() throws Exception {
         Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration")
@@ -36,11 +36,12 @@ class SensorIntegrationMigrationTest {
                          'sensor_integration_binding',
                          'medicao_ingestao_metadata',
                          'analytics_aggregation_job',
-                         'analytics_aggregation_window'
+                         'analytics_aggregation_window',
+                         'analytics_numeric_bucket'
                      )
                      """)) {
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(7);
+            assertThat(result.getInt(1)).isEqualTo(8);
         }
 
         try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -82,11 +83,29 @@ class SensorIntegrationMigrationTest {
                          'ck_analytics_aggregation_job_window_duration',
                          'ck_analytics_aggregation_job_status',
                          'ck_analytics_aggregation_window_period',
-                         'ck_analytics_aggregation_window_status'
+                         'ck_analytics_aggregation_window_status',
+                         'ck_analytics_numeric_bucket_period',
+                         'ck_analytics_numeric_bucket_count'
                      )
                      """)) {
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.getInt(1)).isEqualTo(7);
+        }
+
+        try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             var result = connection.createStatement().executeQuery("""
+                     select count(*)
+                     from pg_indexes
+                     where schemaname = 'public'
+                       and indexname in (
+                           'ix_analytics_numeric_bucket_sensor_start',
+                           'ix_analytics_numeric_bucket_param_start',
+                           'ix_analytics_numeric_bucket_compartimento_start',
+                           'ix_parametro_valor_numeric_aggregation'
+                       )
+                     """)) {
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(4);
         }
     }
 

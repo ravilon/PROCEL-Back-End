@@ -637,6 +637,38 @@ Datas `from` e `to` devem estar em ISO-8601, por exemplo:
 
 `page` inicia em zero e `limit` aceita ate 1000 registros. As qualificacoes `IDEAL` e `NORMAL` podem ser apresentadas como aprovadas; `ALERTA`, `CRITICO` e `INVALIDO` como reprovadas. Ausencia de qualificacao significa que nenhuma regra ativa foi disparada para o parametro, nao uma aprovacao implicita.
 
+### Agregacoes Analiticas
+
+A API possui orquestracao administrativa para jobs assincronos de agregacao por
+periodo:
+
+```text
+POST /api/analytics/aggregation-jobs
+GET  /api/analytics/aggregation-jobs/{id}
+```
+
+A etapa atual persiste buckets numericos em `analytics_numeric_bucket`. Cada bucket
+representa um intervalo semiaberto `[bucket_start, bucket_end)`, um sensor, um
+`parametro_def` numerico e uma versao de agregacao. A identidade logica e:
+
+```text
+sensor_external_id + parametro_def_id + bucket_start + bucket_end + aggregation_version
+```
+
+As estatisticas gravadas sao media, minimo, maximo e quantidade de amostras,
+considerando apenas `parametro_valor.numeric_value` nao nulo e parametros com
+`data_type = NUMERIC`. Valores booleanos e textuais nao sao agregados nesta etapa.
+A precisao gravada usa escala decimal de 6 casas, sem conversao para `double`.
+
+Reexecucoes recalculam somente o bucket da janela exata em processamento, removendo
+o resultado anterior daquele intervalo e reinserindo os grupos encontrados na mesma
+transacao. Se uma recomputacao nao encontrar amostras, o bucket anterior da janela e
+removido. O `compartimento_id` registrado vem do sensor no modelo relacional atual;
+historico de movimentacao de sensores entre compartimentos fica fora desta etapa.
+
+A consulta publica ampla de series analiticas e filtros de leitura dos buckets sera
+implementada em etapa posterior.
+
 Regras e qualificacao de parametros:
 
 ```text

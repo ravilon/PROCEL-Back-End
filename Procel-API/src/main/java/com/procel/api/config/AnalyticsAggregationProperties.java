@@ -17,6 +17,7 @@ public class AnalyticsAggregationProperties {
     private int maxWindows = 10_000;
     private int measurementPageSize = 500;
     private int batchSize = 5;
+    private int aggregationVersion = 1;
 
     public boolean isWorkerEnabled() {
         return workerEnabled;
@@ -104,5 +105,13 @@ public class AnalyticsAggregationProperties {
 
     public void setBatchSize(int batchSize) {
         this.batchSize = batchSize;
+    }
+
+    public int getAggregationVersion() {
+        return aggregationVersion;
+    }
+
+    public void setAggregationVersion(int aggregationVersion) {
+        this.aggregationVersion = aggregationVersion;
     }
 }
