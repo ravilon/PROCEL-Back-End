@@ -66,6 +66,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/telemetry/events").hasAnyRole("ADMIN", "INGESTOR")
+                        .requestMatchers(HttpMethod.POST, "/api/telemetry/events/*/reprocess").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/telemetry/events/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -75,7 +76,7 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(
-            @Value("${procel.cors.allowed-origin-patterns:http://localhost:*,http://127.0.0.1:*}") String allowedOriginPatterns
+            @Value("${procel.cors.allowed-origin-patterns:https://procel.servehttp.com,http://localhost:*,http://127.0.0.1:*}") String allowedOriginPatterns
     ) {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(splitConfigList(allowedOriginPatterns));

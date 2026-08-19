@@ -12,6 +12,7 @@ import { MissionsAdminPage } from "./pages/MissionsAdminPage";
 import { ProfileDetailsPage } from "./features/sensor-integrations/ProfileDetailsPage";
 import { SnapshotPage } from "./features/sensor-integrations/SnapshotPage";
 import { SyncAdminPage } from "./pages/SyncAdminPage";
+import { TelemetryOperationsPage } from "./pages/TelemetryOperationsPage";
 
 export default function App() {
   return (
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="integracoes" element={<IntegrationsAdminPage />} />
             <Route path="integracoes/perfis/:profileId" element={<ProfileDetailsPage />} />
             <Route path="integracoes/snapshot" element={<SnapshotPage />} />
+            <Route path="telemetria" element={<TelemetryOperationsPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

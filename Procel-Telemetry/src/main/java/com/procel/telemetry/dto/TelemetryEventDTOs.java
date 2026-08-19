@@ -29,7 +29,20 @@ public final class TelemetryEventDTOs {
             String payloadHash,
             RawTelemetryStatus status,
             RawTelemetryEvent.Processing processing,
+            RawTelemetryEvent.Reprocessing reprocessing,
+            List<RawTelemetryEvent.ReprocessAuditEntry> reprocessAudit,
             Instant expiresAt
+    ) {}
+
+    public record ReprocessRequest(String reason) {}
+
+    public record ReprocessResponse(
+            String id,
+            RawTelemetryStatus status,
+            RawTelemetryStatus previousStatus,
+            int reprocessCount,
+            String requestedBy,
+            Instant requestedAt
     ) {}
 
     public record EventPageResponse(

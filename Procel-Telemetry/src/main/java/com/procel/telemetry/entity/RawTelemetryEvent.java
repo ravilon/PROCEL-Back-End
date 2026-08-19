@@ -7,6 +7,8 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document("raw_telemetry_events")
 @CompoundIndexes({
@@ -34,6 +36,8 @@ public class RawTelemetryEvent {
     private String payloadHash;
     private RawTelemetryStatus status;
     private Processing processing = new Processing();
+    private Reprocessing reprocessing = new Reprocessing();
+    private List<ReprocessAuditEntry> reprocessAudit = new ArrayList<>();
     @Indexed(name = "ttl_raw_telemetry_expires_at", expireAfter = "0s")
     private Instant expiresAt;
 
@@ -73,6 +77,8 @@ public class RawTelemetryEvent {
     public String getPayloadHash() { return payloadHash; }
     public RawTelemetryStatus getStatus() { return status; }
     public Processing getProcessing() { return processing; }
+    public Reprocessing getReprocessing() { return reprocessing; }
+    public List<ReprocessAuditEntry> getReprocessAudit() { return reprocessAudit; }
     public Instant getExpiresAt() { return expiresAt; }
 
     public static class Processing {
@@ -96,4 +102,28 @@ public class RawTelemetryEvent {
         public String getProfileId() { return profileId; }
         public String getParserVersionId() { return parserVersionId; }
     }
+
+    public static class Reprocessing {
+        private int count;
+        private Instant lastRequestedAt;
+        private String lastRequestedBy;
+        private String lastReason;
+
+        public int getCount() { return count; }
+        public Instant getLastRequestedAt() { return lastRequestedAt; }
+        public String getLastRequestedBy() { return lastRequestedBy; }
+        public String getLastReason() { return lastReason; }
+    }
+
+    public record ReprocessAuditEntry(
+            RawTelemetryStatus previousStatus,
+            String lastError,
+            int attempts,
+            String canonicalMeasurementId,
+            String profileId,
+            String parserVersionId,
+            String requestedBy,
+            Instant requestedAt,
+            String reason
+    ) {}
 }

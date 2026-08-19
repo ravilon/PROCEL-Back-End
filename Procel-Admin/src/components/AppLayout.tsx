@@ -11,6 +11,7 @@ import {
   SensorsOutlined,
   SyncOutlined,
   TaskAltOutlined,
+  TimelineOutlined,
 } from "@mui/icons-material";
 import {
   AppBar,
@@ -68,6 +69,12 @@ const navigation: NavigationItem[] = [
     label: "Integracoes",
     path: "/integracoes",
     icon: <HubOutlined />,
+    roles: ["ADMIN"],
+  },
+  {
+    label: "Telemetria",
+    path: "/telemetria",
+    icon: <TimelineOutlined />,
     roles: ["ADMIN"],
   },
   {

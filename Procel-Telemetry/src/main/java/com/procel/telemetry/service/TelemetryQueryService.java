@@ -31,6 +31,8 @@ public class TelemetryQueryService {
             TelemetrySource source,
             RawTelemetryStatus status,
             String sensorId,
+            String producerId,
+            String messageId,
             Instant from,
             Instant to,
             int page,
@@ -41,7 +43,7 @@ public class TelemetryQueryService {
             throw new ApiStatusException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "size must be between 1 and 100");
         }
 
-        Query query = query(source, status, sensorId, from, to);
+        Query query = query(source, status, sensorId, producerId, messageId, from, to);
         long total = mongoTemplate.count(query, RawTelemetryEvent.class);
         PageRequest pageRequest = PageRequest.of(
                 page,
@@ -69,6 +71,8 @@ public class TelemetryQueryService {
             TelemetrySource source,
             RawTelemetryStatus status,
             String sensorId,
+            String producerId,
+            String messageId,
             Instant from,
             Instant to
     ) {
@@ -76,6 +80,8 @@ public class TelemetryQueryService {
         if (source != null) criteria.add(Criteria.where("source").is(source));
         if (status != null) criteria.add(Criteria.where("status").is(status));
         if (sensorId != null && !sensorId.isBlank()) criteria.add(Criteria.where("sensorId").is(sensorId.trim()));
+        if (producerId != null && !producerId.isBlank()) criteria.add(Criteria.where("producerId").is(producerId.trim()));
+        if (messageId != null && !messageId.isBlank()) criteria.add(Criteria.where("messageId").is(messageId.trim()));
         if (from != null || to != null) {
             Criteria received = Criteria.where("receivedAt");
             if (from != null) received = received.gte(from);
@@ -102,6 +108,8 @@ public class TelemetryQueryService {
                 event.getPayloadHash(),
                 event.getStatus(),
                 event.getProcessing(),
+                event.getReprocessing(),
+                event.getReprocessAudit(),
                 event.getExpiresAt()
         );
     }

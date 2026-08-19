@@ -31,6 +31,7 @@ function renderRoutes(initialPath = "/integracoes", allowedRoles?: ["ADMIN"]) {
           <Route element={<ProtectedRoute allowedRoles={allowedRoles} />}>
             <Route element={<AppLayout />}>
               <Route path="/integracoes" element={<div>Integracoes page</div>} />
+              <Route path="/telemetria" element={<div>Telemetria page</div>} />
               <Route path="/catalogo" element={<div>Catalogo page</div>} />
             </Route>
           </Route>
@@ -51,6 +52,17 @@ describe("integration routes", () => {
     currentSession = userSession;
     renderRoutes("/integracoes", ["ADMIN"]);
     expect(screen.queryAllByText("Integracoes")).toHaveLength(0);
+  });
+
+  it("shows telemetry drawer item only for ADMIN", () => {
+    currentSession = adminSession;
+    renderRoutes("/telemetria", ["ADMIN"]);
+    expect(screen.getAllByText("Telemetria").length).toBeGreaterThan(0);
+
+    cleanup();
+    currentSession = userSession;
+    renderRoutes("/telemetria", ["ADMIN"]);
+    expect(screen.queryAllByText("Telemetria")).toHaveLength(0);
   });
 
   it("redirects anonymous users to login", () => {
