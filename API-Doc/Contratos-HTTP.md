@@ -108,6 +108,22 @@ O endpoint `/api/analytics/numeric-buckets/summary` nao consulta `medicao` nem
 `parametro_valor`; ele consolida os buckets persistidos usando media ponderada por
 `sampleCount`, menor `minimumValue`, maior `maximumValue` e soma de `sampleCount`.
 
+### Consumo no Procel-Admin
+
+A rota `/analiticos` esta disponivel para `ADMIN`, `OPERADOR` e `ANALISTA`.
+`USUARIO` e `INGESTOR` nao veem o item `Análises` no menu e nao acessam a rota.
+
+A tela envia somente parametros preenchidos para `/api/analytics/numeric-buckets`
+e `/api/analytics/numeric-buckets/summary`. `page` e `size` sao enviados apenas
+para a listagem paginada. O summary alimenta cards por grupo retornado, sem
+misturar unidades, parametros, sensores ou versoes diferentes. O grafico temporal
+usa `averageValue` dos buckets da pagina atual; uma consulta especifica para
+series longas fica pendente para a etapa 12.
+
+Os valores decimais chegam como JSON number por serializacao de `BigDecimal`.
+O frontend usa esses numeros para exibicao e grafico, sem persistir calculos
+derivados e sem recalcular media consolidada.
+
 ## Procel-Telemetry
 
 Base local: `http://localhost:8081`

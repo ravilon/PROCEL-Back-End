@@ -8,7 +8,7 @@ O repositorio contem tres aplicacoes principais:
 | --- | --- | --- |
 | `Procel-API` | API principal, autenticacao, dominio academico, sensores, medicoes canonicas, perfis de integracao e jobs analiticos | PostgreSQL |
 | `Procel-Telemetry` | Recebimento bruto REST/MQTT, idempotencia bruta, armazenamento no MongoDB, worker canonico para envio ao `Procel-API` e operacao administrativa da telemetria | MongoDB |
-| `Procel-Admin` | Console web administrativo para catalogo, sensores, regras, integracoes, sincronizacoes e operacao da telemetria | N/A |
+| `Procel-Admin` | Console web administrativo para catalogo, sensores, regras, integracoes, sincronizacoes, analises e operacao da telemetria | N/A |
 
 ## Estrutura
 
@@ -31,7 +31,7 @@ O repositorio contem tres aplicacoes principais:
 | Banco canonico | PostgreSQL, Flyway |
 | Banco bruto | MongoDB |
 | MQTT | MQTT 5, Eclipse Paho MQTT v5, QoS 1 |
-| Frontend | React 19, TypeScript, Vite 7, MUI 7, React Query |
+| Frontend | React 19, TypeScript, Vite 7, MUI 7, MUI X Charts, React Query |
 | Testes | JUnit 5, Testcontainers, Vitest, Testing Library |
 | Documentacao API | springdoc OpenAPI, Postman 2.1, Insomnia YAML |
 
@@ -112,7 +112,7 @@ GET  /api/analytics/aggregation-jobs/{id}
 
 A etapa atual inclui orquestracao, claim atomico de janelas, lease, retry, retomada e persistencia de buckets numericos por janela. A API ampla de consulta analitica e a interface de graficos ainda nao existem.
 
-### Buckets Analiticos
+### Consulta Analitica
 
 Os buckets numericos sao persistidos em `analytics_numeric_bucket`, agrupando `ParametroValor.numericValue` por:
 
@@ -121,6 +121,26 @@ sensor_external_id + parametro_def_id + bucket_start + bucket_end + aggregation_
 ```
 
 O intervalo e semiaberto: `timestamp >= bucket_start` e `timestamp < bucket_end`. Valores booleanos e textuais nao sao agregados nesta etapa.
+
+A API de consulta analitica expoe:
+
+```text
+GET /api/analytics/numeric-buckets
+GET /api/analytics/numeric-buckets/summary
+```
+
+O endpoint de listagem retorna buckets persistidos e paginados. O endpoint de
+summary consolida somente buckets existentes, sem consultar `medicao` ou
+`parametro_valor`, usando media ponderada por `sampleCount`, menor minimo, maior
+maximo e soma das amostras.
+
+O `Procel-Admin` possui a rota `/analiticos`, visivel para `ADMIN`, `OPERADOR`
+e `ANALISTA`. A tela oferece filtros por periodo obrigatorio, sensor, parametro,
+compartimento, versao de agregacao e tamanho da pagina; cards de resumo por
+grupo retornado pelo backend; grafico temporal de `averageValue`; e tabela de
+buckets com paginacao server-side. O grafico usa apenas a pagina atual para nao
+buscar milhares de pontos silenciosamente. Calculos analiticos permanecem no
+backend.
 
 ## Bancos
 
@@ -265,8 +285,8 @@ Documentos/Catalogo-Dados.md
 
 ## Limitacoes Conhecidas
 
-- API ampla de consulta analitica ainda nao foi implementada.
-- Graficos analiticos no `Procel-Admin` ainda nao foram implementados.
+- A tela de analises limita o grafico a pagina atual dos buckets; uma API dedicada
+  para series temporais densas fica reservada para a etapa 12.
 - Observabilidade completa, rate limiting, backup automatizado e E2E integrado ficam reservados para a etapa 12.
 - O `Procel-Admin` ainda nao injeta `TELEMETRY_API_URL` em runtime pelo entrypoint Docker.
 - `spring.jpa.hibernate.ddl-auto=update` ainda aparece na configuracao local da API, mas a criacao do schema deve ser feita por Flyway.
@@ -284,12 +304,12 @@ Documentos/Catalogo-Dados.md
 | 7 | Reprocessamento e operacao administrativa | Concluida |
 | 8 | Agregacoes assincronas por periodo | Concluida |
 | 9 | Buckets e medias analiticas | Concluida |
-| 10 | API de consulta analitica | Nao iniciada |
-| 11 | Interface analitica e graficos | Nao iniciada |
+| 10 | API de consulta analitica | Concluida |
+| 11 | Interface analitica e graficos | Concluida |
 | 12 | Deploy integrado, observabilidade, seguranca e E2E | Parcial |
 
-Progresso atual: **79,2%** (`9,5/12`).
+Progresso atual: **91,7%** (`11/12`).
 
-Etapa atual: **10 - API de consulta analitica**.
+Etapa atual: **11 - Interface analitica e graficos**.
 
-Proxima etapa: implementar endpoints de consulta dos buckets analiticos sem alterar a ingestao ou a orquestracao ja existente.
+Proxima etapa: finalizar deploy integrado, observabilidade, seguranca operacional e E2E.

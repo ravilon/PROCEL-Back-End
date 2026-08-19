@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { AppLayout } from "./components/AppLayout";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
 import { ApiConsolePage } from "./pages/ApiConsolePage";
 import { CatalogPage } from "./pages/CatalogPage";
 import { DashboardPage } from "./pages/DashboardPage";
@@ -36,6 +37,11 @@ export default function App() {
             <Route path="integracoes/perfis/:profileId" element={<ProfileDetailsPage />} />
             <Route path="integracoes/snapshot" element={<SnapshotPage />} />
             <Route path="telemetria" element={<TelemetryOperationsPage />} />
+          </Route>
+        </Route>
+        <Route element={<ProtectedRoute allowedRoles={["ADMIN", "OPERADOR", "ANALISTA"]} />}>
+          <Route element={<AppLayout />}>
+            <Route path="analiticos" element={<AnalyticsPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

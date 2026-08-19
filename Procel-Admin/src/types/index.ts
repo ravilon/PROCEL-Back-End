@@ -1,4 +1,16 @@
 export type { Role, Session } from "./auth";
+export type {
+  AnalyticsCompartimentoOption,
+  AnalyticsDecimal,
+  AnalyticsParametroOption,
+  AnalyticsPeriod,
+  AnalyticsSensorOption,
+  NumericBucket,
+  NumericBucketFilters,
+  NumericBucketPage,
+  NumericBucketSummary,
+  NumericBucketSummaryFilters,
+} from "./analytics";
 export type { ApiErrorBody } from "./errors";
 export type { Compartimento, CompartimentoFilterOptions, Disciplina, PeriodoAula } from "./catalog";
 export type { AlunoDisciplinaStatus, Curso, DisciplinaAluno, Pessoa, PessoaCurso, PessoaResumo } from "./people";

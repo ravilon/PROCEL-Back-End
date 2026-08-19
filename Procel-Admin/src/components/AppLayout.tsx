@@ -8,6 +8,7 @@ import {
   MenuBookOutlined,
   MenuOutlined,
   OpenInNewOutlined,
+  QueryStatsOutlined,
   SensorsOutlined,
   SyncOutlined,
   TaskAltOutlined,
@@ -76,6 +77,12 @@ const navigation: NavigationItem[] = [
     path: "/telemetria",
     icon: <TimelineOutlined />,
     roles: ["ADMIN"],
+  },
+  {
+    label: "Análises",
+    path: "/analiticos",
+    icon: <QueryStatsOutlined />,
+    roles: ["ADMIN", "OPERADOR", "ANALISTA"],
   },
   {
     label: "Operacoes da API",
