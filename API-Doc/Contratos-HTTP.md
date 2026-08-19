@@ -31,6 +31,8 @@ Base local: `http://localhost:8080`
 | `/api/sensors/internal/telemetry-events/{sensorExternalId}/ingest/integrations/{profileId}` | POST | `TELEMETRY_SERVICE` | `201`, `200` | Rota interna Telemetry com sensor na rota |
 | `/api/analytics/aggregation-jobs` | POST | `ADMIN`, `OPERADOR` | `202` | Cria ou retorna job equivalente |
 | `/api/analytics/aggregation-jobs/{id}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Estado e progresso |
+| `/api/analytics/numeric-buckets` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista buckets persistidos e paginados; filtros existentes mas sem intersecao retornam pagina vazia |
+| `/api/analytics/numeric-buckets/summary` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Consolida somente buckets persistidos; media ponderada por `sampleCount` |
 
 Erros comuns: `400` validacao, `401` ausente/invalido, `403` role insuficiente, `404` recurso inexistente, `409` conflito idempotente ou de estado, `422` payload semanticamente invalido.
 
@@ -86,6 +88,25 @@ integration_profile_id + sensor_external_id + original_producer_id + raw_message
   "compartimentoId": "room-101"
 }
 ```
+
+### Consulta de Buckets Numericos
+
+`from` e `to` sao obrigatorios, `from < to`, e o periodo maximo e configurado em
+`procel.analytics.buckets.max-period`. `page` deve ser maior ou igual a zero e
+`size` deve ficar entre `1` e `procel.analytics.buckets.max-page-size`.
+`aggregationVersion`, quando informado, deve ser positiva.
+
+O filtro temporal retorna buckets integralmente contidos no intervalo:
+`bucketStart >= from` e `bucketEnd <= to`. Buckets parcialmente sobrepostos nao sao
+fracionados nem usados no resumo, para evitar estatisticas parciais incorretas.
+
+Filtros por `sensorExternalId`, `parametroDefId` e `compartimentoId` inexistentes
+retornam `422`. Filtros existentes, porem incompatíveis entre si, retornam lista
+vazia de forma consistente.
+
+O endpoint `/api/analytics/numeric-buckets/summary` nao consulta `medicao` nem
+`parametro_valor`; ele consolida os buckets persistidos usando media ponderada por
+`sampleCount`, menor `minimumValue`, maior `maximumValue` e soma de `sampleCount`.
 
 ## Procel-Telemetry
 

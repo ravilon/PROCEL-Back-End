@@ -94,6 +94,9 @@ public class SecurityConfig {
                                                 .hasAnyRole("ADMIN", "OPERADOR")
                                                 .requestMatchers(HttpMethod.GET, "/api/analytics/aggregation-jobs/*")
                                                 .hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
+                                                .requestMatchers(HttpMethod.GET, "/api/analytics/numeric-buckets",
+                                                                "/api/analytics/numeric-buckets/summary")
+                                                .hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
                                                 .requestMatchers(HttpMethod.POST, "/api/sensors/seed/from-resource")
                                                 .hasRole("ADMIN")
                                                 .requestMatchers(HttpMethod.POST, "/api/sensors/ingest")

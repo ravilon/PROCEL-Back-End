@@ -6,6 +6,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -43,6 +46,26 @@ public class ApiExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse badRequest(IllegalArgumentException ex) {
         return new ErrorResponse(ex.getMessage(), "BAD_REQUEST", Instant.now());
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> responseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        String error = status.value() == 422 ? "UNPROCESSABLE_ENTITY" : status.name();
+        return ResponseEntity.status(status)
+                .body(new ErrorResponse(ex.getReason(), error, Instant.now()));
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse missingParameter(MissingServletRequestParameterException ex) {
+        return new ErrorResponse(ex.getParameterName() + " is required", "BAD_REQUEST", Instant.now());
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse typeMismatch(MethodArgumentTypeMismatchException ex) {
+        return new ErrorResponse(ex.getName() + " is invalid", "BAD_REQUEST", Instant.now());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
