@@ -1,7 +1,6 @@
 package com.procel.telemetry.controller;
 
 import com.procel.telemetry.TestJwt;
-import com.procel.telemetry.entity.RawTelemetryEvent;
 import com.procel.telemetry.entity.RawTelemetryStatus;
 import com.procel.telemetry.repository.RawTelemetryEventRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -169,7 +168,6 @@ class TelemetryControllerTest {
         assertThat(reprocessing.getString("lastRequestedBy")).isEqualTo("admin-user");
         assertThat(reprocessing.getString("lastReason")).isEqualTo("corrigir parser ativo");
 
-        @SuppressWarnings("unchecked")
         List<Document> audit = event.getList("reprocessAudit", Document.class);
         assertThat(audit).hasSize(1);
         Document entry = audit.getFirst();
@@ -256,7 +254,8 @@ class TelemetryControllerTest {
         Document event = mongoTemplate.getCollection("raw_telemetry_events")
                 .find(new Document("_id", "reprocess-race"))
                 .first();
-        assertThat(event.get("reprocessAudit", List.class)).hasSize(1);
+        List<Document> raceAudit = event.getList("reprocessAudit", Document.class);
+        assertThat(raceAudit).hasSize(1);
     }
 
     @Test
@@ -301,7 +300,7 @@ class TelemetryControllerTest {
                         .header("Authorization", TestJwt.bearer("ingestor", "INGESTOR"))
                         .contentType("application/json")
                         .content("x".repeat(262145)))
-                .andExpect(status().isPayloadTooLarge())
+                .andExpect(status().isContentTooLarge())
                 .andExpect(jsonPath("$.error").value("PAYLOAD_TOO_LARGE"));
 
         mvc.perform(post("/api/telemetry/events")

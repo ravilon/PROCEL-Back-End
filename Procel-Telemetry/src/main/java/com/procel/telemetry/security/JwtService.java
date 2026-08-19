@@ -14,6 +14,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -60,8 +61,8 @@ public class JwtService {
         Set<String> roles = new LinkedHashSet<>();
         if (rolesValue instanceof Collection<?> values) {
             roles = values.stream()
-                    .filter(value -> value != null)
-                    .map(Object::toString)
+                    .filter(Objects::nonNull)
+                    .map(value -> value.toString())
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
 

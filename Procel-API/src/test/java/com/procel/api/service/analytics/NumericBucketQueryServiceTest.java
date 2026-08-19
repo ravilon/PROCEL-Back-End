@@ -1,6 +1,7 @@
 package com.procel.api.service.analytics;
 
 import com.procel.api.config.AnalyticsBucketQueryProperties;
+import com.procel.api.dto.analytics.NumericBucketDTOs;
 import com.procel.api.repository.rooms.CompartimentoRepository;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.repository.sensors.SensorRepository;
@@ -20,10 +21,14 @@ import static org.mockito.Mockito.when;
 
 class NumericBucketQueryServiceTest {
     @Test
-    @SuppressWarnings({"unchecked", "rawtypes"})
     void summarySqlUsesOnlyPersistedBucketsAndDimensionTables() {
         JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
-        when(jdbcTemplate.query(any(String.class), any(RowMapper.class), any(Object[].class))).thenReturn(List.of());
+        List<NumericBucketDTOs.NumericBucketSummaryResponse> emptySummary = List.of();
+        when(jdbcTemplate.query(
+                any(String.class),
+                anySummaryRowMapper(),
+                any(Object[].class)
+        )).thenReturn(emptySummary);
         AnalyticsBucketQueryProperties properties = new AnalyticsBucketQueryProperties();
         NumericBucketQueryService service = new NumericBucketQueryService(
                 jdbcTemplate,
@@ -45,8 +50,12 @@ class NumericBucketQueryServiceTest {
         ));
 
         ArgumentCaptor<String> sql = ArgumentCaptor.forClass(String.class);
-        verify(jdbcTemplate).query(sql.capture(), any(RowMapper.class), any(Object[].class));
+        verify(jdbcTemplate).query(sql.capture(), anySummaryRowMapper(), any(Object[].class));
         assertThat(sql.getValue()).contains("analytics_numeric_bucket");
         assertThat(sql.getValue()).doesNotContain(" medicao").doesNotContain("parametro_valor");
+    }
+
+    private static RowMapper<NumericBucketDTOs.NumericBucketSummaryResponse> anySummaryRowMapper() {
+        return any();
     }
 }

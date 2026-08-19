@@ -29,7 +29,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -239,7 +238,7 @@ class NumericBucketControllerTest {
                         .param("from", "2026-08-19T00:00:00Z")
                         .param("to", "2026-08-19T00:10:00Z")
                         .param("sensorExternalId", "missing"))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isUnprocessableContent())
                 .andExpect(jsonPath("$.error").value("UNPROCESSABLE_ENTITY"));
 
         mvc.perform(get("/api/analytics/numeric-buckets")
@@ -247,14 +246,14 @@ class NumericBucketControllerTest {
                         .param("from", "2026-08-19T00:00:00Z")
                         .param("to", "2026-08-19T00:10:00Z")
                         .param("parametroDefId", UUID.randomUUID().toString()))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
 
         mvc.perform(get("/api/analytics/numeric-buckets")
                         .with(user("analyst").roles("ANALISTA"))
                         .param("from", "2026-08-19T00:00:00Z")
                         .param("to", "2026-08-19T00:10:00Z")
                         .param("compartimentoId", "missing"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableContent());
     }
 
     @Test

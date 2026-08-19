@@ -1,6 +1,5 @@
 package com.procel.telemetry.service.canonical;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.procel.telemetry.entity.TelemetrySource;
 
 import java.time.Instant;

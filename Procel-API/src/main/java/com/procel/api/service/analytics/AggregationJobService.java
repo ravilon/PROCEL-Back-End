@@ -254,10 +254,10 @@ public class AggregationJobService {
 
     private void ensureReferences(String sensorExternalId, String compartimentoId) {
         if (sensorExternalId != null && !sensorRepository.existsById(sensorExternalId)) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "sensorExternalId not found");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "sensorExternalId not found");
         }
         if (compartimentoId != null && !compartimentoRepository.existsById(compartimentoId)) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "compartimentoId not found");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "compartimentoId not found");
         }
     }
 

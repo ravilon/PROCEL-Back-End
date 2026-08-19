@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -143,13 +142,13 @@ public class NumericBucketQueryService {
 
     private void ensureReferences(NumericBucketQuery query) {
         if (query.sensorExternalId() != null && !sensorRepository.existsById(query.sensorExternalId())) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "sensorExternalId not found");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "sensorExternalId not found");
         }
         if (query.parametroDefId() != null && !parametroDefRepository.existsById(query.parametroDefId())) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "parametroDefId not found");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "parametroDefId not found");
         }
         if (query.compartimentoId() != null && !compartimentoRepository.existsById(query.compartimentoId())) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "compartimentoId not found");
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "compartimentoId not found");
         }
     }
 

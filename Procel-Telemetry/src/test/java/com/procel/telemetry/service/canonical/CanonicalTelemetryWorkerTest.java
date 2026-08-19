@@ -48,7 +48,7 @@ class CanonicalTelemetryWorkerTest {
 
     @Test
     void emptyBatchStopsWithoutProcessingEvents() {
-        when(claimService.claimNext(any(), any())).thenReturn(null);
+        when(claimService.claimNext(any(), any())).thenReturn((RawTelemetryEvent) null);
 
         int processed = worker.processBatch();
 
@@ -86,7 +86,9 @@ class CanonicalTelemetryWorkerTest {
         RawTelemetryEvent first = event("msg-1");
         var snapshot = snapshot();
         var profile = profile();
-        when(claimService.claimNext(any(), any())).thenReturn(first, null);
+        when(claimService.claimNext(any(), any()))
+                .thenReturn(first)
+                .thenReturn((RawTelemetryEvent) null);
         when(snapshotClient.snapshot()).thenReturn(snapshot);
         when(profileSelector.select(first, snapshot)).thenReturn(profile);
         when(ingestClient.ingest(first, profile)).thenReturn(response("MEASUREMENT_INGESTED", "measurement-1"));
@@ -104,7 +106,10 @@ class CanonicalTelemetryWorkerTest {
         RawTelemetryEvent accepted = event("msg-accepted");
         var snapshot = snapshot();
         var profile = profile();
-        when(claimService.claimNext(any(), any())).thenReturn(failed, accepted, null);
+        when(claimService.claimNext(any(), any()))
+                .thenReturn(failed)
+                .thenReturn(accepted)
+                .thenReturn((RawTelemetryEvent) null);
         when(snapshotClient.snapshot()).thenReturn(snapshot);
         when(profileSelector.select(failed, snapshot)).thenThrow(new ProfileSelectionException(
                 "PROFILE_NOT_FOUND",
@@ -126,7 +131,10 @@ class CanonicalTelemetryWorkerTest {
         RawTelemetryEvent accepted = event("msg-accepted");
         var snapshot = snapshot();
         var profile = profile();
-        when(claimService.claimNext(any(), any())).thenReturn(failed, accepted, null);
+        when(claimService.claimNext(any(), any()))
+                .thenReturn(failed)
+                .thenReturn(accepted)
+                .thenReturn((RawTelemetryEvent) null);
         when(snapshotClient.snapshot()).thenReturn(snapshot);
         doThrow(new IllegalStateException("boom")).when(profileSelector).select(failed, snapshot);
         when(profileSelector.select(accepted, snapshot)).thenReturn(profile);

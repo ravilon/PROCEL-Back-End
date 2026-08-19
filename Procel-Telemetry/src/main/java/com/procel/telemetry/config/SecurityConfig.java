@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Configuration
 @EnableMethodSecurity
@@ -93,7 +94,8 @@ public class SecurityConfig {
 
     private static List<String> splitConfigList(String value) {
         return Arrays.stream(value.split(","))
-                .map(String::trim)
+                .filter(Objects::nonNull)
+                .map(item -> item.trim())
                 .filter(item -> !item.isBlank())
                 .toList();
     }
