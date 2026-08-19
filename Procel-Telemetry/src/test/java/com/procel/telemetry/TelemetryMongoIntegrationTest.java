@@ -10,6 +10,7 @@ import com.procel.telemetry.repository.RawTelemetryEventRepository;
 import com.procel.telemetry.service.TelemetryIngestService;
 import com.procel.telemetry.service.canonical.CanonicalTelemetryWorker;
 import com.procel.telemetry.service.canonical.RawTelemetryClaimService;
+import com.procel.telemetry.service.mqtt.MqttTelemetrySubscriber;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.bson.Document;
@@ -124,6 +125,11 @@ class TelemetryMongoIntegrationTest {
     @Test
     void canonicalWorkerIsDisabledByDefault() {
         assertThat(applicationContext.getBeansOfType(CanonicalTelemetryWorker.class)).isEmpty();
+    }
+
+    @Test
+    void mqttSubscriberIsDisabledByDefault() {
+        assertThat(applicationContext.getBeansOfType(MqttTelemetrySubscriber.class)).isEmpty();
     }
 
     @Test

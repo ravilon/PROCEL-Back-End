@@ -13,6 +13,7 @@ public class TelemetryProperties {
     private int maxPayloadBytes = 262144;
     private int retentionDays = 30;
     private CanonicalWorker canonicalWorker = new CanonicalWorker();
+    private Mqtt mqtt = new Mqtt();
 
     public int getMaxPayloadBytes() {
         return maxPayloadBytes;
@@ -36,6 +37,14 @@ public class TelemetryProperties {
 
     public void setCanonicalWorker(CanonicalWorker canonicalWorker) {
         this.canonicalWorker = canonicalWorker;
+    }
+
+    public Mqtt getMqtt() {
+        return mqtt;
+    }
+
+    public void setMqtt(Mqtt mqtt) {
+        this.mqtt = mqtt;
     }
 
     public static class CanonicalWorker {
@@ -86,5 +95,79 @@ public class TelemetryProperties {
         public void setSecret(String secret) { this.secret = secret; }
         public Duration getTtl() { return ttl; }
         public void setTtl(Duration ttl) { this.ttl = ttl; }
+    }
+
+    public static class Mqtt {
+        private boolean enabled = false;
+        private String brokerUrl = "tcp://localhost:1883";
+        private String clientId = "procel-telemetry";
+        private List<String> topicFilters = new ArrayList<>(List.of(
+                "procel/telemetry/v1/+/+/events",
+                "procel/telemetry/v1/+/events"
+        ));
+        private int qos = 1;
+        private boolean rejectRetained = true;
+        private boolean cleanStart = false;
+        private Duration sessionExpiry = Duration.ofDays(1);
+        private Duration connectionTimeout = Duration.ofSeconds(10);
+        private Duration keepAlive = Duration.ofSeconds(30);
+        private boolean automaticReconnect = true;
+        private Duration reconnectMinDelay = Duration.ofSeconds(1);
+        private Duration reconnectMaxDelay = Duration.ofSeconds(30);
+        private String username;
+        private String password;
+        private Tls tls = new Tls();
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public String getBrokerUrl() { return brokerUrl; }
+        public void setBrokerUrl(String brokerUrl) { this.brokerUrl = brokerUrl; }
+        public String getClientId() { return clientId; }
+        public void setClientId(String clientId) { this.clientId = clientId; }
+        public List<String> getTopicFilters() { return topicFilters; }
+        public void setTopicFilters(List<String> topicFilters) { this.topicFilters = topicFilters; }
+        public int getQos() { return qos; }
+        public void setQos(int qos) { this.qos = qos; }
+        public boolean isRejectRetained() { return rejectRetained; }
+        public void setRejectRetained(boolean rejectRetained) { this.rejectRetained = rejectRetained; }
+        public boolean isCleanStart() { return cleanStart; }
+        public void setCleanStart(boolean cleanStart) { this.cleanStart = cleanStart; }
+        public Duration getSessionExpiry() { return sessionExpiry; }
+        public void setSessionExpiry(Duration sessionExpiry) { this.sessionExpiry = sessionExpiry; }
+        public Duration getConnectionTimeout() { return connectionTimeout; }
+        public void setConnectionTimeout(Duration connectionTimeout) { this.connectionTimeout = connectionTimeout; }
+        public Duration getKeepAlive() { return keepAlive; }
+        public void setKeepAlive(Duration keepAlive) { this.keepAlive = keepAlive; }
+        public boolean isAutomaticReconnect() { return automaticReconnect; }
+        public void setAutomaticReconnect(boolean automaticReconnect) { this.automaticReconnect = automaticReconnect; }
+        public Duration getReconnectMinDelay() { return reconnectMinDelay; }
+        public void setReconnectMinDelay(Duration reconnectMinDelay) { this.reconnectMinDelay = reconnectMinDelay; }
+        public Duration getReconnectMaxDelay() { return reconnectMaxDelay; }
+        public void setReconnectMaxDelay(Duration reconnectMaxDelay) { this.reconnectMaxDelay = reconnectMaxDelay; }
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
+        public String getPassword() { return password; }
+        public void setPassword(String password) { this.password = password; }
+        public Tls getTls() { return tls; }
+        public void setTls(Tls tls) { this.tls = tls; }
+    }
+
+    public static class Tls {
+        private boolean enabled = false;
+        private String trustStore;
+        private String trustStorePassword;
+        private String keyStore;
+        private String keyStorePassword;
+
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
+        public String getTrustStore() { return trustStore; }
+        public void setTrustStore(String trustStore) { this.trustStore = trustStore; }
+        public String getTrustStorePassword() { return trustStorePassword; }
+        public void setTrustStorePassword(String trustStorePassword) { this.trustStorePassword = trustStorePassword; }
+        public String getKeyStore() { return keyStore; }
+        public void setKeyStore(String keyStore) { this.keyStore = keyStore; }
+        public String getKeyStorePassword() { return keyStorePassword; }
+        public void setKeyStorePassword(String keyStorePassword) { this.keyStorePassword = keyStorePassword; }
     }
 }

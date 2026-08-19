@@ -34,6 +34,28 @@ procel:
         subject: ${PROCEL_TELEMETRY_SERVICE_JWT_SUBJECT:procel-telemetry}
         secret: ${PROCEL_TELEMETRY_SERVICE_JWT_SECRET:change-this-local-development-secret-32chars}
         ttl: ${PROCEL_TELEMETRY_SERVICE_JWT_TTL:PT5M}
+    mqtt:
+      enabled: ${PROCEL_TELEMETRY_MQTT_ENABLED:false}
+      broker-url: ${PROCEL_TELEMETRY_MQTT_BROKER_URL:tcp://localhost:1883}
+      client-id: ${PROCEL_TELEMETRY_MQTT_CLIENT_ID:procel-telemetry}
+      topic-filters: ${PROCEL_TELEMETRY_MQTT_TOPIC_FILTERS:procel/telemetry/v1/+/+/events,procel/telemetry/v1/+/events}
+      qos: ${PROCEL_TELEMETRY_MQTT_QOS:1}
+      reject-retained: ${PROCEL_TELEMETRY_MQTT_REJECT_RETAINED:true}
+      clean-start: ${PROCEL_TELEMETRY_MQTT_CLEAN_START:false}
+      session-expiry: ${PROCEL_TELEMETRY_MQTT_SESSION_EXPIRY:PT24H}
+      connection-timeout: ${PROCEL_TELEMETRY_MQTT_CONNECTION_TIMEOUT:PT10S}
+      keep-alive: ${PROCEL_TELEMETRY_MQTT_KEEP_ALIVE:PT30S}
+      automatic-reconnect: ${PROCEL_TELEMETRY_MQTT_AUTOMATIC_RECONNECT:true}
+      reconnect-min-delay: ${PROCEL_TELEMETRY_MQTT_RECONNECT_MIN_DELAY:PT1S}
+      reconnect-max-delay: ${PROCEL_TELEMETRY_MQTT_RECONNECT_MAX_DELAY:PT30S}
+      username: ${PROCEL_TELEMETRY_MQTT_USERNAME:}
+      password: ${PROCEL_TELEMETRY_MQTT_PASSWORD:}
+      tls:
+        enabled: ${PROCEL_TELEMETRY_MQTT_TLS_ENABLED:false}
+        trust-store: ${PROCEL_TELEMETRY_MQTT_TLS_TRUST_STORE:}
+        trust-store-password: ${PROCEL_TELEMETRY_MQTT_TLS_TRUST_STORE_PASSWORD:}
+        key-store: ${PROCEL_TELEMETRY_MQTT_TLS_KEY_STORE:}
+        key-store-password: ${PROCEL_TELEMETRY_MQTT_TLS_KEY_STORE_PASSWORD:}
 
   cors:
     allowed-origin-patterns: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}
