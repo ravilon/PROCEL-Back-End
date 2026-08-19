@@ -40,9 +40,13 @@ interface BindingsPanelProps {
 function bindingMessage(error?: Error | null) {
   if (!(error instanceof ApiError)) return error?.message;
   if (error.code === "BINDING_ALREADY_ACTIVE") return "Este binding ja esta ativo.";
+  if (error.code === "BINDING_ALREADY_ACTIVE_FOR_SENSOR_PROFILE") {
+    return "Ja existe um binding ativo para este sensor neste perfil.";
+  }
   if (error.code === "BINDING_ALREADY_INACTIVE") return "Este binding ja esta inativo.";
   if (error.code === "PROFILE_INACTIVE") return "Ative o perfil antes de alterar bindings.";
   if (error.code === "SENSOR_INACTIVE") return "O sensor esta inativo.";
+  if (error.code === "SENSOR_NOT_FOUND") return "Sensor nao encontrado.";
   return error.message;
 }
 

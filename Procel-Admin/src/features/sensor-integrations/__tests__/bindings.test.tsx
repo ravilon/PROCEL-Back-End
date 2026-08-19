@@ -8,6 +8,7 @@ import {
   deactivateIntegrationBinding,
   searchCatalogSensors,
 } from "../../../api/sensorIntegrations";
+import { ApiError } from "../../../lib/api";
 import { activeBinding, activeSensor, adminSession, inactiveBinding, inactiveSensor } from "../../../test/fixtures/sensorIntegrations";
 import { BindingsPanel } from "../BindingsPanel";
 
@@ -73,5 +74,22 @@ describe("bindings", () => {
     await user.click(within(screen.getByRole("dialog")).getByText("Desativar"));
     await waitFor(() => expect(deactivateIntegrationBinding).toHaveBeenCalledWith("binding-1", adminSession));
     expect(screen.getByText("Sensor historico")).toBeInTheDocument();
+  });
+
+  it("shows specific messages for functional binding errors", async () => {
+    const user = userEvent.setup();
+    vi.mocked(activateIntegrationBinding).mockRejectedValueOnce(
+      new ApiError(
+        "Another active binding already exists.",
+        409,
+        "BINDING_ALREADY_ACTIVE_FOR_SENSOR_PROFILE",
+      ),
+    );
+    renderPanel();
+
+    await user.click(screen.getAllByLabelText("Alterar binding")[1]);
+    await user.click(within(screen.getByRole("dialog")).getByText("Ativar"));
+
+    expect(await screen.findByText("Ja existe um binding ativo para este sensor neste perfil.")).toBeInTheDocument();
   });
 });

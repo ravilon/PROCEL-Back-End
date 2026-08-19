@@ -98,6 +98,22 @@ describe("versions", () => {
     });
   });
 
+  it("sends null expectedActiveVersionId when there is no active version", async () => {
+    const user = userEvent.setup();
+    renderWithQuery(<VersionsPanel profileId="profile-1" versions={[draftVersion]} />);
+    await user.click(screen.getByLabelText("Ativar versao"));
+    await user.click(within(screen.getByRole("dialog")).getByText("Ativar"));
+
+    await waitFor(() => {
+      expect(activateParserVersion).toHaveBeenCalledWith(
+        "profile-1",
+        "version-draft",
+        { expectedActiveVersionId: null },
+        adminSession,
+      );
+    });
+  });
+
   it("does not retry activation conflict and requires a new confirmation", async () => {
     const user = userEvent.setup();
     vi.mocked(activateParserVersion).mockRejectedValueOnce(
