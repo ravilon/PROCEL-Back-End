@@ -47,6 +47,20 @@ procel:
   sensors:
     seed-path: seed/sensors/sensors.seed.json
 
+  analytics:
+    aggregation:
+      worker-enabled: ${PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED:false}
+      poll-interval: ${PROCEL_ANALYTICS_AGGREGATION_POLL_INTERVAL:5s}
+      lease-timeout: ${PROCEL_ANALYTICS_AGGREGATION_LEASE_TIMEOUT:10m}
+      max-attempts: ${PROCEL_ANALYTICS_AGGREGATION_MAX_ATTEMPTS:3}
+      backoff: ${PROCEL_ANALYTICS_AGGREGATION_BACKOFF:1m}
+      max-interval: ${PROCEL_ANALYTICS_AGGREGATION_MAX_INTERVAL:366d}
+      min-window: ${PROCEL_ANALYTICS_AGGREGATION_MIN_WINDOW:1m}
+      max-window: ${PROCEL_ANALYTICS_AGGREGATION_MAX_WINDOW:31d}
+      max-windows: ${PROCEL_ANALYTICS_AGGREGATION_MAX_WINDOWS:10000}
+      measurement-page-size: ${PROCEL_ANALYTICS_AGGREGATION_MEASUREMENT_PAGE_SIZE:500}
+      batch-size: ${PROCEL_ANALYTICS_AGGREGATION_BATCH_SIZE:5}
+
   cors:
     allowed-origin-patterns: ${PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}
 

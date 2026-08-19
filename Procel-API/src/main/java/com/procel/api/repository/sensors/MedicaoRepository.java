@@ -66,4 +66,22 @@ public interface MedicaoRepository extends JpaRepository<Medicao, UUID>, JpaSpec
             @Param("compartimentoId") String compartimentoId,
             Pageable pageable
     );
+
+    @Query("""
+           select m.id from Medicao m
+           join m.sensor s
+           join s.compartimento c
+           where m.timestamp >= :from
+             and m.timestamp < :to
+             and (:sensorExternalId is null or s.externalId = :sensorExternalId)
+             and (:compartimentoId is null or c.id = :compartimentoId)
+           order by m.timestamp asc, m.id asc
+           """)
+    List<UUID> findIdsForAggregationWindow(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("sensorExternalId") String sensorExternalId,
+            @Param("compartimentoId") String compartimentoId,
+            Pageable pageable
+    );
 }

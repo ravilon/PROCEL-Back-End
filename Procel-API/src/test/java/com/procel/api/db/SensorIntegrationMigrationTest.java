@@ -18,7 +18,7 @@ class SensorIntegrationMigrationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
 
     @Test
-    void migratesEmptyDatabaseThroughV17() throws Exception {
+    void migratesEmptyDatabaseThroughV18() throws Exception {
         Flyway.configure()
                 .dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration")
@@ -34,11 +34,13 @@ class SensorIntegrationMigrationTest {
                          'sensor_integration_parser_version',
                          'sensor_integration_value_mapping',
                          'sensor_integration_binding',
-                         'medicao_ingestao_metadata'
+                         'medicao_ingestao_metadata',
+                         'analytics_aggregation_job',
+                         'analytics_aggregation_window'
                      )
                      """)) {
             assertThat(result.next()).isTrue();
-            assertThat(result.getInt(1)).isEqualTo(5);
+            assertThat(result.getInt(1)).isEqualTo(7);
         }
 
         try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -69,6 +71,22 @@ class SensorIntegrationMigrationTest {
                     .contains("raw_received_at")
                     .contains("integration_profile_id")
                     .contains("parser_version_id");
+        }
+
+        try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             var result = connection.createStatement().executeQuery("""
+                     select count(*)
+                     from information_schema.check_constraints
+                     where constraint_name in (
+                         'ck_analytics_aggregation_job_period',
+                         'ck_analytics_aggregation_job_window_duration',
+                         'ck_analytics_aggregation_job_status',
+                         'ck_analytics_aggregation_window_period',
+                         'ck_analytics_aggregation_window_status'
+                     )
+                     """)) {
+            assertThat(result.next()).isTrue();
+            assertThat(result.getInt(1)).isEqualTo(5);
         }
     }
 
