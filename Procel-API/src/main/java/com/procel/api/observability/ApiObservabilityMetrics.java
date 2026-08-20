@@ -7,7 +7,6 @@ import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 @Component
 public class ApiObservabilityMetrics {
