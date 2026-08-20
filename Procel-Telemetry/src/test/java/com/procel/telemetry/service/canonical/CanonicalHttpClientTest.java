@@ -5,9 +5,11 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.entity.RawTelemetryEvent;
 import com.procel.telemetry.entity.TelemetrySource;
+import com.procel.telemetry.observability.CorrelationId;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -30,17 +32,20 @@ class CanonicalHttpClientTest {
         if (server != null) {
             server.stop(0);
         }
+        MDC.clear();
     }
 
     @Test
     void callsPayloadPointerAndRouteSensorInternalRoutesPreservingRawContext() throws Exception {
         AtomicReference<String> payloadPath = new AtomicReference<>();
         AtomicReference<String> routePath = new AtomicReference<>();
+        AtomicReference<String> correlationId = new AtomicReference<>();
         AtomicReference<String> body = new AtomicReference<>();
         server = server(exchange -> {
             String path = exchange.getRequestURI().getPath();
             String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             body.set(requestBody);
+            correlationId.set(exchange.getRequestHeaders().getFirst(CorrelationId.HEADER));
             if (path.contains("/sensor-1/")) {
                 routePath.set(path);
             } else {
@@ -52,9 +57,11 @@ class CanonicalHttpClientTest {
         });
 
         var client = new CanonicalIngestClient(objectMapper, properties(), issuer(), java.net.http.HttpClient.newHttpClient());
+        MDC.put(CorrelationId.MDC_KEY, "corr-client-1");
         client.ingest(event(), profile("profile-payload", CanonicalApiDTOs.SensorResolutionMode.PAYLOAD_POINTER));
         client.ingest(event(), profile("profile-route", CanonicalApiDTOs.SensorResolutionMode.ROUTE_SENSOR));
 
+        assertThat(correlationId.get()).isEqualTo("corr-client-1");
         assertThat(payloadPath.get()).isEqualTo("/api/sensors/internal/telemetry-events/ingest/integrations/profile-payload");
         assertThat(routePath.get()).isEqualTo("/api/sensors/internal/telemetry-events/sensor-1/ingest/integrations/profile-route");
         var request = objectMapper.readTree(body.get());

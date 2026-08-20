@@ -295,6 +295,19 @@ class TelemetryControllerTest {
     }
 
     @Test
+    void actuatorHealthIsPublicAndPrometheusRequiresAdmin() throws Exception {
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(get("/actuator/prometheus")
+                        .header("Authorization", TestJwt.bearer("admin", "ADMIN")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void rejectsPayloadAboveLimitAndInvalidJson() throws Exception {
         mvc.perform(post("/api/telemetry/events")
                         .header("Authorization", TestJwt.bearer("ingestor", "INGESTOR"))

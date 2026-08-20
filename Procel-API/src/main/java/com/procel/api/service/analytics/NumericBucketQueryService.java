@@ -2,6 +2,7 @@ package com.procel.api.service.analytics;
 
 import com.procel.api.config.AnalyticsBucketQueryProperties;
 import com.procel.api.dto.analytics.NumericBucketDTOs;
+import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.repository.rooms.CompartimentoRepository;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.repository.sensors.SensorRepository;
@@ -13,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -24,85 +26,103 @@ public class NumericBucketQueryService {
     private final ParametroDefRepository parametroDefRepository;
     private final CompartimentoRepository compartimentoRepository;
     private final AnalyticsBucketQueryProperties properties;
+    private final ApiObservabilityMetrics metrics;
 
     public NumericBucketQueryService(
             JdbcTemplate jdbcTemplate,
             SensorRepository sensorRepository,
             ParametroDefRepository parametroDefRepository,
             CompartimentoRepository compartimentoRepository,
-            AnalyticsBucketQueryProperties properties
+            AnalyticsBucketQueryProperties properties,
+            ApiObservabilityMetrics metrics
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.sensorRepository = sensorRepository;
         this.parametroDefRepository = parametroDefRepository;
         this.compartimentoRepository = compartimentoRepository;
         this.properties = properties;
+        this.metrics = metrics;
     }
 
     public NumericBucketDTOs.NumericBucketPage list(NumericBucketQuery query) {
-        validate(query);
-        ensureReferences(query);
-        int page = page(query);
-        int size = size(query);
-        SqlFilter filter = filter(query);
-        long total = jdbcTemplate.queryForObject("select count(*) " + filter.fromWhere(), Long.class, filter.args().toArray());
-        int totalPages = total == 0 ? 0 : Math.toIntExact((total + size - 1) / size);
+        Instant startedAt = Instant.now();
+        try {
+            validate(query);
+            ensureReferences(query);
+            int page = page(query);
+            int size = size(query);
+            SqlFilter filter = filter(query);
+            long total = jdbcTemplate.queryForObject("select count(*) " + filter.fromWhere(), Long.class, filter.args().toArray());
+            int totalPages = total == 0 ? 0 : Math.toIntExact((total + size - 1) / size);
 
-        List<Object> args = new ArrayList<>(filter.args());
-        args.add(size);
-        args.add((long) page * size);
-        List<NumericBucketDTOs.NumericBucketResponse> content = jdbcTemplate.query("""
-                select bucket.sensor_external_id, sensor.nome as sensor_nome,
-                       bucket.parametro_def_id, parametro.nome as parametro_nome,
-                       parametro.numeric_unit as unidade, bucket.compartimento_id,
-                       bucket.bucket_start, bucket.bucket_end, bucket.average_value,
-                       bucket.minimum_value, bucket.maximum_value, bucket.sample_count,
-                       bucket.aggregation_version
-                """ + filter.fromWhere() + """
-                order by bucket.bucket_start asc, bucket.sensor_external_id asc,
-                         bucket.parametro_def_id asc, bucket.bucket_end asc,
-                         bucket.aggregation_version asc
-                limit ? offset ?
-                """, bucketMapper(), args.toArray());
+            List<Object> args = new ArrayList<>(filter.args());
+            args.add(size);
+            args.add((long) page * size);
+            List<NumericBucketDTOs.NumericBucketResponse> content = jdbcTemplate.query("""
+                    select bucket.sensor_external_id, sensor.nome as sensor_nome,
+                           bucket.parametro_def_id, parametro.nome as parametro_nome,
+                           parametro.numeric_unit as unidade, bucket.compartimento_id,
+                           bucket.bucket_start, bucket.bucket_end, bucket.average_value,
+                           bucket.minimum_value, bucket.maximum_value, bucket.sample_count,
+                           bucket.aggregation_version
+                    """ + filter.fromWhere() + """
+                    order by bucket.bucket_start asc, bucket.sensor_external_id asc,
+                             bucket.parametro_def_id asc, bucket.bucket_end asc,
+                             bucket.aggregation_version asc
+                    limit ? offset ?
+                    """, bucketMapper(), args.toArray());
 
-        return new NumericBucketDTOs.NumericBucketPage(content, page, size, total, totalPages);
+            metrics.analyticsQuery("list", "success", Duration.between(startedAt, Instant.now()));
+            return new NumericBucketDTOs.NumericBucketPage(content, page, size, total, totalPages);
+        } catch (RuntimeException ex) {
+            metrics.analyticsQuery("list", "error", Duration.between(startedAt, Instant.now()));
+            throw ex;
+        }
     }
 
     public List<NumericBucketDTOs.NumericBucketSummaryResponse> summary(NumericBucketQuery query) {
-        validate(query);
-        ensureReferences(query);
-        SqlFilter filter = filter(query);
-        return jdbcTemplate.query("""
-                select bucket.sensor_external_id, sensor.nome as sensor_nome,
-                       bucket.parametro_def_id, parametro.nome as parametro_nome,
-                       parametro.numeric_unit as unidade, bucket.compartimento_id,
-                       min(bucket.minimum_value) as minimum_value,
-                       max(bucket.maximum_value) as maximum_value,
-                       sum(bucket.sample_count) as sample_count,
-                       sum(bucket.average_value * bucket.sample_count) / nullif(sum(bucket.sample_count), 0) as average_value,
-                       bucket.aggregation_version,
-                       count(*) as bucket_count
-                """ + filter.fromWhere() + """
-                group by bucket.sensor_external_id, sensor.nome, bucket.parametro_def_id,
-                         parametro.nome, parametro.numeric_unit, bucket.compartimento_id, bucket.aggregation_version
-                order by bucket.sensor_external_id asc, bucket.parametro_def_id asc,
-                         bucket.compartimento_id asc, bucket.aggregation_version asc
-                """, (rs, rowNum) -> new NumericBucketDTOs.NumericBucketSummaryResponse(
-                rs.getString("sensor_external_id"),
-                rs.getString("sensor_nome"),
-                rs.getObject("parametro_def_id", UUID.class),
-                rs.getString("parametro_nome"),
-                rs.getString("unidade"),
-                rs.getString("compartimento_id"),
-                query.from(),
-                query.to(),
-                rs.getBigDecimal("average_value"),
-                rs.getBigDecimal("minimum_value"),
-                rs.getBigDecimal("maximum_value"),
-                rs.getLong("sample_count"),
-                rs.getInt("aggregation_version"),
-                rs.getLong("bucket_count")
-        ), filter.args().toArray());
+        Instant startedAt = Instant.now();
+        try {
+            validate(query);
+            ensureReferences(query);
+            SqlFilter filter = filter(query);
+            List<NumericBucketDTOs.NumericBucketSummaryResponse> result = jdbcTemplate.query("""
+                    select bucket.sensor_external_id, sensor.nome as sensor_nome,
+                           bucket.parametro_def_id, parametro.nome as parametro_nome,
+                           parametro.numeric_unit as unidade, bucket.compartimento_id,
+                           min(bucket.minimum_value) as minimum_value,
+                           max(bucket.maximum_value) as maximum_value,
+                           sum(bucket.sample_count) as sample_count,
+                           sum(bucket.average_value * bucket.sample_count) / nullif(sum(bucket.sample_count), 0) as average_value,
+                           bucket.aggregation_version,
+                           count(*) as bucket_count
+                    """ + filter.fromWhere() + """
+                    group by bucket.sensor_external_id, sensor.nome, bucket.parametro_def_id,
+                             parametro.nome, parametro.numeric_unit, bucket.compartimento_id, bucket.aggregation_version
+                    order by bucket.sensor_external_id asc, bucket.parametro_def_id asc,
+                             bucket.compartimento_id asc, bucket.aggregation_version asc
+                    """, (rs, rowNum) -> new NumericBucketDTOs.NumericBucketSummaryResponse(
+                    rs.getString("sensor_external_id"),
+                    rs.getString("sensor_nome"),
+                    rs.getObject("parametro_def_id", UUID.class),
+                    rs.getString("parametro_nome"),
+                    rs.getString("unidade"),
+                    rs.getString("compartimento_id"),
+                    query.from(),
+                    query.to(),
+                    rs.getBigDecimal("average_value"),
+                    rs.getBigDecimal("minimum_value"),
+                    rs.getBigDecimal("maximum_value"),
+                    rs.getLong("sample_count"),
+                    rs.getInt("aggregation_version"),
+                    rs.getLong("bucket_count")
+            ), filter.args().toArray());
+            metrics.analyticsQuery("summary", "success", Duration.between(startedAt, Instant.now()));
+            return result;
+        } catch (RuntimeException ex) {
+            metrics.analyticsQuery("summary", "error", Duration.between(startedAt, Instant.now()));
+            throw ex;
+        }
     }
 
     private void validate(NumericBucketQuery query) {

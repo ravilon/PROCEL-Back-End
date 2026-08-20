@@ -1,33 +1,44 @@
 package com.procel.api.service.analytics;
 
 import com.procel.api.config.AnalyticsAggregationProperties;
+import com.procel.api.observability.ApiObservabilityMetrics;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.net.InetAddress;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 @Service
 public class AggregationJobWorker {
+    private static final Logger log = LoggerFactory.getLogger(AggregationJobWorker.class);
+    private static final String APPLICATION = "procel-api";
+
     private final JdbcTemplate jdbcTemplate;
     private final TransactionTemplate transactionTemplate;
     private final AggregationWindowProcessor processor;
     private final AnalyticsAggregationProperties properties;
+    private final ApiObservabilityMetrics metrics;
     private final String workerId;
 
     public AggregationJobWorker(
             JdbcTemplate jdbcTemplate,
             TransactionTemplate transactionTemplate,
             AggregationWindowProcessor processor,
-            AnalyticsAggregationProperties properties
+            AnalyticsAggregationProperties properties,
+            ApiObservabilityMetrics metrics
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.transactionTemplate = transactionTemplate;
         this.processor = processor;
         this.properties = properties;
+        this.metrics = metrics;
         this.workerId = buildWorkerId();
     }
 
@@ -60,12 +71,19 @@ public class AggregationJobWorker {
         if (work == null) {
             return false;
         }
+        Instant startedAt = Instant.now();
+        String outcome = "completed";
         try {
             processor.process(work);
             completeWindow(work.windowId());
         } catch (Exception ex) {
             failWindow(work, rootMessage(ex));
+            outcome = work.attempts() >= properties.getMaxAttempts() ? "failed" : "retry";
         }
+        Duration duration = Duration.between(startedAt, Instant.now());
+        metrics.windowProcessed(outcome, work.attempts(), duration);
+        log.info("application={} event=aggregation_window_processed aggregationJobId={} aggregationWindowId={} status={} attempts={} durationMs={}",
+                APPLICATION, work.jobId(), work.windowId(), outcome, work.attempts(), duration.toMillis());
         updateJobProgress(work.jobId());
         return true;
     }

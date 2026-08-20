@@ -1,6 +1,7 @@
 package com.procel.api.service.analytics;
 
 import com.procel.api.config.AnalyticsAggregationProperties;
+import com.procel.api.observability.ApiObservabilityMetrics;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,20 +12,24 @@ import java.sql.Timestamp;
 public class CanonicalMeasurementWindowScanner implements AggregationWindowProcessor {
     private final JdbcTemplate jdbcTemplate;
     private final AnalyticsAggregationProperties properties;
+    private final ApiObservabilityMetrics metrics;
 
     public CanonicalMeasurementWindowScanner(
             JdbcTemplate jdbcTemplate,
-            AnalyticsAggregationProperties properties
+            AnalyticsAggregationProperties properties,
+            ApiObservabilityMetrics metrics
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.properties = properties;
+        this.metrics = metrics;
     }
 
     @Override
     @Transactional
     public void process(AggregationWindowWork work) {
         deleteCurrentWindowBuckets(work);
-        insertCurrentWindowBuckets(work);
+        int persisted = insertCurrentWindowBuckets(work);
+        metrics.bucketsPersisted(persisted);
     }
 
     private void deleteCurrentWindowBuckets(AggregationWindowWork work) {
@@ -48,8 +53,8 @@ public class CanonicalMeasurementWindowScanner implements AggregationWindowProce
         );
     }
 
-    private void insertCurrentWindowBuckets(AggregationWindowWork work) {
-        jdbcTemplate.update("""
+    private int insertCurrentWindowBuckets(AggregationWindowWork work) {
+        return jdbcTemplate.update("""
                 insert into analytics_numeric_bucket
                 (sensor_external_id, parametro_def_id, compartimento_id, bucket_start, bucket_end,
                  aggregation_version, average_value, minimum_value, maximum_value, sample_count,

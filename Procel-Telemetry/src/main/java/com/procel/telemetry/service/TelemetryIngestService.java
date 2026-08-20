@@ -7,11 +7,13 @@ import com.procel.telemetry.dto.TelemetryEventDTOs;
 import com.procel.telemetry.entity.RawTelemetryEvent;
 import com.procel.telemetry.entity.TelemetrySource;
 import com.procel.telemetry.exception.ApiStatusException;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
 import com.procel.telemetry.repository.RawTelemetryEventRepository;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 
 @Service
@@ -22,69 +24,84 @@ public class TelemetryIngestService {
     private final PayloadHashService payloadHashService;
     private final TelemetryProperties properties;
     private final ObjectMapper objectMapper;
+    private final TelemetryObservabilityMetrics metrics;
 
     public TelemetryIngestService(
             RawTelemetryEventRepository repository,
             PayloadHashService payloadHashService,
             TelemetryProperties properties,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            TelemetryObservabilityMetrics metrics
     ) {
         this.repository = repository;
         this.payloadHashService = payloadHashService;
         this.properties = properties;
         this.objectMapper = objectMapper;
+        this.metrics = metrics;
     }
 
     public TelemetryEventDTOs.IngestResponse ingest(String producerId, JsonNode request) {
-        if (producerId == null || producerId.isBlank()) {
-            throw new ApiStatusException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Token ausente ou invalido");
-        }
-        if (request == null || !request.isObject()) {
-            throw new ApiStatusException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "body must be a JSON object");
-        }
-
-        TelemetrySource source = source(request);
-        String messageId = requiredText(request, "messageId");
-        String sensorId = optionalText(request, "sensorId");
-        Instant sourceTimestamp = optionalInstant(request, "sourceTimestamp");
-        JsonNode payload = requiredPayload(request);
-
-        var sensorPresence = request.has("sensorId")
-                ? PayloadHashService.PresenceValue.present(request.get("sensorId"))
-                : PayloadHashService.PresenceValue.absent();
-        var sourceTimestampPresence = request.has("sourceTimestamp")
-                ? PayloadHashService.PresenceValue.present(request.get("sourceTimestamp"))
-                : PayloadHashService.PresenceValue.absent();
-        String payloadHash = payloadHashService.fingerprint(source, sensorPresence, sourceTimestampPresence, payload);
-
-        Instant receivedAt = Instant.now();
-        RawTelemetryEvent event = new RawTelemetryEvent(
-                producerId,
-                source,
-                messageId,
-                sensorId,
-                sourceTimestamp,
-                receivedAt,
-                objectMapper.convertValue(payload, Object.class),
-                payloadHash,
-                receivedAt.plusSeconds(properties.getRetentionDays() * 86_400L)
-        );
-
+        Instant startedAt = Instant.now();
+        TelemetrySource source = null;
         try {
-            return toIngestResponse(repository.save(event), false);
-        } catch (DuplicateKeyException ex) {
-            if (!isIdempotencyDuplicate(ex)) throw ex;
-            RawTelemetryEvent winner = repository
-                    .findByProducerIdAndSourceAndMessageId(producerId, source, messageId)
-                    .orElseThrow(() -> ex);
-            if (payloadHash.equals(winner.getPayloadHash())) {
-                return toIngestResponse(winner, true);
+            if (producerId == null || producerId.isBlank()) {
+                throw new ApiStatusException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Token ausente ou invalido");
             }
-            throw new ApiStatusException(
-                    HttpStatus.CONFLICT,
-                    "RAW_IDEMPOTENCY_CONFLICT",
-                    "A different raw payload was already received for this producer, source and messageId."
+            if (request == null || !request.isObject()) {
+                throw new ApiStatusException(HttpStatus.BAD_REQUEST, "BAD_REQUEST", "body must be a JSON object");
+            }
+
+            source = source(request);
+            String messageId = requiredText(request, "messageId");
+            String sensorId = optionalText(request, "sensorId");
+            Instant sourceTimestamp = optionalInstant(request, "sourceTimestamp");
+            JsonNode payload = requiredPayload(request);
+
+            var sensorPresence = request.has("sensorId")
+                    ? PayloadHashService.PresenceValue.present(request.get("sensorId"))
+                    : PayloadHashService.PresenceValue.absent();
+            var sourceTimestampPresence = request.has("sourceTimestamp")
+                    ? PayloadHashService.PresenceValue.present(request.get("sourceTimestamp"))
+                    : PayloadHashService.PresenceValue.absent();
+            String payloadHash = payloadHashService.fingerprint(source, sensorPresence, sourceTimestampPresence, payload);
+
+            Instant receivedAt = Instant.now();
+            RawTelemetryEvent event = new RawTelemetryEvent(
+                    producerId,
+                    source,
+                    messageId,
+                    sensorId,
+                    sourceTimestamp,
+                    receivedAt,
+                    objectMapper.convertValue(payload, Object.class),
+                    payloadHash,
+                    receivedAt.plusSeconds(properties.getRetentionDays() * 86_400L)
             );
+
+            try {
+                TelemetryEventDTOs.IngestResponse response = toIngestResponse(repository.save(event), false);
+                metrics.event(source.name(), "received", Duration.between(startedAt, Instant.now()));
+                return response;
+            } catch (DuplicateKeyException ex) {
+                if (!isIdempotencyDuplicate(ex)) throw ex;
+                RawTelemetryEvent winner = repository
+                        .findByProducerIdAndSourceAndMessageId(producerId, source, messageId)
+                        .orElseThrow(() -> ex);
+                if (payloadHash.equals(winner.getPayloadHash())) {
+                    TelemetryEventDTOs.IngestResponse response = toIngestResponse(winner, true);
+                    metrics.event(source.name(), "duplicate", Duration.between(startedAt, Instant.now()));
+                    return response;
+                }
+                throw new ApiStatusException(
+                        HttpStatus.CONFLICT,
+                        "RAW_IDEMPOTENCY_CONFLICT",
+                        "A different raw payload was already received for this producer, source and messageId."
+                );
+            }
+        } catch (ApiStatusException ex) {
+            String outcome = HttpStatus.CONFLICT.equals(ex.getStatus()) ? "conflict" : "discarded";
+            metrics.event(metricSource(source), outcome, Duration.between(startedAt, Instant.now()));
+            throw ex;
         }
     }
 
@@ -147,5 +164,9 @@ public class TelemetryIngestService {
                 duplicate,
                 event.getReceivedAt()
         );
+    }
+
+    private static String metricSource(TelemetrySource source) {
+        return source == null ? "UNKNOWN" : source.name();
     }
 }

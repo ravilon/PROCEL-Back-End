@@ -2,7 +2,9 @@ package com.procel.telemetry.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.procel.telemetry.config.TelemetryProperties;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
 import com.procel.telemetry.repository.RawTelemetryEventRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DuplicateKeyException;
 
@@ -25,7 +27,8 @@ class TelemetryIngestServiceTest {
                 repository,
                 new PayloadHashService(objectMapper),
                 new TelemetryProperties(),
-                objectMapper
+                objectMapper,
+                new TelemetryObservabilityMetrics(new SimpleMeterRegistry(), repository)
         );
 
         assertThatThrownBy(() -> service.ingest("producer", objectMapper.readTree("""

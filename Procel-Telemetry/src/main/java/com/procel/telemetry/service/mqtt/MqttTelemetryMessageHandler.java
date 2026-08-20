@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.dto.TelemetryEventDTOs;
 import com.procel.telemetry.exception.ApiStatusException;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
 import com.procel.telemetry.service.TelemetryIngestService;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.slf4j.Logger;
@@ -12,6 +13,8 @@ import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.dao.TransientDataAccessException;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
@@ -22,32 +25,41 @@ public class MqttTelemetryMessageHandler {
     private final MqttTopicParser topicParser;
     private final MqttPayloadAdapter payloadAdapter;
     private final TelemetryIngestService ingestService;
+    private final TelemetryObservabilityMetrics metrics;
     private final Counters counters = new Counters();
 
     public MqttTelemetryMessageHandler(
             TelemetryProperties properties,
             MqttTopicParser topicParser,
             MqttPayloadAdapter payloadAdapter,
-            TelemetryIngestService ingestService
+            TelemetryIngestService ingestService,
+            TelemetryObservabilityMetrics metrics
     ) {
         this.properties = properties;
         this.topicParser = topicParser;
         this.payloadAdapter = payloadAdapter;
         this.ingestService = ingestService;
+        this.metrics = metrics;
     }
 
     public HandlingDecision handle(String topic, MqttMessage message) {
+        Instant startedAt = Instant.now();
         counters.received.incrementAndGet();
+        metrics.mqtt("received", Duration.ZERO);
         if (message.isRetained() && properties.getMqtt().isRejectRetained()) {
             counters.discarded.incrementAndGet();
-            log.info("discarded retained MQTT telemetry event: topic={}, code=MQTT_RETAINED_REJECTED", topic);
+            metrics.mqtt("rejected", Duration.between(startedAt, Instant.now()));
+            log.info("application=procel-telemetry event=mqtt_message_rejected status=MQTT_RETAINED_REJECTED durationMs={}",
+                    Duration.between(startedAt, Instant.now()).toMillis());
             return HandlingDecision.ACK;
         }
         byte[] payload = message.getPayload();
         if (payload.length > properties.getMaxPayloadBytes()) {
             counters.discarded.incrementAndGet();
-            log.info("discarded oversized MQTT telemetry event: topic={}, payloadBytes={}, code=PAYLOAD_TOO_LARGE",
-                    topic, payload.length);
+            Duration duration = Duration.between(startedAt, Instant.now());
+            metrics.mqtt("rejected", duration);
+            log.info("application=procel-telemetry event=mqtt_message_rejected status=PAYLOAD_TOO_LARGE payloadBytes={} durationMs={}",
+                    payload.length, duration.toMillis());
             return HandlingDecision.ACK;
         }
 
@@ -58,34 +70,44 @@ public class MqttTelemetryMessageHandler {
             request = payloadAdapter.toTelemetryRequest(payload, topicContext);
         } catch (MqttTelemetryPermanentException ex) {
             counters.discarded.incrementAndGet();
-            log.info("discarded invalid MQTT telemetry event: topic={}, code={}", topic, ex.getCode());
+            Duration duration = Duration.between(startedAt, Instant.now());
+            metrics.mqtt("rejected", duration);
+            log.info("application=procel-telemetry event=mqtt_message_rejected status={} durationMs={}",
+                    ex.getCode(), duration.toMillis());
             return HandlingDecision.ACK;
         }
 
         try {
             TelemetryEventDTOs.IngestResponse response = ingestService.ingest(topicContext.producerId(), request);
+            Duration duration = Duration.between(startedAt, Instant.now());
             if (response.duplicate()) {
                 counters.duplicates.incrementAndGet();
+                metrics.mqtt("duplicate", duration);
             } else {
                 counters.persisted.incrementAndGet();
+                metrics.mqtt("persisted", duration);
             }
-            log.info("stored MQTT telemetry event: topic={}, producerId={}, sensorId={}, messageId={}, duplicate={}, rawEventId={}",
-                    topic, topicContext.producerId(), topicContext.sensorId(), request.get("messageId").asText(),
-                    response.duplicate(), response.id());
+            log.info("application=procel-telemetry event=mqtt_message_stored rawTelemetryEventId={} status={} durationMs={}",
+                    response.id(), response.duplicate() ? "duplicate" : "persisted", duration.toMillis());
             return HandlingDecision.ACK;
         } catch (ApiStatusException ex) {
+            Duration duration = Duration.between(startedAt, Instant.now());
             if ("RAW_IDEMPOTENCY_CONFLICT".equals(ex.getError())) {
                 counters.conflicts.incrementAndGet();
+                metrics.mqtt("conflict", duration);
             } else {
                 counters.discarded.incrementAndGet();
+                metrics.mqtt("rejected", duration);
             }
-            log.info("discarded permanent MQTT telemetry event: topic={}, producerId={}, sensorId={}, messageId={}, code={}",
-                    topic, topicContext.producerId(), topicContext.sensorId(), request.get("messageId").asText(), ex.getError());
+            log.info("application=procel-telemetry event=mqtt_message_rejected status={} durationMs={}",
+                    ex.getError(), duration.toMillis());
             return HandlingDecision.ACK;
         } catch (TransientDataAccessException | DataAccessResourceFailureException ex) {
             counters.transientFailures.incrementAndGet();
-            log.warn("transient MongoDB failure for MQTT telemetry event: topic={}, producerId={}, sensorId={}, messageId={}",
-                    topic, topicContext.producerId(), topicContext.sensorId(), request.get("messageId").asText());
+            Duration duration = Duration.between(startedAt, Instant.now());
+            metrics.mqtt("retry", duration);
+            log.warn("application=procel-telemetry event=mqtt_message_retry status=TRANSIENT_DATA_ACCESS durationMs={}",
+                    duration.toMillis());
             return HandlingDecision.RETRY;
         }
     }

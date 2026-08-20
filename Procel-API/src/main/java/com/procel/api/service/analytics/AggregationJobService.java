@@ -3,6 +3,7 @@ package com.procel.api.service.analytics;
 import com.procel.api.config.AnalyticsAggregationProperties;
 import com.procel.api.dto.analytics.AggregationJobDTOs;
 import com.procel.api.exception.NotFoundException;
+import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.repository.rooms.CompartimentoRepository;
 import com.procel.api.repository.sensors.SensorRepository;
 import org.springframework.http.HttpStatus;
@@ -26,17 +27,20 @@ public class AggregationJobService {
     private final SensorRepository sensorRepository;
     private final CompartimentoRepository compartimentoRepository;
     private final AnalyticsAggregationProperties properties;
+    private final ApiObservabilityMetrics metrics;
 
     public AggregationJobService(
             JdbcTemplate jdbcTemplate,
             SensorRepository sensorRepository,
             CompartimentoRepository compartimentoRepository,
-            AnalyticsAggregationProperties properties
+            AnalyticsAggregationProperties properties,
+            ApiObservabilityMetrics metrics
     ) {
         this.jdbcTemplate = jdbcTemplate;
         this.sensorRepository = sensorRepository;
         this.compartimentoRepository = compartimentoRepository;
         this.properties = properties;
+        this.metrics = metrics;
     }
 
     @Transactional
@@ -51,9 +55,11 @@ public class AggregationJobService {
         String key = idempotencyKey(request.from(), request.to(), request.windowDuration(), sensorExternalId, compartimentoId);
         UUID jobId = insertJob(request, requestedBy, sensorExternalId, compartimentoId, key, windowCount(request));
         if (jobId == null) {
+            metrics.aggregationJobCreated("existing");
             return findByIdempotencyKey(key);
         }
         insertWindows(jobId, request);
+        metrics.aggregationJobCreated("created");
         return get(jobId);
     }
 

@@ -3,6 +3,7 @@ package com.procel.telemetry.service.canonical;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.entity.RawTelemetryEvent;
+import com.procel.telemetry.observability.CorrelationId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -62,6 +63,7 @@ public class CanonicalIngestClient {
                 .timeout(properties.getCanonicalWorker().getPollInterval())
                 .header("Authorization", jwtIssuer.bearerToken())
                 .header("Content-Type", "application/json")
+                .header(CorrelationId.HEADER, CorrelationId.currentOrCreate())
                 .POST(HttpRequest.BodyPublishers.ofString(json(body)))
                 .build();
         HttpResponse<String> response = send(request);

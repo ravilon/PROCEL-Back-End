@@ -3,8 +3,13 @@ package com.procel.telemetry.service.canonical;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.entity.RawTelemetryEvent;
 import com.procel.telemetry.entity.TelemetrySource;
+import com.procel.telemetry.observability.CorrelationId;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
+import com.procel.telemetry.repository.RawTelemetryEventRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 
 import java.time.Instant;
 import java.util.List;
@@ -42,7 +47,8 @@ class CanonicalTelemetryWorkerTest {
                 snapshotClient,
                 profileSelector,
                 ingestClient,
-                properties
+                properties,
+                new TelemetryObservabilityMetrics(new SimpleMeterRegistry(), mock(RawTelemetryEventRepository.class))
         );
     }
 
@@ -145,6 +151,25 @@ class CanonicalTelemetryWorkerTest {
         assertThat(processed).isEqualTo(2);
         verify(claimService).retryOrFail(eq(failed), eq("WORKER_UNEXPECTED_ERROR"), any());
         verify(claimService).markAccepted(accepted, profile, "measurement-2");
+    }
+
+    @Test
+    void clearsGeneratedMdcAfterProcessingEvent() {
+        RawTelemetryEvent event = event("msg-1");
+        var snapshot = snapshot();
+        var profile = profile();
+        MDC.clear();
+        when(claimService.claimNext(any(), any()))
+                .thenReturn(event)
+                .thenReturn((RawTelemetryEvent) null);
+        when(snapshotClient.snapshot()).thenReturn(snapshot);
+        when(profileSelector.select(event, snapshot)).thenReturn(profile);
+        when(ingestClient.ingest(event, profile)).thenReturn(response("MEASUREMENT_INGESTED", "measurement-1"));
+
+        worker.processBatch();
+
+        assertThat(MDC.get(CorrelationId.MDC_KEY)).isNull();
+        assertThat(MDC.get("rawTelemetryEventId")).isNull();
     }
 
     private static RawTelemetryEvent event(String messageId) {

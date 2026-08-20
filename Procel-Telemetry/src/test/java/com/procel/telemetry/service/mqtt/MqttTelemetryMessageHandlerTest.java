@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.dto.TelemetryEventDTOs;
 import com.procel.telemetry.entity.RawTelemetryStatus;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
+import com.procel.telemetry.repository.RawTelemetryEventRepository;
 import com.procel.telemetry.service.TelemetryIngestService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataAccessResourceFailureException;
@@ -95,7 +98,8 @@ class MqttTelemetryMessageHandlerTest {
                 properties,
                 new MqttTopicParser(),
                 new MqttPayloadAdapter(objectMapper),
-                ingestService
+                ingestService,
+                new TelemetryObservabilityMetrics(new SimpleMeterRegistry(), mock(RawTelemetryEventRepository.class))
         );
     }
 

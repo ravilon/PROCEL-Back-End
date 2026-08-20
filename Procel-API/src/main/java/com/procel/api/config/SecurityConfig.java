@@ -72,6 +72,8 @@ public class SecurityConfig {
                                                                 "/v3/api-docs",
                                                                 "/v3/api-docs/**")
                                                 .permitAll()
+                                                .requestMatchers("/actuator/prometheus")
+                                                .hasRole("ADMIN")
                                                 .requestMatchers(HttpMethod.POST, "/api/missoes")
                                                 .hasAnyRole("ADMIN", "OPERADOR")
                                                 .requestMatchers(HttpMethod.PUT, "/api/missoes/**")
@@ -146,7 +148,7 @@ public class SecurityConfig {
                 configuration.setAllowedOriginPatterns(splitConfigList(allowedOriginPatterns));
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 configuration.setAllowedHeaders(List.of("*"));
-                configuration.setExposedHeaders(List.of("Authorization"));
+                configuration.setExposedHeaders(List.of("Authorization", "X-Correlation-ID"));
                 configuration.setAllowCredentials(true);
                 configuration.setMaxAge(3600L);
 

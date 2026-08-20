@@ -2,9 +2,11 @@ package com.procel.api.service.analytics;
 
 import com.procel.api.config.AnalyticsBucketQueryProperties;
 import com.procel.api.dto.analytics.NumericBucketDTOs;
+import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.repository.rooms.CompartimentoRepository;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.repository.sensors.SensorRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -35,7 +37,8 @@ class NumericBucketQueryServiceTest {
                 mock(SensorRepository.class),
                 mock(ParametroDefRepository.class),
                 mock(CompartimentoRepository.class),
-                properties
+                properties,
+                new ApiObservabilityMetrics(new SimpleMeterRegistry())
         );
 
         service.summary(new NumericBucketQuery(

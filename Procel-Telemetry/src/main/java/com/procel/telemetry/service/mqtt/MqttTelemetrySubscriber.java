@@ -1,6 +1,7 @@
 package com.procel.telemetry.service.mqtt;
 
 import com.procel.telemetry.config.TelemetryProperties;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
 import org.eclipse.paho.mqttv5.client.MqttAsyncClient;
 import org.eclipse.paho.mqttv5.client.MqttCallback;
 import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse;
@@ -23,17 +24,20 @@ public class MqttTelemetrySubscriber implements SmartLifecycle {
     private final TelemetryProperties properties;
     private final MqttTelemetryClientFactory clientFactory;
     private final MqttTelemetryMessageHandler handler;
+    private final TelemetryObservabilityMetrics metrics;
     private volatile MqttAsyncClient client;
     private volatile boolean running;
 
     public MqttTelemetrySubscriber(
             TelemetryProperties properties,
             MqttTelemetryClientFactory clientFactory,
-            MqttTelemetryMessageHandler handler
+            MqttTelemetryMessageHandler handler,
+            TelemetryObservabilityMetrics metrics
     ) {
         this.properties = properties;
         this.clientFactory = clientFactory;
         this.handler = handler;
+        this.metrics = metrics;
     }
 
     @Override
@@ -109,9 +113,10 @@ public class MqttTelemetrySubscriber implements SmartLifecycle {
                 if (reconnect) {
                     try {
                         subscribe();
-                        log.info("MQTT telemetry subscriber resubscribed after reconnect: serverURI={}", serverURI);
+                        metrics.mqttReconnect();
+                        log.info("application=procel-telemetry event=mqtt_reconnected status=success");
                     } catch (MqttException ex) {
-                        log.warn("failed to resubscribe MQTT telemetry subscriber after reconnect", ex);
+                        log.warn("application=procel-telemetry event=mqtt_reconnected status=resubscribe_failed", ex);
                     }
                 }
             }

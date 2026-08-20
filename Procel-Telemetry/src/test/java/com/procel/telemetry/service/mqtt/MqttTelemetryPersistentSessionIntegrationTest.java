@@ -6,6 +6,7 @@ import com.procel.telemetry.TestJwt;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.dto.TelemetryEventDTOs;
 import com.procel.telemetry.entity.RawTelemetryEvent;
+import com.procel.telemetry.observability.TelemetryObservabilityMetrics;
 import com.procel.telemetry.repository.RawTelemetryEventRepository;
 import com.procel.telemetry.service.PayloadHashService;
 import com.procel.telemetry.service.TelemetryIngestService;
@@ -160,9 +161,10 @@ class MqttTelemetryPersistentSessionIntegrationTest {
                 RawTelemetryEventRepository repository,
                 PayloadHashService payloadHashService,
                 TelemetryProperties properties,
-                ObjectMapper objectMapper
+                ObjectMapper objectMapper,
+                TelemetryObservabilityMetrics metrics
         ) {
-            return new FaultInjectingTelemetryIngestService(repository, payloadHashService, properties, objectMapper);
+            return new FaultInjectingTelemetryIngestService(repository, payloadHashService, properties, objectMapper, metrics);
         }
     }
 
@@ -174,9 +176,10 @@ class MqttTelemetryPersistentSessionIntegrationTest {
                 RawTelemetryEventRepository repository,
                 PayloadHashService payloadHashService,
                 TelemetryProperties properties,
-                ObjectMapper objectMapper
+                ObjectMapper objectMapper,
+                TelemetryObservabilityMetrics metrics
         ) {
-            super(repository, payloadHashService, properties, objectMapper);
+            super(repository, payloadHashService, properties, objectMapper, metrics);
         }
 
         void failOnce(String messageId) {

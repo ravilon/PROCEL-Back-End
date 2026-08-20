@@ -277,6 +277,19 @@ class NumericBucketControllerTest {
         assertThat(openApi).contains("/api/analytics/numeric-buckets/summary");
     }
 
+    @Test
+    void actuatorHealthIsPublicAndPrometheusRequiresAdmin() throws Exception {
+        mvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+
+        mvc.perform(get("/actuator/prometheus"))
+                .andExpect(status().isUnauthorized());
+
+        mvc.perform(get("/actuator/prometheus")
+                        .with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk());
+    }
+
     private void insertBucket(
             String bucketSensorId,
             String bucketCompartimentoId,
