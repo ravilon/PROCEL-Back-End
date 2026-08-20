@@ -37,7 +37,8 @@ class ApiObservabilityMetricsTest {
 
     private static void assertNoHighCardinalityTags(SimpleMeterRegistry registry) {
         for (Meter meter : registry.getMeters()) {
-            assertThat(meter.getId().getTags().stream().map(Tag::getKey))
+            assertThat(meter.getId().getTags().stream()
+                            .map((Tag tag) -> tag.getKey()))
                     .doesNotContainAnyElementsOf(HIGH_CARDINALITY_TAGS);
         }
     }

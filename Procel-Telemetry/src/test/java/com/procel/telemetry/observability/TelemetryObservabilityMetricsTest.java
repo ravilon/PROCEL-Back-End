@@ -48,8 +48,9 @@ class TelemetryObservabilityMetricsTest {
 
     private static void assertNoHighCardinalityTags(SimpleMeterRegistry registry) {
         for (Meter meter : registry.getMeters()) {
-            assertThat(meter.getId().getTags().stream().map(Tag::getKey))
-                    .doesNotContainAnyElementsOf(HIGH_CARDINALITY_TAGS);
+            for (Tag tag : meter.getId().getTags()) {
+                assertThat(tag.getKey()).isNotIn(HIGH_CARDINALITY_TAGS);
+            }
         }
     }
 }
