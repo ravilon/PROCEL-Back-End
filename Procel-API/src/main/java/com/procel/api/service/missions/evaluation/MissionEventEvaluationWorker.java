@@ -74,7 +74,7 @@ public class MissionEventEvaluationWorker {
                 requestService.markIgnored(work.requestId(), result.reason());
                 outcome = "ignored";
             } else {
-                requestService.markCompleted(work.requestId());
+                outcome = "completed";
             }
         } catch (MissionEventEvaluationFailure ex) {
             outcome = handleFailure(work, ex);

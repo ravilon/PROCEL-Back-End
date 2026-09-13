@@ -3,6 +3,7 @@ package com.procel.api.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.time.ZoneId;
 
 @ConfigurationProperties(prefix = "procel.missions.evaluation")
 public class MissionEvaluationProperties {
@@ -13,6 +14,7 @@ public class MissionEvaluationProperties {
     private int maxAttempts = 5;
     private Duration initialBackoff = Duration.ofSeconds(5);
     private Duration maxBackoff = Duration.ofMinutes(5);
+    private ZoneId academicZone = ZoneId.of("America/Sao_Paulo");
 
     public boolean isWorkerEnabled() {
         return workerEnabled;
@@ -68,5 +70,13 @@ public class MissionEvaluationProperties {
 
     public void setMaxBackoff(Duration maxBackoff) {
         this.maxBackoff = maxBackoff;
+    }
+
+    public ZoneId getAcademicZone() {
+        return academicZone;
+    }
+
+    public void setAcademicZone(ZoneId academicZone) {
+        this.academicZone = academicZone == null ? ZoneId.of("America/Sao_Paulo") : academicZone;
     }
 }

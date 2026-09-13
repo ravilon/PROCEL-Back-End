@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.procel.api.config.MissionEvaluationProperties;
 import com.procel.api.dto.sensors.SensorIngestDTOs;
 import com.procel.api.dto.sensors.SensorTelemetryIngestDTOs;
+import com.procel.api.entity.missions.EventoPoliticaAtribuicao;
+import com.procel.api.entity.missions.MissaoCicloTipo;
 import com.procel.api.entity.sensors.MedicaoIngestaoSource;
 import com.procel.api.service.missions.EventoAvaliacaoRequestService;
 import com.procel.api.service.sensors.ParametroQualificacaoService;
@@ -63,6 +65,8 @@ class MissionEventEvaluationIntegrationTest {
     String tipoSensor;
     UUID parametroDefId;
     UUID eventId;
+    UUID missionId;
+    Long disciplinaId;
     Instant measuredAt;
 
     @BeforeEach
@@ -73,6 +77,7 @@ class MissionEventEvaluationIntegrationTest {
         roomId = "ROOM-" + suffix;
         tipoSensor = "TYPE-" + suffix;
         parametroDefId = UUID.randomUUID();
+        disciplinaId = Math.abs(UUID.randomUUID().getMostSignificantBits() % 1_000_000_000L);
         measuredAt = Instant.parse("2026-09-13T10:00:00Z");
         properties.setWorkerEnabled(false);
         properties.setBatchSize(20);
@@ -193,12 +198,89 @@ class MissionEventEvaluationIntegrationTest {
 
         assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
         assertThat(count("evento_ocorrencia")).isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
         assertThat(jdbcTemplate.queryForObject("select contexto_snapshot::text from evento_ocorrencia", String.class))
                 .contains("SIMPLE_V1")
                 .contains(eventId.toString())
                 .contains(medicaoId.toString());
         assertThat(count("evento_ocorrencia_evidencia")).isEqualTo(1);
+        assertThat(count("atividade")).isZero();
+    }
+
+    @Test
+    void matchedAcademicEventCreatesActivitiesProgressesAndCompletesStudents() {
+        seedAcademicContext("student-a", "student-b");
+        seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
+                MissaoCicloTipo.POR_AULA, 1, true);
+        UUID medicaoId = ingest("msg-academic", BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed();
+
+        assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
+        assertThat(count("atividade")).isEqualTo(2);
+        assertThat(countWhere("atividade", "status = 'CONCLUIDA' and progresso_atual = 1 and progresso_necessario = 1")).isEqualTo(2);
+        assertThat(countWhere("atividade", "started_at is not null and completed_at is not null")).isEqualTo(2);
+        assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO' and progresso_adicionado = 1")).isEqualTo(2);
+        assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO' and progresso_adicionado = 0")).isEqualTo(2);
+    }
+
+    @Test
+    void retryDoesNotDuplicateActivityOrProgress() {
+        seedAcademicContext("student-retry");
+        seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
+                MissaoCicloTipo.UNICA, 2, true);
+        UUID medicaoId = ingest("msg-progress-retry", BigDecimal.valueOf(25)).response().medicaoId();
+        var work = claimOne();
+
+        worker.processClaimed(work);
+        jdbcTemplate.update("""
+                update evento_avaliacao_request
+                set status = 'RETRY', available_at = now(), processed_at = null
+                where id = ?
+                """, work.requestId());
+        worker.processClaimed(claimOne());
+
+        assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
+        assertThat(count("atividade")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
+        assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
+    }
+
+    @Test
+    void manualCompletionStaysInProgressWhenProgressIsFull() {
+        seedAcademicContext("student-manual");
+        seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
+                MissaoCicloTipo.UNICA, 1, false);
+        ingest("msg-manual", BigDecimal.valueOf(25));
+
+        processClaimed();
+
+        assertThat(jdbcTemplate.queryForObject("select status from atividade", String.class)).isEqualTo("EM_ANDAMENTO");
+        assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
+        assertThat(countWhere("atividade", "started_at is not null and completed_at is null")).isEqualTo(1);
+        assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isZero();
+    }
+
+    @Test
+    void unsupportedCycleAndPolicyFailPermanently() {
+        seedAcademicContext("student-unsupported");
+        seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
+                MissaoCicloTipo.POR_PRESENCA, 1, true);
+        UUID unsupportedCycle = ingest("msg-unsupported-cycle", BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed();
+        assertThat(statusFor(unsupportedCycle)).isEqualTo("FAILED");
+
+        cleanDatabase();
+        setUp();
+        seedAcademicContext("student-policy");
+        seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.CHECKIN_CONFIRMADO,
+                MissaoCicloTipo.UNICA, 1, true);
+        UUID unsupportedPolicy = ingest("msg-unsupported-policy", BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed();
+        assertThat(statusFor(unsupportedPolicy)).isEqualTo("FAILED");
     }
 
     @Test
@@ -313,6 +395,9 @@ class MissionEventEvaluationIntegrationTest {
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,
                     evento_avaliacao_request,
+                    aluno_disciplina,
+                    pessoa_role,
+                    pessoa,
                     medicao_ingestao_metadata,
                     sensor_integration_value_mapping,
                     sensor_integration_binding,
@@ -324,6 +409,7 @@ class MissionEventEvaluationIntegrationTest {
                     evento_definicao,
                     missao,
                     periodo_aula,
+                    disciplina,
                     sensor,
                     parametro_def,
                     tipo_de_sensor,
@@ -361,26 +447,65 @@ class MissionEventEvaluationIntegrationTest {
     private record IntegrationProfileIds(UUID profileId, UUID parserVersionId) {}
 
     private void seedEvent(boolean missionActive, BigDecimal threshold, boolean conditionActive) {
-        UUID missaoId = UUID.randomUUID();
+        seedEvent(missionActive, threshold, conditionActive, EventoPoliticaAtribuicao.SEM_ATRIBUICAO_AUTOMATICA,
+                MissaoCicloTipo.UNICA, 1, true);
+    }
+
+    private void seedEvent(
+            boolean missionActive,
+            BigDecimal threshold,
+            boolean conditionActive,
+            EventoPoliticaAtribuicao politica,
+            MissaoCicloTipo cicloTipo,
+            int progressoNecessario,
+            boolean conclusaoAutomatica
+    ) {
+        missionId = UUID.randomUUID();
         eventId = UUID.randomUUID();
         UUID conditionId = UUID.randomUUID();
         jdbcTemplate.update("""
-                insert into missao (id, titulo, descricao, tipo, value, ativo, created_at)
-                values (?, 'Missao', 'Descricao', 'Individual', 10, ?, now())
-                """, missaoId, missionActive);
+                insert into missao
+                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                values (?, 'Missao', 'Descricao', 'Individual', 10, ?, now(), ?, ?, ?)
+                """, missionId, missionActive, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
         jdbcTemplate.update("""
                 insert into evento_definicao
                 (id, missao_id, nome, tipo_disparo, modo_avaliacao, operador_logico, politica_atribuicao,
                  quantidade_necessaria, ordem, ativo, created_at, updated_at)
                 values (?, ?, 'Temperatura alta', 'MEDICAO_RECEBIDA', 'INSTANTANEO', 'ALL',
-                        'SEM_ATRIBUICAO_AUTOMATICA', 1, 1, true, now(), now())
-                """, eventId, missaoId);
+                        ?, 1, 1, true, now(), now())
+                """, eventId, missionId, politica.name());
         jdbcTemplate.update("""
                 insert into evento_condicao
                 (id, evento_definicao_id, parametro_def_id, operador, valor_numeric_1,
                  agregacao, obrigatoria, ordem, ativo, created_at)
                 values (?, ?, ?, 'GT', ?, 'ULTIMO', true, 1, ?, now())
                 """, conditionId, eventId, parametroDefId, threshold, conditionActive);
+    }
+
+    private void seedAcademicContext(String... pessoaIds) {
+        jdbcTemplate.update("""
+                insert into disciplina (id, nome, unidade_sigla)
+                values (?, 'Disciplina', 'UNI')
+                """, disciplinaId);
+        jdbcTemplate.update("""
+                insert into periodo_aula
+                (id, compartimento_id, data, turno, periodo_aula, hora_inicio, hora_fim, tipo, descricao,
+                 disciplina_id, turma, sincronizado_em)
+                values (?, ?, date '2026-09-13', 1, 1, time '06:00', time '08:00', 'AULA', 'Aula',
+                        ?, 'T1', now())
+                """, UUID.randomUUID(), roomId, disciplinaId);
+        for (String pessoaId : pessoaIds) {
+            jdbcTemplate.update("""
+                    insert into pessoa (id, nome, email, password, created_at)
+                    values (?, ?, ?, 'hash', now())
+                    """, pessoaId, pessoaId, pessoaId + "-" + suffix + "@example.com");
+            jdbcTemplate.update("""
+                    insert into aluno_disciplina
+                    (id, pessoa_id, disciplina_id, turma, periodo_letivo, status, vinculado_em)
+                    values (?, ?, ?, 'T1', '2026/1', 'ATIVA', now())
+                    """, UUID.randomUUID(), pessoaId, disciplinaId);
+        }
     }
 
     private void seedAmbiguousClasses() {
@@ -400,6 +525,11 @@ class MissionEventEvaluationIntegrationTest {
 
     private long count(String table) {
         Long count = jdbcTemplate.queryForObject("select count(*) from " + table, Long.class);
+        return count == null ? 0 : count;
+    }
+
+    private long countWhere(String table, String predicate) {
+        Long count = jdbcTemplate.queryForObject("select count(*) from " + table + " where " + predicate, Long.class);
         return count == null ? 0 : count;
     }
 

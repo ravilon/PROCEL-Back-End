@@ -19,7 +19,10 @@ import com.procel.api.repository.sensors.MedicaoRepository;
 import com.procel.api.repository.sensors.ParametroValorRepository;
 import com.procel.api.service.academic.AcademicContext;
 import com.procel.api.service.academic.AcademicContextResolver;
+import com.procel.api.service.missions.EventoAvaliacaoRequestService;
 import com.procel.api.service.missions.EventoAvaliacaoRequestService.EventoAvaliacaoWork;
+import com.procel.api.service.missions.MissionEventActivityProcessingException;
+import com.procel.api.service.missions.MissionEventActivityProcessor;
 import com.procel.api.service.missions.EventoOcorrenciaService;
 import com.procel.api.service.missions.rules.ConditionEvaluationResult;
 import com.procel.api.service.missions.rules.MeasurementFactFactory;
@@ -47,6 +50,8 @@ public class MissionEventEvaluationProcessor {
     private final MeasurementFactFactory measurementFactFactory;
     private final MissionRuleEngine missionRuleEngine;
     private final EventoOcorrenciaService ocorrenciaService;
+    private final MissionEventActivityProcessor activityProcessor;
+    private final EventoAvaliacaoRequestService requestService;
     private final ApiObservabilityMetrics metrics;
     private final ObjectMapper objectMapper;
 
@@ -58,6 +63,8 @@ public class MissionEventEvaluationProcessor {
             MeasurementFactFactory measurementFactFactory,
             MissionRuleEngine missionRuleEngine,
             EventoOcorrenciaService ocorrenciaService,
+            MissionEventActivityProcessor activityProcessor,
+            EventoAvaliacaoRequestService requestService,
             ApiObservabilityMetrics metrics,
             ObjectMapper objectMapper
     ) {
@@ -68,6 +75,8 @@ public class MissionEventEvaluationProcessor {
         this.measurementFactFactory = measurementFactFactory;
         this.missionRuleEngine = missionRuleEngine;
         this.ocorrenciaService = ocorrenciaService;
+        this.activityProcessor = activityProcessor;
+        this.requestService = requestService;
         this.metrics = metrics;
         this.objectMapper = objectMapper;
     }
@@ -104,13 +113,25 @@ public class MissionEventEvaluationProcessor {
                 if (!result.matched()) {
                     continue;
                 }
-                persistOccurrenceAndEvidence(medicao, academicContext, event, result, evaluationTime);
+                EventoOcorrencia occurrence = persistOccurrenceAndEvidence(medicao, academicContext, event, result, evaluationTime);
+                activityProcessor.process(
+                        occurrence.getId(),
+                        optionalAcademic,
+                        Optional.empty(),
+                        evaluationTime
+                );
                 detected++;
             }
 
+            requestService.markCompleted(work.requestId());
             return ProcessingOutcome.completed(detected);
         } catch (MissionEventEvaluationFailure ex) {
             throw ex;
+        } catch (MissionEventActivityProcessingException ex) {
+            if (ex.permanent()) {
+                throw MissionEventEvaluationFailure.permanent(rootMessage(ex), ex);
+            }
+            throw MissionEventEvaluationFailure.transientFailure(rootMessage(ex), ex);
         } catch (ConflictException | IllegalArgumentException | NotFoundException ex) {
             throw MissionEventEvaluationFailure.permanent(rootMessage(ex), ex);
         } catch (DataAccessException ex) {
@@ -146,7 +167,7 @@ public class MissionEventEvaluationProcessor {
         }
     }
 
-    private void persistOccurrenceAndEvidence(
+    private EventoOcorrencia persistOccurrenceAndEvidence(
             Medicao medicao,
             AcademicContext academicContext,
             EventoDefinicao event,
@@ -168,8 +189,11 @@ public class MissionEventEvaluationProcessor {
                                 snapshot(medicao, academicContext, event, result, evaluationTime)
                         )
                 ));
-        ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.CONFIRMADO);
+        if (occurrence.getStatus() != EventoOcorrenciaStatus.PROCESSADO) {
+            occurrence = ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.CONFIRMADO);
+        }
         metrics.missionEventDetected();
+        UUID occurrenceId = occurrence.getId();
 
         result.conditionResults().stream()
                 .filter(ConditionEvaluationResult::matched)
@@ -178,12 +202,13 @@ public class MissionEventEvaluationProcessor {
                 .distinct()
                 .forEach(parametroValorId -> ocorrenciaService.anexarEvidencia(
                         new EventoOcorrenciaService.AnexarEvidenciaCommand(
-                                occurrence.getId(),
+                                occurrenceId,
                                 medicao.getId(),
                                 parametroValorId,
                                 EventoOcorrenciaEvidenciaPapel.CONDICAO
                         )
                 ));
+        return occurrence;
     }
 
     private String snapshot(

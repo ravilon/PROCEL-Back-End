@@ -51,6 +51,11 @@ public class MissionActivityCycleService {
 
     @Transactional
     public Atividade localizarOuCriar(CreateCycleActivityCommand command) {
+        return localizarOuCriarWithResult(command).atividade();
+    }
+
+    @Transactional
+    public CycleActivityResult localizarOuCriarWithResult(CreateCycleActivityCommand command) {
         validate(command);
         Missao missao = missaoRepository.findById(command.missaoId())
                 .orElseThrow(() -> new NotFoundException("Missao not found id=" + command.missaoId()));
@@ -65,11 +70,11 @@ public class MissionActivityCycleService {
         if (existing.isPresent()) {
             Atividade atividade = existing.get();
             validateEquivalent(atividade, missao, command);
-            return atividade;
+            return new CycleActivityResult(atividade, false);
         }
 
         UUID id = UUID.randomUUID();
-        jdbcTemplate.update("""
+        var inserted = jdbcTemplate.query("""
                 insert into atividade (
                     id, pessoa_id, missao_id, status, assigned_at, chave_ciclo, ciclo_tipo,
                     ciclo_inicio, ciclo_fim, progresso_atual, progresso_necessario,
@@ -77,7 +82,9 @@ public class MissionActivityCycleService {
                 )
                 values (?, ?, ?, ?, now(), ?, ?, ?, ?, 0, ?, ?)
                 on conflict (pessoa_id, missao_id, chave_ciclo) do nothing
+                returning id
                 """,
+                (rs, rowNum) -> rs.getObject("id", UUID.class),
                 id,
                 command.pessoaId(),
                 command.missaoId(),
@@ -95,11 +102,16 @@ public class MissionActivityCycleService {
                 command.chaveCiclo()
         ).orElseThrow(() -> new IllegalStateException("Activity was not created or found"));
         validateEquivalent(atividade, missao, command);
-        return atividade;
+        return new CycleActivityResult(atividade, !inserted.isEmpty());
     }
 
     @Transactional
     public AtividadeEvento registrarEvento(RegisterActivityEventCommand command) {
+        return registrarEventoIfAbsent(command).evento();
+    }
+
+    @Transactional
+    public RegisteredActivityEvent registrarEventoIfAbsent(RegisterActivityEventCommand command) {
         validate(command);
         Atividade atividade = atividadeRepository.findById(command.atividadeId())
                 .orElseThrow(() -> new NotFoundException("Atividade not found id=" + command.atividadeId()));
@@ -107,13 +119,15 @@ public class MissionActivityCycleService {
                 .orElseThrow(() -> new NotFoundException("EventoOcorrencia not found id=" + command.eventoOcorrenciaId()));
 
         UUID id = UUID.randomUUID();
-        jdbcTemplate.update("""
+        var inserted = jdbcTemplate.query("""
                 insert into atividade_evento (
                     id, atividade_id, evento_ocorrencia_id, tipo, progresso_adicionado, processado_em
                 )
                 values (?, ?, ?, ?, ?, ?)
                 on conflict (atividade_id, evento_ocorrencia_id, tipo) do nothing
+                returning id
                 """,
+                (rs, rowNum) -> rs.getObject("id", UUID.class),
                 id,
                 atividade.getId(),
                 ocorrencia.getId(),
@@ -130,7 +144,7 @@ public class MissionActivityCycleService {
         if (evento.getProgressoAdicionado() != command.progressoAdicionado()) {
             throw new ConflictException("AtividadeEvento key reused with different progressoAdicionado");
         }
-        return evento;
+        return new RegisteredActivityEvent(evento, !inserted.isEmpty());
     }
 
     private static void validate(CreateCycleActivityCommand command) {
@@ -176,12 +190,24 @@ public class MissionActivityCycleService {
     ) {
     }
 
+    public record CycleActivityResult(
+            Atividade atividade,
+            boolean created
+    ) {
+    }
+
     public record RegisterActivityEventCommand(
             UUID atividadeId,
             UUID eventoOcorrenciaId,
             AtividadeEventoTipo tipo,
             int progressoAdicionado,
             Instant processadoEm
+    ) {
+    }
+
+    public record RegisteredActivityEvent(
+            AtividadeEvento evento,
+            boolean created
     ) {
     }
 

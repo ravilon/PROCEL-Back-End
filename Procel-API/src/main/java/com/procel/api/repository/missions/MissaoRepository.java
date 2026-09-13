@@ -10,4 +10,5 @@ public interface MissaoRepository extends JpaRepository<Missao, UUID> {
     List<Missao> findByAtivoOrderByCreatedAtDesc(boolean ativo);
     List<Missao> findAllByOrderByCreatedAtDesc();
     List<Missao> findByParent_IdOrderByCreatedAtAsc(UUID parentId);
+    boolean existsByParent_Id(UUID parentId);
 }

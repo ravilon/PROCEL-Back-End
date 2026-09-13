@@ -70,6 +70,30 @@ public class ApiObservabilityMetrics {
         counter("procel.missions.events.detected").increment();
     }
 
+    public void missionActivityCreated() {
+        counter("procel.missions.activities.created").increment();
+    }
+
+    public void missionActivityProgressed() {
+        counter("procel.missions.activities.progressed").increment();
+    }
+
+    public void missionActivityCompleted() {
+        counter("procel.missions.activities.completed").increment();
+    }
+
+    public void missionBeneficiariesResolved(int count) {
+        counter("procel.missions.beneficiaries.resolved").increment(Math.max(0, count));
+    }
+
+    public void missionBeneficiariesEmpty() {
+        counter("procel.missions.beneficiaries.empty").increment();
+    }
+
+    public void missionActivityProcessingFailure(String type) {
+        counter("procel.missions.activity.processing.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
+    }
+
     public void registerMissionBacklogGauge(Object owner, Supplier<Number> supplier) {
         Gauge.builder("procel.missions.backlog", owner, ignored -> supplier.get().doubleValue())
                 .register(registry);
