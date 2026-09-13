@@ -25,6 +25,7 @@ O schema e criado por migrations em `src/main/resources/db/migration`. Migration
 - `V17`: metadata interna para eventos brutos do Telemetry.
 - `V18`: jobs e janelas de agregacao.
 - `V19`: buckets numericos analiticos.
+- `V20`: catalogo persistente de definicoes de eventos de missoes.
 
 Embora `spring.jpa.hibernate.ddl-auto=update` ainda esteja no `application.yml`, Flyway e a fonte de verdade do schema.
 
@@ -52,6 +53,35 @@ entidade nao faz parte desta primeira fundacao.
 
 Esta etapa nao cria motor de eventos, Drools, missoes automaticas, XP, sensor de
 presenca, nem usa `presenca` como requisito para elegibilidade.
+
+## Catalogo De Eventos De Missoes
+
+`EventoDefinicao` permite configurar eventos vinculados a uma `Missao`.
+`EventoCondicao` descreve as condicoes do evento e referencia `ParametroDef`
+por FK. O operador das condicoes reutiliza `RegraOperador`, porque a semantica
+e a mesma dos comparadores ja usados em regras de parametros: comparacoes
+numericas, igualdade/diferenca booleana e comparacoes textuais.
+
+Esta etapa persiste configuracao apenas. Ela nao avalia medicoes, nao compila
+Drools, nao cria atividades, nao atribui participantes automaticamente e nao
+registra ocorrencias/evidencias.
+
+Endpoints administrativos:
+
+```text
+POST   /api/missions/{missionId}/events
+GET    /api/missions/{missionId}/events
+GET    /api/mission-events/{eventId}
+PUT    /api/mission-events/{eventId}
+DELETE /api/mission-events/{eventId}
+POST   /api/mission-events/{eventId}/conditions
+PUT    /api/mission-events/{eventId}/conditions/{conditionId}
+DELETE /api/mission-events/{eventId}/conditions/{conditionId}
+```
+
+`ADMIN` pode criar, editar, ativar, desativar e remover logicamente eventos.
+`OPERADOR` e `ANALISTA` podem consultar. Eventos ligados a missao inativa podem
+ser editados, mas nao ativados.
 
 ## Ingestao Canonica
 
