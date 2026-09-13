@@ -19,17 +19,20 @@ public class MissionActivityProgressService {
 
     private final AtividadeRepository atividadeRepository;
     private final MissionActivityCycleService cycleService;
+    private final XpRewardService xpRewardService;
     private final JdbcTemplate jdbcTemplate;
     private final ApiObservabilityMetrics metrics;
 
     public MissionActivityProgressService(
             AtividadeRepository atividadeRepository,
             MissionActivityCycleService cycleService,
+            XpRewardService xpRewardService,
             JdbcTemplate jdbcTemplate,
             ApiObservabilityMetrics metrics
     ) {
         this.atividadeRepository = atividadeRepository;
         this.cycleService = cycleService;
+        this.xpRewardService = xpRewardService;
         this.jdbcTemplate = jdbcTemplate;
         this.metrics = metrics;
     }
@@ -128,6 +131,7 @@ public class MissionActivityProgressService {
                 atividadeId
         );
         if (updated > 0) {
+            xpRewardService.grantAutomaticCompletionReward(atividadeId, eventoOcorrenciaId, processadoEm);
             metrics.missionActivityCompleted();
             return true;
         }

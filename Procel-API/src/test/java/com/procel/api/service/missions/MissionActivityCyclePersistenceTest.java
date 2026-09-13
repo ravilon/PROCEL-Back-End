@@ -239,6 +239,7 @@ class MissionActivityCyclePersistenceTest {
     private void cleanDatabase() {
         jdbcTemplate.execute("""
                 truncate table
+                    xp_lancamento,
                     atividade_evento,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,

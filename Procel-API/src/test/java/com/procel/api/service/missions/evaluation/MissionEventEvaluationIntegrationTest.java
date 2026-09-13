@@ -196,7 +196,7 @@ class MissionEventEvaluationIntegrationTest {
 
         processClaimed();
 
-        assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
+        assertThat(statusFor(medicaoId)).as(lastErrorFor(medicaoId)).isEqualTo("COMPLETED");
         assertThat(count("evento_ocorrencia")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
         assertThat(jdbcTemplate.queryForObject("select contexto_snapshot::text from evento_ocorrencia", String.class))
@@ -216,13 +216,15 @@ class MissionEventEvaluationIntegrationTest {
 
         processClaimed();
 
-        assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
+        assertThat(statusFor(medicaoId)).as(lastErrorFor(medicaoId)).isEqualTo("COMPLETED");
         assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
         assertThat(count("atividade")).isEqualTo(2);
         assertThat(countWhere("atividade", "status = 'CONCLUIDA' and progresso_atual = 1 and progresso_necessario = 1")).isEqualTo(2);
         assertThat(countWhere("atividade", "started_at is not null and completed_at is not null")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO' and progresso_adicionado = 1")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO' and progresso_adicionado = 0")).isEqualTo(2);
+        assertThat(count("xp_lancamento")).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(20L);
     }
 
     @Test
@@ -245,6 +247,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(count("atividade")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
+        assertThat(count("xp_lancamento")).isZero();
     }
 
     @Test
@@ -260,6 +263,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
         assertThat(countWhere("atividade", "started_at is not null and completed_at is null")).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isZero();
+        assertThat(count("xp_lancamento")).isZero();
     }
 
     @Test
@@ -391,6 +395,7 @@ class MissionEventEvaluationIntegrationTest {
         jdbcTemplate.execute("""
                 truncate table
                     atividade_evento,
+                    xp_lancamento,
                     atividade,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,
@@ -548,5 +553,14 @@ class MissionEventEvaluationIntegrationTest {
                 String.class,
                 medicaoId
         );
+    }
+
+    private String lastErrorFor(UUID medicaoId) {
+        String lastError = jdbcTemplate.queryForObject(
+                "select last_error from evento_avaliacao_request where medicao_id = ?",
+                String.class,
+                medicaoId
+        );
+        return lastError == null ? "last_error=null" : "last_error=" + lastError;
     }
 }

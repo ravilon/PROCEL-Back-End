@@ -94,6 +94,25 @@ public class ApiObservabilityMetrics {
         counter("procel.missions.activity.processing.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
     }
 
+    public void missionXpGranted() {
+        counter("procel.missions.xp.granted").increment();
+    }
+
+    public void missionXpAmount(int amount) {
+        DistributionSummary.builder("procel.missions.xp.amount")
+                .description("XP amount granted by automatic mission completion")
+                .register(registry)
+                .record(Math.max(0, amount));
+    }
+
+    public void missionXpDuplicate() {
+        counter("procel.missions.xp.duplicates").increment();
+    }
+
+    public void missionXpFailure(String type) {
+        counter("procel.missions.xp.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
+    }
+
     public void registerMissionBacklogGauge(Object owner, Supplier<Number> supplier) {
         Gauge.builder("procel.missions.backlog", owner, ignored -> supplier.get().doubleValue())
                 .register(registry);

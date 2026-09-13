@@ -94,6 +94,8 @@ public class SecurityConfig {
                                                 .hasRole("ADMIN")
                                                 .requestMatchers(HttpMethod.DELETE, "/api/mission-events/**")
                                                 .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/api/pessoas/*/xp", "/api/pessoas/*/xp/lancamentos")
+                                                .hasAnyRole("ADMIN", "OPERADOR", "USUARIO")
                                                 .requestMatchers("/api/pessoas/*/atividades/**")
                                                 .hasAnyRole("ADMIN", "OPERADOR", "USUARIO")
                                                 .requestMatchers(HttpMethod.POST, "/api/pessoas").hasRole("ADMIN")
