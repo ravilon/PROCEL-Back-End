@@ -28,6 +28,31 @@ O schema e criado por migrations em `src/main/resources/db/migration`. Migration
 
 Embora `spring.jpa.hibernate.ddl-auto=update` ainda esteja no `application.yml`, Flyway e a fonte de verdade do schema.
 
+## Contexto Academico
+
+`AcademicContextResolver` e a primeira fundacao local para identificar contexto
+academico a partir de um compartimento e um instante. Ele resolve o
+`PeriodoAula` vigente e retorna pessoas academicamente elegiveis por
+`AlunoDisciplina`, considerando disciplina, turma e status `ATIVA`.
+
+Quando nao ha aula no instante consultado, o resultado e vazio. Quando mais de
+um `PeriodoAula` atende ao mesmo compartimento/instante, a resolucao falha com
+conflito para evitar escolha silenciosa de aulas sobrepostas ou ambiguas.
+
+`PeriodoAula` nao armazena `periodo_letivo`. Nesta etapa, o `periodoLetivo`
+do contexto resolvido vem dos vinculos `AlunoDisciplina` elegiveis. Se houver
+mais de um periodo letivo ativo para a mesma disciplina e turma, a resolucao
+falha com conflito porque nao ha informacao historica suficiente para escolher
+um periodo com seguranca.
+
+Para resolver aulas historicas corretamente, a evolucao recomendada e criar
+uma entidade propria `PeriodoLetivo`, com vigencia/calendario academico, e
+relacionar a ocorrencia da aula ao periodo por regra temporal explicita. Essa
+entidade nao faz parte desta primeira fundacao.
+
+Esta etapa nao cria motor de eventos, Drools, missoes automaticas, XP, sensor de
+presenca, nem usa `presenca` como requisito para elegibilidade.
+
 ## Ingestao Canonica
 
 Rotas principais:

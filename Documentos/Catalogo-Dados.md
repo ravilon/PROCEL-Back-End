@@ -21,5 +21,5 @@
 | Procel-API | PostgreSQL | `regra_parametro` | Regra por parametro | `id` | Sem TTL automatico | Admin | Avaliacao | Canonico | Limites e comparadores |
 | Procel-API | PostgreSQL | `avaliacao_parametro_valor` | Resultado de avaliacao | `id` | Sem TTL automatico | API | Consultas operacionais | Canonico | Derivado de parametro valor |
 | Procel-API | PostgreSQL | `pessoa`, `pessoa_role` | Usuarios e roles | `id`, role por pessoa | Sem TTL automatico | Admin/bootstrap | Seguranca/Admin | Canonico | Dados pessoais; proteger acesso |
-| Procel-API | PostgreSQL | `curso`, `disciplina`, `aluno_disciplina`, `ocorrencia_aula`, `presenca` | Dominio academico | PKs proprias | Sem TTL automatico | Admin/sync | Admin/API | Canonico | Pode conter dados pessoais |
+| Procel-API | PostgreSQL | `curso`, `disciplina`, `aluno_disciplina`, `periodo_aula`, `presenca` | Dominio academico | PKs proprias | Sem TTL automatico | Admin/sync | Admin/API | Canonico | `AlunoDisciplina.periodo_letivo` qualifica vinculos; `PeriodoAula` nao armazena periodo letivo; pode conter dados pessoais |
 | Procel-API | PostgreSQL | `missao`, `atividade` | Missoes e atividades | `id` | Sem TTL automatico | Admin/usuario | Admin/API | Canonico | Dados operacionais |
