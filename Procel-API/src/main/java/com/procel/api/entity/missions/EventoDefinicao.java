@@ -11,10 +11,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -86,6 +90,9 @@ public class EventoDefinicao {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt = Instant.now();
 
+    @OneToMany(mappedBy = "eventoDefinicao", fetch = FetchType.LAZY)
+    private List<EventoCondicao> condicoes = new ArrayList<>();
+
     public EventoDefinicao() {}
 
     public UUID getId() { return id; }
@@ -104,6 +111,14 @@ public class EventoDefinicao {
     public boolean isAtivo() { return ativo; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public List<EventoCondicao> getCondicoes() {
+        return condicoes.stream()
+                .sorted(Comparator.comparing(
+                        EventoCondicao::getOrdem,
+                        Comparator.nullsLast(Integer::compareTo)
+                ))
+                .toList();
+    }
 
     public void setMissao(Missao missao) { this.missao = missao; }
     public void setNome(String nome) { this.nome = nome; }
@@ -118,6 +133,9 @@ public class EventoDefinicao {
     public void setCooldownSegundos(Integer cooldownSegundos) { this.cooldownSegundos = cooldownSegundos; }
     public void setOrdem(Integer ordem) { this.ordem = ordem; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public void setCondicoes(List<EventoCondicao> condicoes) {
+        this.condicoes = condicoes == null ? new ArrayList<>() : new ArrayList<>(condicoes);
+    }
 
     @PreUpdate
     void touch() {
