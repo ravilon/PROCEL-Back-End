@@ -2,6 +2,7 @@ package com.procel.api.service.missions;
 
 import com.procel.api.dto.missions.MissaoDTOs;
 import com.procel.api.entity.missions.AtividadeStatus;
+import com.procel.api.entity.missions.MissaoCicloTipo;
 import com.procel.api.entity.missions.Missao;
 import com.procel.api.entity.missions.Atividade;
 import com.procel.api.entity.people.Pessoa;
@@ -39,6 +40,9 @@ public class MissaoService {
 
         boolean ativo = req.ativo() == null || req.ativo();
         Missao missao = new Missao(req.titulo().trim(), req.descricao(), req.tipo(), req.value(), ativo);
+        missao.setCicloTipo(req.cicloTipo());
+        missao.setProgressoNecessario(req.progressoNecessario());
+        missao.setConclusaoAutomatica(req.conclusaoAutomatica());
         if (req.parentId() != null) {
             missao.setParent(findMissao(req.parentId()));
         }
@@ -74,6 +78,12 @@ public class MissaoService {
             missao.setValue(req.value());
         if (req.ativo() != null)
             missao.setAtivo(req.ativo());
+        if (req.cicloTipo() != null)
+            missao.setCicloTipo(req.cicloTipo());
+        if (req.progressoNecessario() != null)
+            missao.setProgressoNecessario(req.progressoNecessario());
+        if (req.conclusaoAutomatica() != null)
+            missao.setConclusaoAutomatica(req.conclusaoAutomatica());
         if (req.parentId() != null) {
             Missao parent = findMissao(req.parentId());
             validateParent(missao, parent);
@@ -111,7 +121,11 @@ public class MissaoService {
         Missao missao = findMissao(req.missaoId());
         if (!missao.isAtivo())
             throw new ConflictException("Missao is inactive id=" + req.missaoId());
-        if (atividadeRepo.existsByPessoaIdAndMissaoId(normalizedPessoaId, req.missaoId())) {
+        MissaoCicloTipo cicloTipo = missao.getCicloTipo() == null ? MissaoCicloTipo.UNICA : missao.getCicloTipo();
+        if (cicloTipo != MissaoCicloTipo.UNICA) {
+            throw new ConflictException("Manual activity assignment supports only UNICA cycle in this stage");
+        }
+        if (atividadeRepo.existsByPessoaIdAndMissaoIdAndChaveCiclo(normalizedPessoaId, req.missaoId(), "UNICA")) {
             throw new ConflictException("Pessoa already has activity for missaoId=" + req.missaoId());
         }
 
@@ -254,7 +268,7 @@ public class MissaoService {
             Instant startedAt,
             boolean root
     ) {
-        Atividade atividade = atividadeRepo.findByPessoaIdAndMissaoId(pessoa.getId(), missao.getId())
+        Atividade atividade = atividadeRepo.findByPessoaIdAndMissaoIdAndChaveCiclo(pessoa.getId(), missao.getId(), "UNICA")
                 .orElseGet(() -> atividadeRepo.save(new Atividade(
                         pessoa,
                         missao,
@@ -283,7 +297,7 @@ public class MissaoService {
     private void syncAncestorActivities(String pessoaId, Missao parent) {
         Missao current = parent;
         while (current != null) {
-            atividadeRepo.findByPessoaIdAndMissaoId(pessoaId, current.getId())
+            atividadeRepo.findByPessoaIdAndMissaoIdAndChaveCiclo(pessoaId, current.getId(), "UNICA")
                     .ifPresent(this::syncActivityFromChildren);
             current = current.getParent();
         }
@@ -317,7 +331,7 @@ public class MissaoService {
         String pessoaId = parentActivity.getPessoa().getId();
         return missaoRepo.findByParent_IdOrderByCreatedAtAsc(parentActivity.getMissao().getId())
                 .stream()
-                .map(child -> atividadeRepo.findByPessoaIdAndMissaoId(pessoaId, child.getId()).orElse(null))
+                .map(child -> atividadeRepo.findByPessoaIdAndMissaoIdAndChaveCiclo(pessoaId, child.getId(), "UNICA").orElse(null))
                 .filter(atividade -> atividade != null)
                 .toList();
     }
@@ -332,7 +346,10 @@ public class MissaoService {
                 missao.isAtivo(),
                 missao.getCreatedAt(),
                 missao.getParent() == null ? null : missao.getParent().getId(),
-                missao.getParent() == null ? null : missao.getParent().getTitulo());
+                missao.getParent() == null ? null : missao.getParent().getTitulo(),
+                missao.getCicloTipo(),
+                missao.getProgressoNecessario(),
+                missao.isConclusaoAutomatica());
     }
 
     private MissaoDTOs.AtividadeResponse toAtividadeResponse(Atividade atividade) {
@@ -359,6 +376,14 @@ public class MissaoService {
                 progress,
                 atividade.getAssignedAt(),
                 atividade.getStartedAt(),
-                atividade.getCompletedAt());
+                atividade.getCompletedAt(),
+                atividade.getChaveCiclo(),
+                atividade.getCicloTipo(),
+                atividade.getCicloInicio(),
+                atividade.getCicloFim(),
+                atividade.getProgressoAtual(),
+                atividade.getProgressoNecessario(),
+                atividade.getUltimoEventoEm(),
+                atividade.isConclusaoAutomatica());
     }
 }

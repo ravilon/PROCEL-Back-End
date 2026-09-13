@@ -36,6 +36,16 @@ public class Missao {
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ciclo_tipo", nullable = false, length = 40)
+    private MissaoCicloTipo cicloTipo = MissaoCicloTipo.UNICA;
+
+    @Column(name = "progresso_necessario", nullable = false)
+    private int progressoNecessario = 1;
+
+    @Column(name = "conclusao_automatica", nullable = false)
+    private boolean conclusaoAutomatica = true;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt = Instant.now();
 
@@ -60,6 +70,9 @@ public class Missao {
     public String getTipo() { return tipo; }
     public int getValue() { return value; }
     public boolean isAtivo() { return ativo; }
+    public MissaoCicloTipo getCicloTipo() { return cicloTipo; }
+    public int getProgressoNecessario() { return progressoNecessario; }
+    public boolean isConclusaoAutomatica() { return conclusaoAutomatica; }
     public Instant getCreatedAt() { return createdAt; }
     public Missao getParent() { return parent; }
 
@@ -68,6 +81,22 @@ public class Missao {
     public void setTipo(String tipo) { this.tipo = normalizeTipo(tipo); }
     public void setValue(Integer value) { this.value = normalizeValue(value); }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
+    public void setCicloTipo(MissaoCicloTipo cicloTipo) {
+        this.cicloTipo = cicloTipo == null ? MissaoCicloTipo.UNICA : cicloTipo;
+    }
+    public void setProgressoNecessario(Integer progressoNecessario) {
+        if (progressoNecessario == null) {
+            this.progressoNecessario = 1;
+            return;
+        }
+        if (progressoNecessario < 1) {
+            throw new IllegalArgumentException("progressoNecessario must be >= 1");
+        }
+        this.progressoNecessario = progressoNecessario;
+    }
+    public void setConclusaoAutomatica(Boolean conclusaoAutomatica) {
+        this.conclusaoAutomatica = conclusaoAutomatica == null || conclusaoAutomatica;
+    }
     public void setParent(Missao parent) { this.parent = parent; }
 
     private static String normalizeTipo(String tipo) {

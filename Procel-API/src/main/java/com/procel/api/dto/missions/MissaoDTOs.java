@@ -1,6 +1,7 @@
 package com.procel.api.dto.missions;
 
 import com.procel.api.entity.missions.AtividadeStatus;
+import com.procel.api.entity.missions.MissaoCicloTipo;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Instant;
@@ -15,7 +16,10 @@ public class MissaoDTOs {
                         @Schema(description = "Tipo da missao. Se omitido, usa Individual.", example = "Individual") String tipo,
                         @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas. Se omitido, usa true.", example = "true") Boolean ativo,
-                        @Schema(description = "Missao pai opcional.") UUID parentId) {
+                        @Schema(description = "Missao pai opcional.") UUID parentId,
+                        @Schema(description = "Tipo de ciclo da missao. Se omitido, usa UNICA.", example = "UNICA") MissaoCicloTipo cicloTipo,
+                        @Schema(description = "Progresso necessario para concluir a atividade. Se omitido, usa 1.", example = "1") Integer progressoNecessario,
+                        @Schema(description = "Indica se a conclusao pode ser automatica. Se omitido, usa true.", example = "true") Boolean conclusaoAutomatica) {
         }
 
         @Schema(description = "Dados para atualizacao de um modelo de missao.")
@@ -25,7 +29,10 @@ public class MissaoDTOs {
                         @Schema(description = "Tipo da missao.", example = "Individual") String tipo,
                         @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") Boolean ativo,
-                        @Schema(description = "Missao pai opcional. Envie null para tornar a missao raiz.") UUID parentId) {
+                        @Schema(description = "Missao pai opcional. Envie null para tornar a missao raiz.") UUID parentId,
+                        @Schema(description = "Tipo de ciclo da missao.", example = "DIARIA") MissaoCicloTipo cicloTipo,
+                        @Schema(description = "Progresso necessario para concluir a atividade.", example = "3") Integer progressoNecessario,
+                        @Schema(description = "Indica se a conclusao pode ser automatica.", example = "true") Boolean conclusaoAutomatica) {
         }
 
         @Schema(description = "Modelo de missao disponivel no sistema.")
@@ -38,7 +45,10 @@ public class MissaoDTOs {
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") boolean ativo,
                         @Schema(description = "Instante de criacao.", example = "2026-05-11T21:30:00Z") Instant createdAt,
                         @Schema(description = "Identificador da missao pai.") UUID parentId,
-                        @Schema(description = "Titulo da missao pai.") String parentTitulo) {
+                        @Schema(description = "Titulo da missao pai.") String parentTitulo,
+                        @Schema(description = "Tipo de ciclo da missao.", example = "UNICA") MissaoCicloTipo cicloTipo,
+                        @Schema(description = "Progresso necessario para concluir atividades desta missao.", example = "1") int progressoNecessario,
+                        @Schema(description = "Indica se a conclusao automatica esta habilitada.", example = "true") boolean conclusaoAutomatica) {
         }
 
         @Schema(description = "Dados para atribuir uma missao a uma pessoa como atividade.")
@@ -72,7 +82,15 @@ public class MissaoDTOs {
                         @Schema(description = "Progresso calculado pelas filhas, de 0 a 100.") int progressoPercentual,
                         @Schema(description = "Instante de atribuicao.", example = "2026-05-11T21:30:00Z") Instant assignedAt,
                         @Schema(description = "Instante de inicio.", example = "2026-05-11T22:00:00Z") Instant startedAt,
-                        @Schema(description = "Instante de conclusao.", example = "2026-05-11T23:00:00Z") Instant completedAt) {
+                        @Schema(description = "Instante de conclusao.", example = "2026-05-11T23:00:00Z") Instant completedAt,
+                        @Schema(description = "Chave deterministica do ciclo da atividade.", example = "UNICA") String chaveCiclo,
+                        @Schema(description = "Tipo de ciclo copiado da missao no momento da criacao.", example = "UNICA") MissaoCicloTipo cicloTipo,
+                        @Schema(description = "Inicio do ciclo, quando aplicavel.", example = "2026-05-11T03:00:00Z") Instant cicloInicio,
+                        @Schema(description = "Fim do ciclo, quando aplicavel.", example = "2026-05-12T03:00:00Z") Instant cicloFim,
+                        @Schema(description = "Progresso atual da atividade.", example = "0") int progressoAtual,
+                        @Schema(description = "Progresso necessario copiado da missao.", example = "1") int progressoNecessario,
+                        @Schema(description = "Ultimo evento aplicado a atividade.", example = "2026-05-11T22:00:00Z") Instant ultimoEventoEm,
+                        @Schema(description = "Indica se a conclusao automatica estava habilitada na criacao.", example = "true") boolean conclusaoAutomatica) {
         }
 
         @Schema(description = "Resumo quantitativo das atividades de uma pessoa por status.")

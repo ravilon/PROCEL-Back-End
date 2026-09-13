@@ -22,6 +22,15 @@
 | Procel-API | PostgreSQL | `avaliacao_parametro_valor` | Resultado de avaliacao | `id` | Sem TTL automatico | API | Consultas operacionais | Canonico | Derivado de parametro valor |
 | Procel-API | PostgreSQL | `pessoa`, `pessoa_role` | Usuarios e roles | `id`, role por pessoa | Sem TTL automatico | Admin/bootstrap | Seguranca/Admin | Canonico | Dados pessoais; proteger acesso |
 | Procel-API | PostgreSQL | `curso`, `disciplina`, `aluno_disciplina`, `periodo_aula`, `presenca` | Dominio academico | PKs proprias | Sem TTL automatico | Admin/sync | Admin/API | Canonico | `AlunoDisciplina.periodo_letivo` qualifica vinculos; `PeriodoAula` nao armazena periodo letivo; pode conter dados pessoais |
-| Procel-API | PostgreSQL | `missao`, `atividade` | Missoes e atividades | `id` | Sem TTL automatico | Admin/usuario | Admin/API | Canonico | Dados operacionais |
+| Procel-API | PostgreSQL | `missao`, `atividade` | Missoes e atividades, incluindo configuracao e instancia de ciclo | `id`, `pessoa_id + missao_id + chave_ciclo` | Sem TTL automatico | Admin/usuario/motor futuro | Admin/API/motor futuro | Canonico/operacional | `Missao.ciclo_tipo` default `UNICA`; `Atividade` copia ciclo, progresso necessario e conclusao automatica no momento da criacao |
+| Procel-API | PostgreSQL | `atividade_evento` | Vinculo idempotente entre atividade e ocorrencia de evento | `atividade_id + evento_ocorrencia_id + tipo` | Sem TTL automatico | Motor futuro | Auditoria/progresso futuro | Operacional | Nao apagar fisicamente; progresso ainda nao e aplicado nesta etapa |
 | Procel-API | PostgreSQL | `evento_definicao`, `evento_condicao` | Catalogo de eventos configuraveis de missoes | `id`, condicao por `evento_definicao_id + ordem` | Sem TTL automatico | Admin/API | Futuro motor de eventos | Configuracao | Apenas configuracao; condicoes referenciam `ParametroDef` por FK |
 | Procel-API | PostgreSQL | `evento_ocorrencia`, `evento_ocorrencia_evidencia`, `evento_avaliacao_request` | Persistencia operacional do motor de eventos | `id`, `chave_idempotencia`, uma request por `medicao_id` | Sem TTL automatico | Interno/API futura | Motor de eventos | Operacional | Snapshots em JSONB; evidencias nao sao removidas fisicamente; worker fora do escopo |
+
+## Fundacao de atividades ciclicas
+
+- `V22__cyclic_mission_activities.sql` adiciona `ciclo_tipo`, `progresso_necessario` e `conclusao_automatica` em `missao`.
+- Atividades historicas sao migradas para `chave_ciclo = 'UNICA'`, `ciclo_tipo = 'UNICA'`; atividades `CONCLUIDA` recebem `progresso_atual = progresso_necessario`, demais recebem `0`.
+- A unicidade passa de `pessoa_id + missao_id` para `pessoa_id + missao_id + chave_ciclo`, permitindo multiplas execucoes da mesma missao em ciclos diferentes.
+- A hierarquia manual existente permanece segura para `UNICA`. Ciclos recorrentes ainda nao replicam arvores de missoes filhas automaticamente.
+- Beneficiarios academicos suportados nesta etapa: `ALUNOS_VINCULADOS`, `ATIVADOR_DA_MISSAO` e `SEM_ATRIBUICAO_AUTOMATICA`. `ALUNOS_VINCULADOS_COM_OCUPACAO` e `CHECKIN_CONFIRMADO` sao explicitamente nao suportadas enquanto nao houver confirmacao de ocupacao/check-in.

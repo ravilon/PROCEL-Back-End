@@ -41,8 +41,8 @@ class MissaoServiceTest {
         when(missaoRepo.findById(parentId)).thenReturn(Optional.of(parent));
         when(missaoRepo.findByParent_IdOrderByCreatedAtAsc(parentId)).thenReturn(List.of(child));
         when(missaoRepo.findByParent_IdOrderByCreatedAtAsc(childId)).thenReturn(List.of());
-        when(atividadeRepo.existsByPessoaIdAndMissaoId("p1", parentId)).thenReturn(false);
-        when(atividadeRepo.findByPessoaIdAndMissaoId(any(), any()))
+        when(atividadeRepo.existsByPessoaIdAndMissaoIdAndChaveCiclo("p1", parentId, "UNICA")).thenReturn(false);
+        when(atividadeRepo.findByPessoaIdAndMissaoIdAndChaveCiclo(any(), any(), any()))
                 .thenAnswer(invocation -> Optional.ofNullable(activities.get(invocation.getArgument(1))));
         when(atividadeRepo.save(any(Atividade.class))).thenAnswer(invocation -> {
             Atividade activity = invocation.getArgument(0);

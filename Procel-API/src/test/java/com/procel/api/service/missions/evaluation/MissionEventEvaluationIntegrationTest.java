@@ -149,6 +149,7 @@ class MissionEventEvaluationIntegrationTest {
     void claimIsExclusiveRecoversExpiredLeaseAndSkipsFutureRequests() throws Exception {
         UUID medicao1 = ingest("msg-claim-1", BigDecimal.valueOf(25)).response().medicaoId();
         UUID medicao2 = ingest("msg-claim-2", BigDecimal.valueOf(25)).response().medicaoId();
+        jdbcTemplate.update("update evento_avaliacao_request set available_at = now() - interval '1 second' where medicao_id = ?", medicao1);
         jdbcTemplate.update("update evento_avaliacao_request set available_at = now() + interval '10 minutes' where medicao_id = ?", medicao2);
 
         var executor = Executors.newFixedThreadPool(2);
@@ -171,7 +172,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(statusFor(medicao2)).isEqualTo("PENDING");
 
         jdbcTemplate.update("update evento_avaliacao_request set lease_until = now() - interval '1 second' where medicao_id = ?", medicao1);
-        assertThat(requestService.claimAvailable(20, Duration.ofSeconds(30), 3)).hasSize(1);
+        assertThat(claimOne().medicaoId()).isEqualTo(medicao1);
     }
 
     @Test
@@ -220,7 +221,7 @@ class MissionEventEvaluationIntegrationTest {
     void retryDoesNotDuplicateOccurrenceOrEvidence() {
         seedEvent(true, BigDecimal.valueOf(20), true);
         UUID medicaoId = ingest("msg-retry", BigDecimal.valueOf(25)).response().medicaoId();
-        var work = requestService.claimAvailable(1, Duration.ofSeconds(30), 3).getFirst();
+        var work = claimOne();
 
         worker.processClaimed(work);
         jdbcTemplate.update("""
@@ -228,7 +229,7 @@ class MissionEventEvaluationIntegrationTest {
                 set status = 'RETRY', available_at = now(), processed_at = null
                 where id = ?
                 """, work.requestId());
-        var retry = requestService.claimAvailable(1, Duration.ofSeconds(30), 3).getFirst();
+        var retry = claimOne();
         worker.processClaimed(retry);
 
         assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
@@ -251,8 +252,24 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     private void processClaimed() {
-        var work = requestService.claimAvailable(1, Duration.ofSeconds(30), 3).getFirst();
+        var work = claimOne();
         worker.processClaimed(work);
+    }
+
+    private EventoAvaliacaoRequestService.EventoAvaliacaoWork claimOne() {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            var claimed = requestService.claimAvailable(1, Duration.ofSeconds(30), 3);
+            if (!claimed.isEmpty()) {
+                return claimed.getFirst();
+            }
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting for evaluation request", ex);
+            }
+        }
+        throw new IllegalStateException("No evaluation request available for claim");
     }
 
     private SensorIngestDTOs.CanonicalIngestRequest request(String messageId, BigDecimal value) {
@@ -291,6 +308,8 @@ class MissionEventEvaluationIntegrationTest {
     private void cleanDatabase() {
         jdbcTemplate.execute("""
                 truncate table
+                    atividade_evento,
+                    atividade,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,
                     evento_avaliacao_request,
