@@ -102,9 +102,7 @@ class NumericBucketAggregationTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("delete from analytics_numeric_bucket");
-        jdbcTemplate.update("delete from analytics_aggregation_window");
-        jdbcTemplate.update("delete from analytics_aggregation_job");
+        clearAggregationState();
 
         String suffix = UUID.randomUUID().toString();
         Campus campus = campusRepository.save(new Campus("Campus bucket " + suffix));
@@ -185,7 +183,7 @@ class NumericBucketAggregationTest {
         assertBucket(sensorA.getExternalId(), temperature.getId(), "2026-08-19T03:00:00Z", "2026-08-19T03:05:00Z",
                 "11.000000", "11.000000", "11.000000", 1);
 
-        jdbcTemplate.update("delete from analytics_numeric_bucket");
+        clearAggregationState();
         createJob("2026-08-19T03:05:00Z", "2026-08-19T03:10:00Z", "PT5M", null, roomB);
         measurement(sensorA, "2026-08-19T03:06:00Z", temperature, "33.000000", null, null);
         measurement(sensorB, "2026-08-19T03:06:00Z", temperature, "44.000000", null, null);
@@ -194,12 +192,18 @@ class NumericBucketAggregationTest {
         assertBucket(sensorB.getExternalId(), temperature.getId(), "2026-08-19T03:05:00Z", "2026-08-19T03:10:00Z",
                 "44.000000", "44.000000", "44.000000", 1);
 
-        jdbcTemplate.update("delete from analytics_numeric_bucket");
+        clearAggregationState();
         createJob("2026-08-19T03:10:00Z", "2026-08-19T03:15:00Z", "PT5M", sensorA.getExternalId(), roomB);
         measurement(sensorA, "2026-08-19T03:11:00Z", temperature, "55.000000", null, null);
         measurement(sensorB, "2026-08-19T03:11:00Z", temperature, "66.000000", null, null);
         assertThat(worker.processOneAvailableWindow()).isTrue();
         assertThat(bucketCount()).isZero();
+    }
+
+    private void clearAggregationState() {
+        jdbcTemplate.update("delete from analytics_numeric_bucket");
+        jdbcTemplate.update("delete from analytics_aggregation_window");
+        jdbcTemplate.update("delete from analytics_aggregation_job");
     }
 
     @Test
