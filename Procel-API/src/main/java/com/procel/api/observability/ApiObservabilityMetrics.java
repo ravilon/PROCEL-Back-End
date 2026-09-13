@@ -2,11 +2,13 @@ package com.procel.api.observability;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.function.Supplier;
 
 @Component
 public class ApiObservabilityMetrics {
@@ -47,6 +49,30 @@ public class ApiObservabilityMetrics {
             counter("procel.analytics.query.errors", "type", type, "outcome", outcome).increment();
         }
         timer("procel.analytics.query.duration", "type", type, "outcome", outcome).record(duration);
+    }
+
+    public void missionEvaluationProcessed(String outcome, int attempts, Duration duration) {
+        counter("procel.missions.evaluations", "outcome", outcome).increment();
+        switch (outcome) {
+            case "completed" -> counter("procel.missions.evaluations.completed", "outcome", outcome).increment();
+            case "ignored" -> counter("procel.missions.evaluations.ignored", "outcome", outcome).increment();
+            case "retry" -> counter("procel.missions.evaluations.retried", "outcome", outcome).increment();
+            case "failed" -> counter("procel.missions.evaluations.failed", "outcome", outcome).increment();
+            default -> { }
+        }
+        if (attempts > 1 && !"retry".equals(outcome)) {
+            counter("procel.missions.evaluations.retried", "outcome", outcome).increment();
+        }
+        timer("procel.missions.evaluation.duration", "outcome", outcome).record(duration);
+    }
+
+    public void missionEventDetected() {
+        counter("procel.missions.events.detected").increment();
+    }
+
+    public void registerMissionBacklogGauge(Object owner, Supplier<Number> supplier) {
+        Gauge.builder("procel.missions.backlog", owner, ignored -> supplier.get().doubleValue())
+                .register(registry);
     }
 
     private Counter counter(String name, String... tags) {

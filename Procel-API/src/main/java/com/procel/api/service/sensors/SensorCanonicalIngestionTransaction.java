@@ -5,6 +5,7 @@ import com.procel.api.dto.sensors.SensorTelemetryIngestDTOs;
 import com.procel.api.entity.sensors.*;
 import com.procel.api.exception.ApiStatusException;
 import com.procel.api.repository.sensors.*;
+import com.procel.api.service.missions.EventoAvaliacaoRequestService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,6 +23,7 @@ public class SensorCanonicalIngestionTransaction {
     private final SensorIntegrationProfileRepository profileRepo;
     private final SensorIntegrationParserVersionRepository parserVersionRepo;
     private final SensorIntegrationBindingRepository bindingRepo;
+    private final EventoAvaliacaoRequestService avaliacaoRequestService;
 
     public SensorCanonicalIngestionTransaction(
             SensorRepository sensorRepo,
@@ -30,7 +32,8 @@ public class SensorCanonicalIngestionTransaction {
             PayloadFingerprintService fingerprintService,
             SensorIntegrationProfileRepository profileRepo,
             SensorIntegrationParserVersionRepository parserVersionRepo,
-            SensorIntegrationBindingRepository bindingRepo
+            SensorIntegrationBindingRepository bindingRepo,
+            EventoAvaliacaoRequestService avaliacaoRequestService
     ) {
         this.sensorRepo = sensorRepo;
         this.metadataRepo = metadataRepo;
@@ -39,6 +42,7 @@ public class SensorCanonicalIngestionTransaction {
         this.profileRepo = profileRepo;
         this.parserVersionRepo = parserVersionRepo;
         this.bindingRepo = bindingRepo;
+        this.avaliacaoRequestService = avaliacaoRequestService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -191,6 +195,7 @@ public class SensorCanonicalIngestionTransaction {
                 request.source().name(),
                 request.values()
         ));
+        avaliacaoRequestService.criarPendente(medicao.getId());
 
         metadata.complete(medicao, Instant.now());
         metadataRepo.save(metadata);

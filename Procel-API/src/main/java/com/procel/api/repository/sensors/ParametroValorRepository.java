@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface ParametroValorRepository extends JpaRepository<ParametroValor, UUID> {
     Optional<ParametroValor> findByMedicao_IdAndParametroDef_Id(UUID medicaoId, UUID parametroDefId);
      List<ParametroValor> findAllByMedicao_IdIn(Collection<UUID> medicaoIds);
+    List<ParametroValor> findAllByMedicao_Id(UUID medicaoId);
 }

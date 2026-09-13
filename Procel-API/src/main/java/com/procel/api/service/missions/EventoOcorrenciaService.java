@@ -130,6 +130,9 @@ public class EventoOcorrenciaService {
     public EventoOcorrencia atualizarStatus(UUID ocorrenciaId, EventoOcorrenciaStatus novoStatus) {
         EventoOcorrencia occurrence = ocorrenciaRepo.findById(ocorrenciaId)
                 .orElseThrow(() -> new NotFoundException("EventoOcorrencia not found id=" + ocorrenciaId));
+        if (occurrence.getStatus() == novoStatus) {
+            return occurrence;
+        }
         if (!validTransition(occurrence.getStatus(), novoStatus)) {
             throw new ConflictException("Invalid event occurrence status transition "
                     + occurrence.getStatus() + " -> " + novoStatus);
@@ -142,6 +145,14 @@ public class EventoOcorrenciaService {
     public EventoOcorrencia buscar(UUID id) {
         return ocorrenciaRepo.findById(id)
                 .orElseThrow(() -> new NotFoundException("EventoOcorrencia not found id=" + id));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<EventoOcorrencia> buscarPorChaveIdempotencia(String chaveIdempotencia) {
+        if (chaveIdempotencia == null || chaveIdempotencia.isBlank()) {
+            return Optional.empty();
+        }
+        return ocorrenciaRepo.findByChaveIdempotencia(chaveIdempotencia);
     }
 
     private Optional<EventoOcorrenciaEvidencia> existingEvidence(AnexarEvidenciaCommand command) {
