@@ -26,12 +26,30 @@ class ApiObservabilityMetricsTest {
         metrics.bucketsPersisted(3);
         metrics.analyticsQuery("list", "success", Duration.ofMillis(10));
         metrics.analyticsQuery("summary", "error", Duration.ofMillis(15));
+        metrics.droolsCompilation("INSTANTANEO", Duration.ofMillis(20));
+        metrics.droolsCompilationFailure("INSTANTANEO");
+        metrics.droolsCacheHit("INSTANTANEO");
+        metrics.droolsCacheMiss("DURACAO");
+        metrics.droolsCacheEviction("DURACAO", 2);
+        metrics.droolsEvaluation("DURACAO", "matched", Duration.ofMillis(30));
+        metrics.droolsEvaluationFailure("DURACAO");
+        metrics.droolsFacts("DURACAO", 5);
+        metrics.droolsLimitRejection("DURACAO", "facts");
 
         assertThat(registry.find("procel.analytics.aggregation.jobs").counter().count()).isEqualTo(1.0);
         assertThat(registry.find("procel.analytics.aggregation.windows.completed").counter().count()).isEqualTo(1.0);
         assertThat(registry.find("procel.analytics.aggregation.windows.retries").counter().count()).isEqualTo(1.0);
         assertThat(registry.find("procel.analytics.buckets.persisted").summary().count()).isEqualTo(1L);
         assertThat(registry.find("procel.analytics.query.errors").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.compilations").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.compilation.failures").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.cache.hits").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.cache.misses").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.cache.evictions").counter().count()).isEqualTo(2.0);
+        assertThat(registry.find("procel.missions.drools.evaluations").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.evaluation.failures").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.facts").summary().count()).isEqualTo(1L);
+        assertThat(registry.find("procel.missions.drools.limit.rejections").counter().count()).isEqualTo(1.0);
         assertNoHighCardinalityTags(registry);
     }
 

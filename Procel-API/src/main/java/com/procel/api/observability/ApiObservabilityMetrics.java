@@ -113,6 +113,48 @@ public class ApiObservabilityMetrics {
         counter("procel.missions.xp.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
     }
 
+    public void droolsCompilation(String mode, Duration duration) {
+        counter("procel.missions.drools.compilations", "mode", mode).increment();
+        timer("procel.missions.drools.compilation.duration", "mode", mode).record(duration);
+    }
+
+    public void droolsCompilationFailure(String mode) {
+        counter("procel.missions.drools.compilation.failures", "mode", mode).increment();
+    }
+
+    public void droolsCacheHit(String mode) {
+        counter("procel.missions.drools.cache.hits", "mode", mode).increment();
+    }
+
+    public void droolsCacheMiss(String mode) {
+        counter("procel.missions.drools.cache.misses", "mode", mode).increment();
+    }
+
+    public void droolsCacheEviction(String mode, long count) {
+        counter("procel.missions.drools.cache.evictions", "mode", mode).increment(Math.max(0, count));
+    }
+
+    public void droolsEvaluation(String mode, String result, Duration duration) {
+        counter("procel.missions.drools.evaluations", "mode", mode, "result", result).increment();
+        timer("procel.missions.drools.evaluation.duration", "mode", mode, "result", result).record(duration);
+    }
+
+    public void droolsEvaluationFailure(String mode) {
+        counter("procel.missions.drools.evaluation.failures", "mode", mode, "result", "failed").increment();
+    }
+
+    public void droolsFacts(String mode, long count) {
+        DistributionSummary.builder("procel.missions.drools.facts")
+                .tags("mode", mode)
+                .description("Facts evaluated by Drools mission rule engine")
+                .register(registry)
+                .record(Math.max(0, count));
+    }
+
+    public void droolsLimitRejection(String mode, String limit) {
+        counter("procel.missions.drools.limit.rejections", "mode", mode, "limit", limit).increment();
+    }
+
     public void registerMissionBacklogGauge(Object owner, Supplier<Number> supplier) {
         Gauge.builder("procel.missions.backlog", owner, ignored -> supplier.get().doubleValue())
                 .register(registry);

@@ -12,6 +12,7 @@ import com.procel.api.service.missions.rules.MeasurementFact;
 import com.procel.api.service.missions.rules.MissionEvaluationContext;
 import com.procel.api.service.missions.rules.MissionRuleEngine;
 import com.procel.api.service.missions.rules.MissionRuleEvaluationResult;
+import com.procel.api.observability.ApiObservabilityMetrics;
 import org.drools.core.time.SessionPseudoClock;
 import org.kie.api.KieBase;
 import org.kie.api.conf.EventProcessingOption;
@@ -38,9 +39,13 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -50,39 +55,82 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
             .thenComparing(f -> f.parametroDefId().toString())
             .thenComparing(f -> f.parametroValorId() == null ? "" : f.parametroValorId().toString());
 
-    private final int maxFacts;
-    private final Duration maxSampleGap;
-    private final ConcurrentMap<String, KieBase> compiledRules = new ConcurrentHashMap<>();
+    private final DroolsRuleEngineSettings settings;
+    private final DroolsKieBaseCache compiledRules;
+    private final ApiObservabilityMetrics metrics;
 
     public DroolsMissionRuleEngine(int maxFacts, long maxSampleGapSeconds) {
-        this.maxFacts = maxFacts <= 0 ? 1_000 : maxFacts;
-        this.maxSampleGap = Duration.ofSeconds(maxSampleGapSeconds <= 0 ? 600 : maxSampleGapSeconds);
+        this(new DroolsRuleEngineSettings(
+                maxFacts,
+                DroolsRuleEngineSettings.defaults().maxCacheEntries(),
+                DroolsRuleEngineSettings.defaults().cacheExpiration(),
+                DroolsRuleEngineSettings.defaults().compilationTimeout(),
+                DroolsRuleEngineSettings.defaults().evaluationTimeout(),
+                Duration.ofSeconds(maxSampleGapSeconds),
+                DroolsRuleEngineSettings.defaults().maximumEvaluationSpan()
+        ), null);
+    }
+
+    public DroolsMissionRuleEngine(DroolsRuleEngineSettings settings, ApiObservabilityMetrics metrics) {
+        this(settings, metrics, System::nanoTime);
+    }
+
+    DroolsMissionRuleEngine(DroolsRuleEngineSettings settings, ApiObservabilityMetrics metrics, java.util.function.LongSupplier ticker) {
+        this.settings = Objects.requireNonNull(settings, "settings is required");
+        this.metrics = metrics;
+        this.compiledRules = new DroolsKieBaseCache(settings.maxCacheEntries(), settings.cacheExpiration(), ticker);
     }
 
     @Override
     public MissionRuleEvaluationResult evaluate(MissionEvaluationContext context) {
         Objects.requireNonNull(context, "context is required");
         EventoDefinicao event = context.eventDefinition();
-        validateSupported(event);
-        if (!event.isAtivo()) {
-            return new MissionRuleEvaluationResult(event.getId(), false, context.evaluationTime(), List.of(), List.of(),
-                    "Event definition is inactive");
-        }
+        String mode = modeTag(event);
+        long evaluationStarted = System.nanoTime();
+        String resultTag = "failed";
+        try {
+            validateSupported(event);
+            if (!event.isAtivo()) {
+                MissionRuleEvaluationResult inactive = new MissionRuleEvaluationResult(event.getId(), false, context.evaluationTime(), List.of(), List.of(),
+                        "Event definition is inactive");
+                resultTag = "unmatched";
+                return inactive;
+            }
 
-        List<EventoCondicao> activeConditions = activeConditions(event);
-        if (activeConditions.stream().noneMatch(EventoCondicao::isObrigatoria)) {
-            return new MissionRuleEvaluationResult(event.getId(), false, context.evaluationTime(), List.of(), List.of(),
-                    "No active required conditions");
-        }
+            List<EventoCondicao> activeConditions = activeConditions(event);
+            if (activeConditions.stream().noneMatch(EventoCondicao::isObrigatoria)) {
+                MissionRuleEvaluationResult noRequired = new MissionRuleEvaluationResult(event.getId(), false, context.evaluationTime(), List.of(), List.of(),
+                        "No active required conditions");
+                resultTag = "unmatched";
+                return noRequired;
+            }
 
-        List<DroolsMeasurementFact> facts = normalizeFacts(context.measurements(), event.getModoAvaliacao());
-        KieBase kbase = compiledRules.computeIfAbsent(fingerprint(event, activeConditions), ignored -> compile(event, activeConditions));
-        DroolsEvaluationCollector collector = evaluateWithDrools(kbase, facts, context.evaluationTime());
+            List<DroolsMeasurementFact> facts = normalizeFacts(context.measurements(), event.getModoAvaliacao(), context.evaluationTime(), mode);
+            recordFacts(mode, facts.size());
+            String fingerprint = fingerprint(event, activeConditions, settings);
+            KieBase kbase = compiledRules.getOrCompile(
+                    fingerprint,
+                    () -> compile(event, activeConditions, mode),
+                    () -> recordCacheHit(mode),
+                    () -> recordCacheMiss(mode),
+                    count -> recordCacheEviction(mode, count)
+            );
+            DroolsEvaluationCollector collector = evaluateWithDrools(kbase, facts, context.evaluationTime(), mode);
 
-        if (event.getModoAvaliacao() == EventoModoAvaliacao.INSTANTANEO) {
-            return evaluateInstant(context, activeConditions, facts, collector.matches());
+            MissionRuleEvaluationResult result;
+            if (event.getModoAvaliacao() == EventoModoAvaliacao.INSTANTANEO) {
+                result = evaluateInstant(context, activeConditions, facts, collector.matches());
+            } else {
+                result = evaluateDuration(context, activeConditions, facts, collector.matches());
+            }
+            resultTag = result.matched() ? "matched" : "unmatched";
+            return result;
+        } catch (RuntimeException ex) {
+            recordEvaluationFailure(mode);
+            throw ex;
+        } finally {
+            recordEvaluation(mode, resultTag, Duration.ofNanos(System.nanoTime() - evaluationStarted));
         }
-        return evaluateDuration(context, activeConditions, facts, collector.matches());
     }
 
     private static void validateSupported(EventoDefinicao event) {
@@ -109,15 +157,29 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         }
     }
 
-    private List<DroolsMeasurementFact> normalizeFacts(List<MeasurementFact> measurements, EventoModoAvaliacao mode) {
-        if (measurements.size() > maxFacts) {
-            throw new DroolsMissionRuleException("Drools fact limit exceeded: " + measurements.size() + " > " + maxFacts);
+    public DroolsCacheStats cacheStats() {
+        return compiledRules.stats();
+    }
+
+    private List<DroolsMeasurementFact> normalizeFacts(
+            List<MeasurementFact> measurements,
+            EventoModoAvaliacao mode,
+            Instant evaluationTime,
+            String modeTag
+    ) {
+        if (measurements.size() > settings.maxFactsPerEvaluation()) {
+            recordLimitRejection(modeTag, "facts");
+            throw new DroolsMissionRuleException("Drools fact limit exceeded: " + measurements.size() + " > " + settings.maxFactsPerEvaluation());
         }
 
         List<DroolsMeasurementFact> facts = measurements.stream()
                 .map(this::copyFact)
                 .sorted(FACT_ORDER)
                 .toList();
+        if (facts.stream().map(DroolsMeasurementFact::measuredAt).filter(Objects::nonNull).anyMatch(t -> t.isAfter(evaluationTime))) {
+            recordLimitRejection(modeTag, "future_timestamp");
+            throw new DroolsMissionRuleException("Drools facts cannot be measured after evaluationTime");
+        }
         Set<String> sensors = facts.stream()
                 .map(DroolsMeasurementFact::sensorExternalId)
                 .filter(Objects::nonNull)
@@ -133,8 +195,20 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
             assertNoDuplicateParameters(facts);
         } else if (facts.stream().anyMatch(f -> f.measuredAt() == null)) {
             throw new DroolsMissionRuleException("measuredAt is required for DURACAO evaluation");
+        } else {
+            rejectExcessiveTimeSpan(facts, modeTag);
         }
         return facts;
+    }
+
+    private void rejectExcessiveTimeSpan(List<DroolsMeasurementFact> facts, String modeTag) {
+        Optional<Instant> min = facts.stream().map(DroolsMeasurementFact::measuredAt).min(Instant::compareTo);
+        Optional<Instant> max = facts.stream().map(DroolsMeasurementFact::measuredAt).max(Instant::compareTo);
+        if (min.isPresent() && max.isPresent()
+                && Duration.between(min.get(), max.get()).compareTo(settings.maximumEvaluationSpan()) > 0) {
+            recordLimitRejection(modeTag, "time_span");
+            throw new DroolsMissionRuleException("Drools evaluation time span exceeds configured limit: " + settings.maximumEvaluationSpan());
+        }
     }
 
     private DroolsMeasurementFact copyFact(MeasurementFact fact) {
@@ -165,6 +239,20 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
     private DroolsEvaluationCollector evaluateWithDrools(
             KieBase kbase,
             List<DroolsMeasurementFact> facts,
+            Instant evaluationTime,
+            String mode
+    ) {
+        return runWithTimeout(
+                () -> evaluateWithDroolsUnchecked(kbase, facts, evaluationTime),
+                settings.evaluationTimeout(),
+                "evaluation",
+                mode
+        );
+    }
+
+    protected DroolsEvaluationCollector evaluateWithDroolsUnchecked(
+            KieBase kbase,
+            List<DroolsMeasurementFact> facts,
             Instant evaluationTime
     ) {
         KieSessionConfiguration configuration = org.kie.api.KieServices.Factory.get().newKieSessionConfiguration();
@@ -183,8 +271,12 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
             session.fireAllRules();
             return collector;
         } finally {
-            session.dispose();
+            disposeSession(session);
         }
+    }
+
+    protected void disposeSession(KieSession session) {
+        session.dispose();
     }
 
     private static void advanceClock(SessionPseudoClock clock, Instant target) {
@@ -264,7 +356,7 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         Instant completedAt = null;
         for (Instant sampleTime : sampleTimes) {
             boolean satisfied = matchedConditionsByTime.getOrDefault(sampleTime, Set.of()).containsAll(requiredConditionIds);
-            boolean gapOk = previousSatisfied == null || !Duration.between(previousSatisfied, sampleTime).minus(maxSampleGap).isPositive();
+                boolean gapOk = previousSatisfied == null || !Duration.between(previousSatisfied, sampleTime).minus(settings.maximumSampleGap()).isPositive();
             if (!satisfied || !gapOk) {
                 segmentStart = satisfied ? sampleTime : null;
             } else if (segmentStart == null) {
@@ -300,7 +392,7 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
                 .map(this::toMeasurementFact)
                 .toList();
         String reason = matched
-                ? "Duration matched using semi-open window (" + windowStart + ", " + windowEnd + "] and max sample gap " + maxSampleGap
+                ? "Duration matched using semi-open window (" + windowStart + ", " + windowEnd + "] and max sample gap " + settings.maximumSampleGap()
                 : "Duration did not remain satisfied for " + event.getDuracaoMinimaSegundos() + " seconds";
         return new MissionRuleEvaluationResult(event.getId(), matched, context.evaluationTime(), conditionResults, evidences, reason);
     }
@@ -366,7 +458,24 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
                 .toList();
     }
 
-    private KieBase compile(EventoDefinicao event, List<EventoCondicao> conditions) {
+    private KieBase compile(EventoDefinicao event, List<EventoCondicao> conditions, String mode) {
+        long started = System.nanoTime();
+        try {
+            return runWithTimeout(
+                    () -> compileUnchecked(event, conditions),
+                    settings.compilationTimeout(),
+                    "compilation",
+                    mode
+            );
+        } catch (RuntimeException ex) {
+            recordCompilationFailure(mode);
+            throw ex;
+        } finally {
+            recordCompilation(mode, Duration.ofNanos(System.nanoTime() - started));
+        }
+    }
+
+    protected KieBase compileUnchecked(EventoDefinicao event, List<EventoCondicao> conditions) {
         String drl = new DrlGenerator(event, conditions).generate();
         try {
             return new KieHelper()
@@ -377,14 +486,15 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         }
     }
 
-    private static String fingerprint(EventoDefinicao event, List<EventoCondicao> conditions) {
+    private static String fingerprint(EventoDefinicao event, List<EventoCondicao> conditions, DroolsRuleEngineSettings settings) {
         StringBuilder input = new StringBuilder()
                 .append(event.getId()).append('|')
                 .append(event.getTipoDisparo()).append('|')
                 .append(event.getModoAvaliacao()).append('|')
                 .append(event.getOperadorLogico()).append('|')
                 .append(event.getJanelaSegundos()).append('|')
-                .append(event.getDuracaoMinimaSegundos());
+                .append(event.getDuracaoMinimaSegundos()).append('|')
+                .append(settings.fingerprintMaterial());
         for (EventoCondicao condition : conditions) {
             input.append('|')
                     .append(condition.getId()).append(':')
@@ -437,6 +547,74 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
 
     private static String numeric(BigDecimal value) {
         return value == null ? null : value.toPlainString();
+    }
+
+    private <T> T runWithTimeout(Callable<T> task, Duration timeout, String operation, String mode) {
+        ExecutorService executor = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "drools-mission-" + operation);
+            thread.setDaemon(true);
+            return thread;
+        });
+        Future<T> future = executor.submit(task);
+        try {
+            return future.get(timeout.toNanos(), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException ex) {
+            future.cancel(true);
+            recordLimitRejection(mode, operation + "_timeout");
+            throw new DroolsMissionRuleException("Drools " + operation + " timed out after " + timeout, ex);
+        } catch (InterruptedException ex) {
+            future.cancel(true);
+            Thread.currentThread().interrupt();
+            throw new DroolsMissionRuleException("Drools " + operation + " was interrupted", ex);
+        } catch (ExecutionException ex) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new DroolsMissionRuleException("Drools " + operation + " failed", cause);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static String modeTag(EventoDefinicao event) {
+        return event != null && event.getModoAvaliacao() == EventoModoAvaliacao.DURACAO ? "DURACAO" : "INSTANTANEO";
+    }
+
+    private void recordCompilation(String mode, Duration duration) {
+        if (metrics != null) metrics.droolsCompilation(mode, duration);
+    }
+
+    private void recordCompilationFailure(String mode) {
+        if (metrics != null) metrics.droolsCompilationFailure(mode);
+    }
+
+    private void recordCacheHit(String mode) {
+        if (metrics != null) metrics.droolsCacheHit(mode);
+    }
+
+    private void recordCacheMiss(String mode) {
+        if (metrics != null) metrics.droolsCacheMiss(mode);
+    }
+
+    private void recordCacheEviction(String mode, long count) {
+        if (metrics != null) metrics.droolsCacheEviction(mode, count);
+    }
+
+    private void recordEvaluation(String mode, String result, Duration duration) {
+        if (metrics != null) metrics.droolsEvaluation(mode, result, duration);
+    }
+
+    private void recordEvaluationFailure(String mode) {
+        if (metrics != null) metrics.droolsEvaluationFailure(mode);
+    }
+
+    private void recordFacts(String mode, long count) {
+        if (metrics != null) metrics.droolsFacts(mode, count);
+    }
+
+    private void recordLimitRejection(String mode, String limit) {
+        if (metrics != null) metrics.droolsLimitRejection(mode, limit);
     }
 
     private static final class DrlGenerator {

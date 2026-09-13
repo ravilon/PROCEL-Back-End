@@ -15,10 +15,15 @@ import com.procel.api.service.missions.rules.MeasurementFact;
 import com.procel.api.service.missions.rules.MissionEvaluationContext;
 import com.procel.api.service.missions.rules.MissionRuleEvaluationResult;
 import com.procel.api.service.missions.rules.SimpleMissionRuleEngine;
+import com.procel.api.observability.ApiObservabilityMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import org.kie.api.KieBase;
+import org.kie.api.runtime.KieSession;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,6 +31,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -254,6 +261,194 @@ class DroolsMissionRuleEngineTest {
         assertThat(second).isEqualTo(first);
     }
 
+    @Test
+    void cacheHitDoesNotRecompileAndCacheMissCompiles() {
+        DroolsMissionRuleEngine cached = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), null);
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao event = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        MissionEvaluationContext context = context(event, booleanFact(presence, true, now, "sensor-1", "room-1"));
+
+        assertThat(cached.evaluate(context).matched()).isTrue();
+        assertThat(cached.evaluate(context).matched()).isTrue();
+
+        DroolsCacheStats stats = cached.cacheStats();
+        assertThat(stats.compilations()).isEqualTo(1);
+        assertThat(stats.misses()).isEqualTo(1);
+        assertThat(stats.hits()).isEqualTo(1);
+        assertThat(stats.size()).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentCompilationOfSameFingerprintHappensOnce() throws Exception {
+        AtomicInteger compilations = new AtomicInteger();
+        DroolsMissionRuleEngine slowCompile = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofSeconds(5), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), null) {
+            @Override
+            protected KieBase compileUnchecked(EventoDefinicao event, List<EventoCondicao> conditions) {
+                compilations.incrementAndGet();
+                sleep(100);
+                return super.compileUnchecked(event, conditions);
+            }
+        };
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao event = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        Callable<Boolean> task = () -> slowCompile.evaluate(context(event,
+                booleanFact(presence, true, now, "sensor-1", "room-1"))).matched();
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var results = executor.invokeAll(List.of(task, task));
+            assertThat(results.get(0).get()).isTrue();
+            assertThat(results.get(1).get()).isTrue();
+        }
+
+        assertThat(compilations).hasValue(1);
+        assertThat(slowCompile.cacheStats().compilations()).isEqualTo(1);
+    }
+
+    @Test
+    void cacheEvictsAtLimitAndExpiresInactiveEntries() {
+        DroolsMissionRuleEngine limited = new DroolsMissionRuleEngine(settings(100, 1, Duration.ofMinutes(30),
+                Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), null);
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao first = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        EventoDefinicao second = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+
+        limited.evaluate(context(first, booleanFact(presence, true, now, "sensor-1", "room-1")));
+        limited.evaluate(context(second, booleanFact(presence, true, now, "sensor-1", "room-1")));
+
+        assertThat(limited.cacheStats().size()).isEqualTo(1);
+        assertThat(limited.cacheStats().evictions()).isEqualTo(1);
+
+        AtomicLong ticker = new AtomicLong();
+        DroolsMissionRuleEngine expiring = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofNanos(1),
+                Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), null, ticker::get);
+        expiring.evaluate(context(first, booleanFact(presence, true, now, "sensor-1", "room-1")));
+        ticker.addAndGet(2);
+        expiring.evaluate(context(first, booleanFact(presence, true, now, "sensor-1", "room-1")));
+
+        assertThat(expiring.cacheStats().compilations()).isEqualTo(2);
+        assertThat(expiring.cacheStats().evictions()).isEqualTo(1);
+    }
+
+    @Test
+    void failedCompilationDoesNotEnterCache() {
+        ParametroDef temperature = parameter("temperature", DataType.NUMERIC);
+        EventoDefinicao invalid = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                numericCondition(temperature, RegraOperador.CONTAINS, "20", null, true, true, 1));
+        DroolsMissionRuleEngine engine = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), null);
+
+        assertThatThrownBy(() -> engine.evaluate(context(invalid, numericFact(temperature, "21", now, "sensor-1", "room-1"))))
+                .isInstanceOf(DroolsMissionRuleException.class);
+        assertThatThrownBy(() -> engine.evaluate(context(invalid, numericFact(temperature, "21", now, "sensor-1", "room-1"))))
+                .isInstanceOf(DroolsMissionRuleException.class);
+
+        assertThat(engine.cacheStats().size()).isZero();
+        assertThat(engine.cacheStats().compilations()).isEqualTo(2);
+    }
+
+    @Test
+    void rejectsFutureTimestampsAndExcessiveTimeSpan() {
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao instant = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        assertThatThrownBy(() -> engine.evaluate(context(instant,
+                booleanFact(presence, true, now.plusSeconds(1), "sensor-1", "room-1"))))
+                .isInstanceOf(DroolsMissionRuleException.class)
+                .hasMessageContaining("after evaluationTime");
+
+        DroolsMissionRuleEngine spanLimited = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofMinutes(30)), null);
+        EventoDefinicao duration = event(EventoModoAvaliacao.DURACAO, EventoOperadorLogico.ALL, 7_200, 60,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        assertThatThrownBy(() -> spanLimited.evaluate(context(duration,
+                booleanFact(presence, true, now.minusSeconds(3_600), "sensor-1", "room-1"),
+                booleanFact(presence, true, now, "sensor-1", "room-1"))))
+                .isInstanceOf(DroolsMissionRuleException.class)
+                .hasMessageContaining("time span");
+    }
+
+    @Test
+    void compilationAndEvaluationTimeoutsFailExplicitly() {
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao event = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        MissionEvaluationContext context = context(event, booleanFact(presence, true, now, "sensor-1", "room-1"));
+
+        DroolsMissionRuleEngine slowCompile = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofMillis(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), null) {
+            @Override
+            protected KieBase compileUnchecked(EventoDefinicao event, List<EventoCondicao> conditions) {
+                sleep(200);
+                return super.compileUnchecked(event, conditions);
+            }
+        };
+        assertThatThrownBy(() -> slowCompile.evaluate(context))
+                .isInstanceOf(DroolsMissionRuleException.class)
+                .hasMessageContaining("compilation timed out");
+
+        DroolsMissionRuleEngine slowEvaluation = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofSeconds(10), Duration.ofMillis(10), Duration.ofMinutes(15), Duration.ofHours(1)), null) {
+            @Override
+            protected DroolsEvaluationCollector evaluateWithDroolsUnchecked(KieBase kbase, List<DroolsMeasurementFact> facts, Instant evaluationTime) {
+                sleep(200);
+                return super.evaluateWithDroolsUnchecked(kbase, facts, evaluationTime);
+            }
+        };
+        assertThatThrownBy(() -> slowEvaluation.evaluate(context))
+                .isInstanceOf(DroolsMissionRuleException.class)
+                .hasMessageContaining("evaluation timed out");
+    }
+
+    @Test
+    void interruptionIsPreserved() {
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao event = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+        Thread.currentThread().interrupt();
+        try {
+            assertThatThrownBy(() -> engine.evaluate(context(event, booleanFact(presence, true, now, "sensor-1", "room-1"))))
+                    .isInstanceOf(DroolsMissionRuleException.class)
+                    .hasMessageContaining("interrupted");
+            assertThat(Thread.currentThread().isInterrupted()).isTrue();
+        } finally {
+            Thread.interrupted();
+        }
+    }
+
+    @Test
+    void kieSessionIsDisposedAndMetricsAreRecordedWithLowCardinalityTags() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        ApiObservabilityMetrics metrics = new ApiObservabilityMetrics(registry);
+        AtomicInteger disposals = new AtomicInteger();
+        DroolsMissionRuleEngine observed = new DroolsMissionRuleEngine(settings(100, 10, Duration.ofMinutes(30),
+                Duration.ofSeconds(10), Duration.ofSeconds(5), Duration.ofMinutes(15), Duration.ofHours(1)), metrics) {
+            @Override
+            protected void disposeSession(KieSession session) {
+                disposals.incrementAndGet();
+                super.disposeSession(session);
+            }
+        };
+        ParametroDef presence = parameter("presence", DataType.BOOLEAN);
+        EventoDefinicao event = event(EventoModoAvaliacao.INSTANTANEO, EventoOperadorLogico.ALL, null, null,
+                booleanCondition(presence, RegraOperador.EQ, true, true, true, 1));
+
+        assertThat(observed.evaluate(context(event, booleanFact(presence, true, now, "sensor-1", "room-1"))).matched()).isTrue();
+
+        assertThat(disposals).hasValue(1);
+        assertThat(registry.find("procel.missions.drools.compilations").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.cache.misses").counter().count()).isEqualTo(1.0);
+        assertThat(registry.find("procel.missions.drools.evaluations").tags("mode", "INSTANTANEO", "result", "matched").counter().count())
+                .isEqualTo(1.0);
+        registry.getMeters().forEach(meter -> meter.getId().getTags().forEach(tag ->
+                assertThat(List.of("mode", "result", "limit")).contains(tag.getKey())));
+    }
+
     private void assertEquivalent(MissionRuleEvaluationResult drools, MissionRuleEvaluationResult simpleResult) {
         assertThat(drools.eventDefinitionId()).isEqualTo(simpleResult.eventDefinitionId());
         assertThat(drools.matched()).isEqualTo(simpleResult.matched());
@@ -262,6 +457,34 @@ class DroolsMissionRuleEngineTest {
                 .ignoringFields("reason")
                 .isEqualTo(simpleResult.conditionResults());
         assertThat(drools.evidences()).isEqualTo(simpleResult.evidences());
+    }
+
+    private static DroolsRuleEngineSettings settings(
+            int maxFacts,
+            int maxCacheEntries,
+            Duration cacheExpiration,
+            Duration compilationTimeout,
+            Duration evaluationTimeout,
+            Duration maximumSampleGap,
+            Duration maximumEvaluationSpan
+    ) {
+        return new DroolsRuleEngineSettings(
+                maxFacts,
+                maxCacheEntries,
+                cacheExpiration,
+                compilationTimeout,
+                evaluationTimeout,
+                maximumSampleGap,
+                maximumEvaluationSpan
+        );
+    }
+
+    private static void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     private MissionEvaluationContext context(EventoDefinicao event, MeasurementFact... facts) {

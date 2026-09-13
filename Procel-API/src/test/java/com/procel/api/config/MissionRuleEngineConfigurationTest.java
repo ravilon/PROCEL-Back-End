@@ -3,6 +3,8 @@ package com.procel.api.config;
 import com.procel.api.service.missions.rules.MissionRuleEngine;
 import com.procel.api.service.missions.rules.SimpleMissionRuleEngine;
 import com.procel.api.service.missions.rules.drools.DroolsMissionRuleEngine;
+import com.procel.api.observability.ApiObservabilityMetrics;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -42,6 +44,20 @@ class MissionRuleEngineConfigurationTest {
                 .run(context -> assertThat(context).hasFailed());
     }
 
+    @Test
+    void invalidDroolsLimitFailsStartup() {
+        contextRunner
+                .withPropertyValues("procel.missions.drools.max-facts-per-evaluation=0")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void invalidDroolsDurationFailsStartup() {
+        contextRunner
+                .withPropertyValues("procel.missions.drools.cache-expiration=0s")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
     @Configuration
     @EnableConfigurationProperties(MissionRuleEngineProperties.class)
     @Import(MissionRuleEngineConfiguration.class)
@@ -49,6 +65,11 @@ class MissionRuleEngineConfigurationTest {
         @Bean
         SimpleMissionRuleEngine simpleMissionRuleEngine() {
             return new SimpleMissionRuleEngine();
+        }
+
+        @Bean
+        ApiObservabilityMetrics apiObservabilityMetrics() {
+            return new ApiObservabilityMetrics(new SimpleMeterRegistry());
         }
     }
 }
