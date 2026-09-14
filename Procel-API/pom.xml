@@ -182,6 +182,17 @@
     <profile>
       <id>drools-benchmark</id>
 
+      <properties>
+        <jmh.include>com.procel.api.benchmark.DroolsMissionRuleEngineBenchmark.(simpleInstant|droolsInstantCold|droolsInstantWarm|droolsDuration)</jmh.include>
+        <jmh.warmupIterations>5</jmh.warmupIterations>
+        <jmh.measurementIterations>10</jmh.measurementIterations>
+        <jmh.warmupTime>1s</jmh.warmupTime>
+        <jmh.measurementTime>1s</jmh.measurementTime>
+        <jmh.forks>2</jmh.forks>
+        <jmh.resultFormat>csv</jmh.resultFormat>
+        <jmh.resultFile>target/drools-jmh-results.csv</jmh.resultFile>
+      </properties>
+
       <dependencies>
         <dependency>
           <groupId>org.openjdk.jmh</groupId>
@@ -224,7 +235,29 @@
             <version>3.5.0</version>
             <configuration>
               <classpathScope>test</classpathScope>
-              <mainClass>org.openjdk.jmh.Main</mainClass>
+              <executable>${java.home}/bin/java</executable>
+              <arguments>
+                <argument>-cp</argument>
+                <classpath/>
+                <argument>org.openjdk.jmh.Main</argument>
+                <argument>${jmh.include}</argument>
+                <argument>-wi</argument>
+                <argument>${jmh.warmupIterations}</argument>
+                <argument>-i</argument>
+                <argument>${jmh.measurementIterations}</argument>
+                <argument>-w</argument>
+                <argument>${jmh.warmupTime}</argument>
+                <argument>-r</argument>
+                <argument>${jmh.measurementTime}</argument>
+                <argument>-f</argument>
+                <argument>${jmh.forks}</argument>
+                <argument>-prof</argument>
+                <argument>gc</argument>
+                <argument>-rf</argument>
+                <argument>${jmh.resultFormat}</argument>
+                <argument>-rff</argument>
+                <argument>${jmh.resultFile}</argument>
+              </arguments>
             </configuration>
           </plugin>
           <plugin>

@@ -73,50 +73,55 @@ Nao sao usados IDs de evento, medicao, sala, sensor ou pessoa como tags.
 
 ## Benchmark
 
-Comando usado:
+### Causa corrigida no benchmark forkado
+
+A primeira versao do profile executava `org.openjdk.jmh.Main` via `exec:java`. O runner principal
+encontrava o JMH, mas os processos forkados abertos pelo JMH nao recebiam o classpath de teste
+completo; por isso o fork falhava ao carregar `org.openjdk.jmh.runner.ForkedMain`.
+
+A correcao foi manter o profile `drools-benchmark` separado e trocar a execucao para
+`exec:exec`, chamando explicitamente `java -cp <classpath de teste> org.openjdk.jmh.Main`.
+Assim, as classes geradas pelo annotation processor do JMH, as classes de benchmark e `jmh-core`
+ficam visiveis tambem dentro dos forks.
+
+Comando forkado usado:
 
 ```powershell
-.\Procel-API\mvnw.cmd -f Procel-API/pom.xml -Pdrools-benchmark -DskipTests test-compile exec:java "-Dexec.args=com.procel.api.benchmark.DroolsMissionRuleEngineBenchmark -wi 0 -i 1 -r 200ms -f 0 -prof gc -rf csv -rff Procel-API/target/drools-jmh-results.csv"
+.\Procel-API\mvnw.cmd -f Procel-API/pom.xml -Pdrools-benchmark -DskipTests test-compile exec:exec
 ```
 
 Ambiente:
 
 - Windows 11.
 - JVM reportada pelo JMH: OpenJDK 21.0.10.
-- O runner foi executado in-process (`-f 0`) porque o modo forkado via `exec:java` nao recebeu corretamente `org.openjdk.jmh.runner.ForkedMain`.
+- Execucao forkada com `2` forks, `5` warmups, `10` medicoes, `1s` por iteracao e `-prof gc`.
+- Resultados exportados para `Procel-API/target/drools-jmh-results.csv`.
 - WMI local para CPU/memoria foi bloqueado pelo ambiente; por isso, o hardware nao foi identificado automaticamente.
-- Esta medicao e suficiente para direcao de POC, mas nao substitui benchmark de producao com fork, warmup maior e ambiente dedicado.
+- Esta medicao e reprodutivel no workspace, mas ainda nao substitui benchmark de producao em ambiente dedicado.
 
 Resultados principais:
 
 | Cenario | Fatos | Threads | Throughput ops/ms | Media ms | p50 ms | p95 ms | p99 ms | KB/op aprox. |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| Simple instantaneo | 10 | 1 | 317.524 | 0.001 | 0.001 | 0.001 | 0.002 | 2.4 |
-| Simple instantaneo | 100 | 1 | 356.578 | 0.003 | 0.002 | 0.004 | 0.013 | 7.9 |
-| Simple instantaneo | 1000 | 1 | 71.282 | 0.014 | 0.011 | 0.026 | 0.043 | 57.5 |
-| Drools instantaneo frio | 10 | 1 | 0.015 | 59.687 | 60.391 | 63.767 | 63.767 | 7241.1 |
-| Drools instantaneo frio | 100 | 1 | 0.011 | 58.360 | 58.884 | 61.604 | 61.604 | 7381.8 |
-| Drools instantaneo frio | 1000 | 1 | 0.010 | 62.947 | 63.504 | 64.094 | 64.094 | 8273.1 |
-| Drools instantaneo quente | 10 | 1 | 1.132 | 0.605 | 0.519 | 1.191 | 1.555 | 87.7 |
-| Drools instantaneo quente | 100 | 1 | 1.052 | 0.852 | 0.614 | 1.281 | 6.052 | 132.9 |
-| Drools instantaneo quente | 1000 | 1 | 0.632 | 1.556 | 1.370 | 2.575 | 3.892 | 543.6 |
-| Drools duracao | 100 | 1 | 0.502 | 0.808 | 0.679 | 1.488 | 2.014 | 206.7 |
-| Drools duracao | 1000 | 1 | 0.376 | 2.301 | 2.101 | 3.414 | 5.079 | 1292.8 |
-| Drools duracao | 5000 | 1 | 0.108 | 7.366 | 6.898 | 10.478 | 10.666 | 5401.3 |
-| Drools concorrente quente | 10 | 1 | 0.915 | 0.914 | 0.775 | 1.533 | 2.224 | 95.6 |
-| Drools concorrente quente | 10 | 4 | 2.510 | 1.904 | 1.333 | 4.186 | 12.689 | 86.6 |
-| Drools concorrente quente | 10 | 8 | 1.081 | 1.613 | 1.337 | 3.102 | 4.874 | 77.8 |
-| Drools concorrente quente | 1000 | 1 | 0.477 | 1.688 | 1.420 | 2.649 | 6.940 | 548.0 |
-| Drools concorrente quente | 1000 | 4 | 1.433 | 2.382 | 2.085 | 4.370 | 6.499 | 511.4 |
-| Drools concorrente quente | 1000 | 8 | 1.309 | 4.300 | 4.012 | 7.819 | 9.158 | 510.1 |
+| Simple instantaneo | 10 | 1 | 1724.164 | 0.001 | 0.001 | 0.001 | 0.002 | 2.4 |
+| Simple instantaneo | 100 | 1 | 537.348 | 0.002 | 0.002 | 0.003 | 0.007 | 7.9 |
+| Simple instantaneo | 1000 | 1 | 70.222 | 0.016 | 0.011 | 0.026 | 0.049 | 57.1 |
+| Drools instantaneo frio | 10 | 1 | 0.023 | 43.200 | 42.009 | 55.325 | 77.956 | 4860.0 |
+| Drools instantaneo frio | 100 | 1 | 0.023 | 44.774 | 43.254 | 58.655 | 72.561 | 4966.9 |
+| Drools instantaneo frio | 1000 | 1 | 0.022 | 44.619 | 42.500 | 58.907 | 97.750 | 5622.6 |
+| Drools instantaneo quente | 10 | 1 | 1.322 | 0.801 | 0.676 | 1.440 | 2.150 | 69.7 |
+| Drools instantaneo quente | 100 | 1 | 1.181 | 0.876 | 0.746 | 1.571 | 2.312 | 106.6 |
+| Drools instantaneo quente | 1000 | 1 | 0.644 | 1.502 | 1.331 | 2.359 | 3.011 | 459.4 |
+| Drools duracao | 100 | 1 | 1.144 | 0.946 | 0.820 | 1.640 | 2.280 | 185.0 |
+| Drools duracao | 1000 | 1 | 0.390 | 2.112 | 1.903 | 3.177 | 3.920 | 1203.6 |
+| Drools duracao | 5000 | 1 | 0.145 | 6.907 | 6.541 | 9.224 | 11.026 | 4992.6 |
 
 ## Leitura dos resultados
 
 - O Simple segue varias ordens de grandeza mais rapido para regras instantaneas simples.
-- Drools frio custa cerca de `58-63 ms` por compilacao e aloca aproximadamente `7-8 MB/op`.
-- Cache quente reduz o custo de Drools instantaneo para cerca de `0.6-1.6 ms`, com crescimento de alocacao conforme quantidade de fatos.
-- Duracao com `5000` fatos ficou em torno de `7.4 ms` media e `10.7 ms` p99 nesta medicao.
-- Concorrencia mostra alguma escalabilidade ate `4` threads, mas `8` threads aumenta variabilidade.
+- Drools frio custa cerca de `43-45 ms` por avaliacao nesta medicao forkada e aloca aproximadamente `4.9-5.6 MB/op`.
+- Cache quente reduz o custo de Drools instantaneo para cerca de `0.8-1.5 ms`, com crescimento de alocacao conforme quantidade de fatos.
+- Duracao com `5000` fatos ficou em torno de `6.9 ms` media e `11.0 ms` p99 nesta medicao.
 - O wrapper de timeout por avaliacao adiciona overhead relevante, pois a avaliacao e isolada em executor para permitir cancelamento.
 
 ## Beneficios para CEP
@@ -131,15 +136,15 @@ Resultados principais:
 - Dependencias Drools/KIE aumentam significativamente o grafo de runtime.
 - Compilacao fria e cara e precisa ser pre-aquecida ou amortizada por cache.
 - O modelo atual de timeout protege o caller, mas custa overhead por avaliacao.
-- O benchmark in-process nao e suficiente para SLO final.
+- O benchmark forkado e suficiente para decisao da POC, mas ainda deve ser repetido em ambiente dedicado antes de SLO final.
 - O modo temporal ainda e POC; nao ha janelas persistidas nem integracao com worker.
-- Alertas de encerramento de threads apareceram no JMH in-process; isso deve ser reavaliado em benchmark forkado antes de producao.
+- O cenario frio e bastante verboso por logs internos do KIE a cada criacao de `KieBase`; convem ajustar logging em execucoes de benchmark longas, sem alterar logs de producao.
 
 ## Criterios para conexao futura ao worker
 
 Conectar ao worker somente se todos os criterios forem atendidos:
 
-- Benchmark forkado e dedicado com p95/p99 dentro do SLO definido para volume real.
+- Benchmark dedicado, em hardware representativo, com p95/p99 dentro do SLO definido para volume real.
 - Pre-aquecimento ou cache hit ratio esperado acima de 95% para eventos ativos.
 - Metricas Drools visiveis no ambiente de operacao.
 - Regras temporais com semantica aprovada por dominio e testes de regressao.
@@ -156,6 +161,6 @@ Justificativa:
 - A POC mostra que Drools e tecnicamente viavel para CEP e duracao quando o cache esta quente.
 - Para regras instantaneas simples, o custo contra `SimpleMissionRuleEngine` e alto demais.
 - O custo de compilacao fria e a alocacao ainda exigem governanca operacional.
-- O benchmark ainda precisa ser executado em modo forkado e ambiente controlado antes de uma decisao final de producao.
+- O benchmark forkado confirmou viabilidade tecnica com cache quente, mas o ambiente ainda nao representa producao nem ha SLO operacional aprovado.
 
 Recomendacao objetiva: evoluir Drools apenas para cenarios temporais/CEP que o engine simples nao cobre bem, mantendo `SimpleMissionRuleEngine` como padrao e sem conectar ao worker ate os criterios acima serem cumpridos.

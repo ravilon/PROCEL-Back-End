@@ -145,8 +145,8 @@ public class DroolsMissionRuleEngineBenchmark {
                 5_000,
                 200,
                 Duration.ofMinutes(30),
-                Duration.ofSeconds(10),
-                Duration.ofSeconds(5),
+                Duration.ofSeconds(60),
+                Duration.ofSeconds(30),
                 Duration.ofMinutes(5),
                 Duration.ofHours(24)
         );
