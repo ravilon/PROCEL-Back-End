@@ -19,7 +19,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/rooms/aulas")
+@RequestMapping("/api/rooms/aulas/sync")
 @Tag(name = "Rooms", description = "Sincronizacao de salas e suas aulas.")
 public class AulasSyncController {
 
@@ -29,7 +29,7 @@ public class AulasSyncController {
         this.jobService = jobService;
     }
 
-    @PostMapping("/sync")
+    @PostMapping
     @Operation(
             summary = "Sincroniza aulas por sala",
             description = "Inicia assincronamente a sincronizacao de todas as salas para a semana informada."

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+@RequestMapping("/api")
 @RestController
 @Tag(name = "Missoes", description = "Catalogo de missoes e atividades.")
 public class MissoesController {
@@ -23,7 +24,7 @@ public class MissoesController {
         this.service = service;
     }
 
-    @PostMapping("/api/missoes")
+    @PostMapping("/missoes")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @Operation(summary = "Cria modelo de missao", description = "Cria uma missao de catalogo. A missao so vira atividade quando atribuida a uma pessoa.")
     @ApiResponse(responseCode = "200", description = "Missao criada.")
@@ -34,7 +35,7 @@ public class MissoesController {
         return service.createMissao(req);
     }
 
-    @GetMapping("/api/missoes")
+    @GetMapping("/missoes")
     @Operation(summary = "Lista modelos de missao", description = "Permite filtrar por ativo.")
     @ApiResponse(responseCode = "200", description = "Lista retornada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
@@ -44,7 +45,7 @@ public class MissoesController {
         return service.listMissoes(ativo);
     }
 
-    @GetMapping("/api/missoes/{missaoId}")
+    @GetMapping("/missoes/{missaoId}")
     @Operation(summary = "Busca modelo de missao")
     @ApiResponse(responseCode = "200", description = "Missao encontrada.")
     @ApiResponse(responseCode = "401", description = "Token ausente ou invalido.")
@@ -55,7 +56,7 @@ public class MissoesController {
         return service.getMissao(missaoId);
     }
 
-    @PutMapping("/api/missoes/{missaoId}")
+    @PutMapping("/missoes/{missaoId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @Operation(summary = "Atualiza modelo de missao")
     @ApiResponse(responseCode = "200", description = "Missao atualizada.")
@@ -70,7 +71,7 @@ public class MissoesController {
         return service.updateMissao(missaoId, req);
     }
 
-    @DeleteMapping("/api/missoes/{missaoId}")
+    @DeleteMapping("/missoes/{missaoId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")
     @Operation(summary = "Depreca modelo de missao", description = "Desativa a missao sem remover o historico. Atividades pendentes ou em andamento desta missao sao expiradas.")
     @ApiResponse(responseCode = "200", description = "Missao deprecada.")
@@ -83,7 +84,7 @@ public class MissoesController {
         service.deleteMissao(missaoId);
     }
 
-    @PostMapping("/api/pessoas/{pessoaId}/atividades")
+    @PostMapping("/pessoas/{pessoaId}/atividades")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
     @Operation(summary = "Atribui missao a uma pessoa", description = "Cria uma atividade para a pessoa. Completar uma missao atualiza esta atividade, nao o modelo de missao. ADMIN e OPERADOR podem atribuir para qualquer pessoa; USUARIO comum so pode atribuir para si mesmo.")
     @ApiResponse(responseCode = "200", description = "Atividade criada.")
@@ -99,7 +100,7 @@ public class MissoesController {
         return service.atribuir(pessoaId, req);
     }
 
-    @GetMapping("/api/pessoas/{pessoaId}/atividades")
+    @GetMapping("/pessoas/{pessoaId}/atividades")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
     @Operation(summary = "Lista atividades de uma pessoa", description = "Lista atividades, com filtro opcional por status. ADMIN e OPERADOR podem consultar qualquer pessoa; USUARIO comum so pode consultar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Lista retornada.")
@@ -113,7 +114,7 @@ public class MissoesController {
         return service.listAtividades(pessoaId, status);
     }
 
-    @GetMapping("/api/pessoas/{pessoaId}/atividades/resumo")
+    @GetMapping("/pessoas/{pessoaId}/atividades/resumo")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
     @Operation(summary = "Resumo de atividades de uma pessoa", description = "Retorna contagens por status, incluindo missoes concluidas e expiradas. ADMIN e OPERADOR podem consultar qualquer pessoa; USUARIO comum so pode consultar o proprio resumo.")
     @ApiResponse(responseCode = "200", description = "Resumo retornado.")
@@ -126,7 +127,7 @@ public class MissoesController {
         return service.resumoAtividades(pessoaId);
     }
 
-    @GetMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
+    @GetMapping("/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
     @Operation(summary = "Busca atividade de uma pessoa", description = "ADMIN e OPERADOR podem consultar qualquer pessoa; USUARIO comum so pode consultar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Atividade encontrada.")
@@ -140,7 +141,7 @@ public class MissoesController {
         return service.getAtividade(pessoaId, atividadeId);
     }
 
-    @PutMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
+    @PutMapping("/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
     @Operation(summary = "Atualiza atividade de uma pessoa", description = "Use este endpoint para iniciar, concluir ou cancelar uma missao atribuida. Atividades nao sao deletadas fisicamente: elas permanecem no historico como CONCLUIDA, EXPIRADA ou CANCELADA. ADMIN e OPERADOR podem atualizar qualquer pessoa; USUARIO comum so pode atualizar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Atividade atualizada.")
@@ -156,7 +157,7 @@ public class MissoesController {
         return service.updateAtividade(pessoaId, atividadeId, req);
     }
 
-    @DeleteMapping("/api/pessoas/{pessoaId}/atividades/{atividadeId}")
+    @DeleteMapping("/pessoas/{pessoaId}/atividades/{atividadeId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR') or #pessoaId == authentication.name")
     @Operation(summary = "Expira atividade de uma pessoa", description = "Marca a atividade como EXPIRADA sem remover o historico. Este endpoint e delete logico: a atividade continua disponivel para consulta e contagem no resumo. ADMIN e OPERADOR podem expirar atividade de qualquer pessoa; USUARIO comum so pode expirar as proprias atividades.")
     @ApiResponse(responseCode = "200", description = "Atividade expirada.")

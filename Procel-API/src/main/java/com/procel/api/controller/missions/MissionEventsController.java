@@ -14,12 +14,14 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.UUID;
 
+@RequestMapping("/api")
 @RestController
 @Tag(
         name = "Mission Events",
@@ -33,7 +35,7 @@ public class MissionEventsController {
         this.service = service;
     }
 
-    @PostMapping("/api/missions/{missionId}/events")
+    @PostMapping("/missions/{missionId}/events")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cria definicao de evento para uma missao", description = "Requer ADMIN. Nao executa avaliacao nem cria atividades.")
@@ -49,7 +51,7 @@ public class MissionEventsController {
         return service.criarEvento(missionId, req);
     }
 
-    @GetMapping("/api/missions/{missionId}/events")
+    @GetMapping("/missions/{missionId}/events")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     @Operation(summary = "Lista eventos configurados de uma missao", description = "Retorna eventos ordenados por ordem e criacao.")
     @ApiResponse(responseCode = "200", description = "Lista retornada.")
@@ -61,7 +63,7 @@ public class MissionEventsController {
         return service.listarEventosDaMissao(missionId);
     }
 
-    @GetMapping("/api/mission-events/{eventId}")
+    @GetMapping("/mission-events/{eventId}")
     @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     @Operation(summary = "Busca definicao de evento")
     @ApiResponse(responseCode = "200", description = "Evento encontrado.")
@@ -73,7 +75,7 @@ public class MissionEventsController {
         return service.buscarEvento(eventId);
     }
 
-    @PutMapping("/api/mission-events/{eventId}")
+    @PutMapping("/mission-events/{eventId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Atualiza definicao de evento", description = "Requer ADMIN. Evento de missao inativa pode ser editado, mas nao ativado.")
     @ApiResponse(responseCode = "200", description = "Evento atualizado.")
@@ -88,7 +90,7 @@ public class MissionEventsController {
         return service.atualizarEvento(eventId, req);
     }
 
-    @DeleteMapping("/api/mission-events/{eventId}")
+    @DeleteMapping("/mission-events/{eventId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Desativa logicamente definicao de evento", description = "Marca ativo=false sem remover condicoes.")
     @ApiResponse(responseCode = "200", description = "Evento desativado.")
@@ -100,7 +102,7 @@ public class MissionEventsController {
         service.removerEvento(eventId);
     }
 
-    @PostMapping("/api/mission-events/{eventId}/conditions")
+    @PostMapping("/mission-events/{eventId}/conditions")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cria condicao para evento", description = "Requer ADMIN. A condicao referencia ParametroDef por FK.")
@@ -116,7 +118,7 @@ public class MissionEventsController {
         return service.criarCondicao(eventId, req);
     }
 
-    @PutMapping("/api/mission-events/{eventId}/conditions/{conditionId}")
+    @PutMapping("/mission-events/{eventId}/conditions/{conditionId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Atualiza condicao de evento")
     @ApiResponse(responseCode = "200", description = "Condicao atualizada.")
@@ -132,7 +134,7 @@ public class MissionEventsController {
         return service.atualizarCondicao(eventId, conditionId, req);
     }
 
-    @DeleteMapping("/api/mission-events/{eventId}/conditions/{conditionId}")
+    @DeleteMapping("/mission-events/{eventId}/conditions/{conditionId}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Remove condicao de evento")
     @ApiResponse(responseCode = "200", description = "Condicao removida.")
