@@ -160,6 +160,31 @@ public class ApiObservabilityMetrics {
                 .register(registry);
     }
 
+    public void missionTemporalWindowOpened() {
+        counter("procel.missions.temporal.windows.opened").increment();
+    }
+
+    public void missionTemporalWindowSatisfied() {
+        counter("procel.missions.temporal.windows.satisfied").increment();
+    }
+
+    public void missionTemporalWindowExpired() {
+        counter("procel.missions.temporal.windows.expired").increment();
+    }
+
+    public void missionTemporalWindowFailed() {
+        counter("procel.missions.temporal.windows.failed").increment();
+    }
+
+    public void missionTemporalWindowRetry() {
+        counter("procel.missions.temporal.windows.retries").increment();
+    }
+
+    public void registerMissionTemporalWindowBacklogGauge(Object owner, Supplier<Number> supplier) {
+        Gauge.builder("procel.missions.temporal.windows.backlog", owner, ignored -> supplier.get().doubleValue())
+                .register(registry);
+    }
+
     private Counter counter(String name, String... tags) {
         return Counter.builder(name).tags(tags).register(registry);
     }
