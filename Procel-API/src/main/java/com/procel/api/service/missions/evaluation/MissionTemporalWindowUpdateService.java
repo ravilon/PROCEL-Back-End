@@ -8,6 +8,7 @@ import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoDefinicao;
 import com.procel.api.entity.missions.EventoJanelaEvidenciaPapel;
 import com.procel.api.entity.missions.EventoModoAvaliacao;
+import com.procel.api.entity.missions.EventoOperadorLogico;
 import com.procel.api.entity.missions.EventoTipoDisparo;
 import com.procel.api.entity.sensors.DataType;
 import com.procel.api.entity.sensors.Medicao;
@@ -63,10 +64,18 @@ public class MissionTemporalWindowUpdateService {
                 EventoTipoDisparo.MEDICAO_RECEBIDA,
                 EventoModoAvaliacao.DURACAO
         );
+        List<EventoDefinicao> windowClosedEvents = eventoDefinicaoRepository.findActiveMeasurementEvents(
+                EventoTipoDisparo.JANELA_ENCERRADA,
+                EventoModoAvaliacao.INSTANTANEO
+        );
         int touched = 0;
         for (EventoDefinicao event : events) {
             validateDurationEvent(event);
-            touched += processEvent(event, medicao, academicContext, facts, evaluationTime);
+            touched += processEvent(event, medicao, academicContext, facts, evaluationTime, true);
+        }
+        for (EventoDefinicao event : windowClosedEvents) {
+            validateWindowClosedEvent(event);
+            touched += processEvent(event, medicao, academicContext, facts, evaluationTime, false);
         }
         return touched;
     }
@@ -76,7 +85,8 @@ public class MissionTemporalWindowUpdateService {
             Medicao medicao,
             AcademicContext academicContext,
             List<MeasurementFact> facts,
-            Instant evaluationTime
+            Instant evaluationTime,
+            boolean invalidateWhenInterrupted
     ) {
         String compartimentoId = medicao.getSensor().getCompartimento().getId();
         UUID periodoAulaId = academicContext.empty() ? null : academicContext.periodoAulaId();
@@ -86,8 +96,15 @@ public class MissionTemporalWindowUpdateService {
         TemporalConditionEvaluation current = evaluateCurrent(event, facts);
         List<UUID> activeWindows = activeWindowIds(event.getId(), compartimentoId, periodoAulaId, measuredAt);
         if (!current.matched()) {
-            activeWindows.forEach(id -> janelaService.invalidar(id, "Temporal condition interrupted"));
-            return expired + Math.max(1, activeWindows.size());
+            if (invalidateWhenInterrupted) {
+                activeWindows.forEach(id -> janelaService.invalidar(id, "Temporal condition interrupted"));
+                return expired + Math.max(1, activeWindows.size());
+            }
+            for (UUID windowId : activeWindows) {
+                janelaService.atualizarMedicao(windowId, measuredAt, nextEvaluationFor(windowId));
+                attachEvidences(windowId, medicao.getId(), current, EventoJanelaEvidenciaPapel.MANUTENCAO);
+            }
+            return expired + activeWindows.size();
         }
 
         List<UUID> dueWindows = dueWindowIds(event.getId(), compartimentoId, periodoAulaId, measuredAt);
@@ -97,7 +114,7 @@ public class MissionTemporalWindowUpdateService {
         }
 
         if (activeWindows.isEmpty()) {
-            Instant end = measuredAt.plusSeconds(event.getDuracaoMinimaSegundos());
+            Instant end = measuredAt.plusSeconds(windowSeconds(event, invalidateWhenInterrupted));
             var window = janelaService.abrir(new EventoJanelaAvaliacaoService.AbrirJanelaCommand(
                     event.getId(),
                     compartimentoId,
@@ -127,6 +144,10 @@ public class MissionTemporalWindowUpdateService {
                 windowId
         );
         return Objects.requireNonNull(timestamp, "fim_previsto_em is required").toInstant();
+    }
+
+    private long windowSeconds(EventoDefinicao event, boolean durationMode) {
+        return durationMode ? event.getDuracaoMinimaSegundos() : event.getJanelaSegundos();
     }
 
     private List<UUID> activeWindowIds(UUID eventId, String compartimentoId, UUID periodoAulaId, Instant measuredAt) {
@@ -278,6 +299,11 @@ public class MissionTemporalWindowUpdateService {
         boolean matched = required.stream().allMatch(condition ->
                 factFor(condition, facts).map(fact -> conditionMatches(condition, fact)).orElse(false)
         );
+        if (event.getOperadorLogico() == EventoOperadorLogico.ANY) {
+            matched = required.stream().anyMatch(condition ->
+                    factFor(condition, facts).map(fact -> conditionMatches(condition, fact)).orElse(false)
+            );
+        }
         return new TemporalConditionEvaluation(matched, evidences);
     }
 
@@ -341,6 +367,9 @@ public class MissionTemporalWindowUpdateService {
     }
 
     private void validateDurationEvent(EventoDefinicao event) {
+        if (event.getOperadorLogico() != EventoOperadorLogico.ALL) {
+            throw new IllegalArgumentException("DURACAO supports only ALL conditions");
+        }
         if (event.getJanelaSegundos() == null || event.getJanelaSegundos() <= 0) {
             throw new IllegalArgumentException("janelaSegundos must be positive for DURACAO");
         }
@@ -349,6 +378,16 @@ public class MissionTemporalWindowUpdateService {
         }
         if (event.getDuracaoMinimaSegundos() > event.getJanelaSegundos()) {
             throw new IllegalArgumentException("duracaoMinimaSegundos cannot exceed janelaSegundos");
+        }
+    }
+
+    private void validateWindowClosedEvent(EventoDefinicao event) {
+        if (event.getJanelaSegundos() == null || event.getJanelaSegundos() <= 0) {
+            throw new IllegalArgumentException("janelaSegundos must be positive for JANELA_ENCERRADA");
+        }
+        if (event.getTipoDisparo() != EventoTipoDisparo.JANELA_ENCERRADA
+                || event.getModoAvaliacao() != EventoModoAvaliacao.INSTANTANEO) {
+            throw new IllegalArgumentException("JANELA_ENCERRADA supports only INSTANTANEO evaluation");
         }
     }
 

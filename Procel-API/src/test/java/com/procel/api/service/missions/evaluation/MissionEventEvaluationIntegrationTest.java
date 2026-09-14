@@ -397,6 +397,90 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     @Test
+    void janelaEncerradaAbreAvaliaNoFimEGeraOcorrenciaIdempotente() {
+        enableTemporal(false);
+        seedWindowClosedEvent(BigDecimal.valueOf(20), EventoPoliticaAtribuicao.SEM_ATRIBUICAO_AUTOMATICA,
+                MissaoCicloTipo.UNICA, 1, true, 10);
+
+        UUID start = ingestAt("msg-window-closed-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        UUID mid = ingestAt("msg-window-closed-mid", measuredAt.plusSeconds(60), BigDecimal.valueOf(30)).response().medicaoId();
+        UUID endBoundary = ingestAt("msg-window-closed-boundary", measuredAt.plusSeconds(120), BigDecimal.valueOf(5)).response().medicaoId();
+        processClaimed(start);
+        processClaimed(mid);
+        processClaimed(endBoundary);
+
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
+        jdbcTemplate.update("""
+                update evento_janela_avaliacao
+                set status = 'ABERTA', lease_until = null, proxima_avaliacao_em = now()
+                """);
+        assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("SATISFEITA");
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
+        assertThat(jdbcTemplate.queryForObject("select contexto_snapshot::text from evento_ocorrencia", String.class))
+                .contains("WINDOW_CLOSED_V1")
+                .contains("JANELA_ENCERRADA")
+                .contains("INSTANTANEO");
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'CONDICAO'")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("""
+                select count(*)
+                from evento_ocorrencia_evidencia evidence
+                join parametro_valor value on value.id = evidence.parametro_valor_id
+                where value.medicao_id = ?
+                """, Long.class, endBoundary)).isZero();
+    }
+
+    @Test
+    void janelaEncerradaInvalidaQuandoUltimoFatoDoIntervaloNaoAtende() {
+        enableTemporal(false);
+        seedWindowClosedEvent(BigDecimal.valueOf(20), EventoPoliticaAtribuicao.SEM_ATRIBUICAO_AUTOMATICA,
+                MissaoCicloTipo.UNICA, 1, true, 10);
+
+        UUID start = ingestAt("msg-window-closed-invalid-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        UUID lastInside = ingestAt("msg-window-closed-invalid-last", measuredAt.plusSeconds(60), BigDecimal.valueOf(10)).response().medicaoId();
+        UUID boundary = ingestAt("msg-window-closed-invalid-boundary", measuredAt.plusSeconds(120), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(start);
+        processClaimed(lastInside);
+        processClaimed(boundary);
+
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("INVALIDADA");
+        assertThat(count("evento_ocorrencia")).isZero();
+    }
+
+    @Test
+    void janelaEncerradaComAtividadesFlagCriaProgressoConclusaoEXp() {
+        enableTemporal(false);
+        properties.getTemporalWindows().setActivitiesEnabled(true);
+        seedAcademicContext("student-window-closed-a", "student-window-closed-b");
+        seedWindowClosedEvent(BigDecimal.valueOf(20), EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
+                MissaoCicloTipo.POR_AULA, 1, true, 10);
+
+        UUID start = ingestAt("msg-window-closed-effects-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        UUID mid = ingestAt("msg-window-closed-effects-mid", measuredAt.plusSeconds(60), BigDecimal.valueOf(30)).response().medicaoId();
+        UUID boundary = ingestAt("msg-window-closed-effects-boundary", measuredAt.plusSeconds(120), BigDecimal.valueOf(30)).response().medicaoId();
+        processClaimed(start);
+        processClaimed(mid);
+        processClaimed(boundary);
+
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
+        assertThat(count("atividade")).isEqualTo(2);
+        assertThat(countWhere("atividade", "status = 'CONCLUIDA' and progresso_atual = 1")).isEqualTo(2);
+        assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(2);
+        assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isEqualTo(2);
+        assertThat(count("xp_lancamento")).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(20L);
+    }
+
+    @Test
     void enablingTemporalActivitiesLaterProcessesConfirmedPendingOccurrences() {
         enableTemporal(true);
         seedAcademicContext("student-temporal-later");
@@ -1044,6 +1128,37 @@ class MissionEventEvaluationIntegrationTest {
                  agregacao, obrigatoria, ordem, ativo, created_at)
                 values (?, ?, ?, ?, ?, ?, ?, 'ULTIMO', true, 1, true, now())
                 """, conditionId, eventId, parametroId, operador, numericValue, booleanValue, textValue);
+    }
+
+    private void seedWindowClosedEvent(
+            BigDecimal threshold,
+            EventoPoliticaAtribuicao politica,
+            MissaoCicloTipo cicloTipo,
+            int progressoNecessario,
+            boolean conclusaoAutomatica,
+            int value
+    ) {
+        missionId = UUID.randomUUID();
+        eventId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                insert into missao
+                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                values (?, 'Missao janela encerrada', 'Descricao', 'Individual', ?, true, now(), ?, ?, ?)
+                """, missionId, value, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
+        jdbcTemplate.update("""
+                insert into evento_definicao
+                (id, missao_id, nome, tipo_disparo, modo_avaliacao, operador_logico, politica_atribuicao,
+                 janela_segundos, quantidade_necessaria, ordem, ativo, created_at, updated_at)
+                values (?, ?, 'Janela encerrada', 'JANELA_ENCERRADA', 'INSTANTANEO', 'ALL',
+                        ?, 120, 1, 1, true, now(), now())
+                """, eventId, missionId, politica.name());
+        jdbcTemplate.update("""
+                insert into evento_condicao
+                (id, evento_definicao_id, parametro_def_id, operador, valor_numeric_1,
+                 agregacao, obrigatoria, ordem, ativo, created_at)
+                values (?, ?, ?, 'GT', ?, 'ULTIMO', true, 1, true, now())
+                """, conditionId, eventId, parametroDefId, threshold);
     }
 
     private void seedAcademicContext(String... pessoaIds) {

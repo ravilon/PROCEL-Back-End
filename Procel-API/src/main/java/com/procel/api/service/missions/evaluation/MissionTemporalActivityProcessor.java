@@ -71,8 +71,10 @@ public class MissionTemporalActivityProcessor {
                 join evento_janela_avaliacao j
                   on o.chave_idempotencia = concat('event:', e.id, ':window:', j.id)
                 where o.status = 'CONFIRMADO'
-                  and e.tipo_disparo = 'MEDICAO_RECEBIDA'
-                  and e.modo_avaliacao = 'DURACAO'
+                  and (
+                        (e.tipo_disparo = 'MEDICAO_RECEBIDA' and e.modo_avaliacao = 'DURACAO')
+                        or (e.tipo_disparo = 'JANELA_ENCERRADA' and e.modo_avaliacao = 'INSTANTANEO')
+                  )
                   and j.status = 'SATISFEITA'
                 order by o.detectado_em asc, o.id asc
                 limit ?
@@ -120,9 +122,12 @@ public class MissionTemporalActivityProcessor {
 
     private void validateTemporalEvent(EventoOcorrencia occurrence) {
         var event = occurrence.getEventoDefinicao();
-        if (event.getTipoDisparo() != EventoTipoDisparo.MEDICAO_RECEBIDA
-                || event.getModoAvaliacao() != EventoModoAvaliacao.DURACAO) {
-            throw permanent("Occurrence is not a temporal DURACAO measurement occurrence id=" + occurrence.getId());
+        boolean duration = event.getTipoDisparo() == EventoTipoDisparo.MEDICAO_RECEBIDA
+                && event.getModoAvaliacao() == EventoModoAvaliacao.DURACAO;
+        boolean windowClosed = event.getTipoDisparo() == EventoTipoDisparo.JANELA_ENCERRADA
+                && event.getModoAvaliacao() == EventoModoAvaliacao.INSTANTANEO;
+        if (!duration && !windowClosed) {
+            throw permanent("Occurrence is not a supported temporal occurrence id=" + occurrence.getId());
         }
     }
 

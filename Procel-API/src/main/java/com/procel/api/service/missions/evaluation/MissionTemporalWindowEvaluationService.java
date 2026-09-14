@@ -6,17 +6,23 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.procel.api.config.MissionEvaluationProperties;
 import com.procel.api.config.MissionRuleEngineProperties;
+import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoJanelaAvaliacao;
 import com.procel.api.entity.missions.EventoJanelaAvaliacaoStatus;
+import com.procel.api.entity.missions.EventoModoAvaliacao;
+import com.procel.api.entity.missions.EventoOperadorLogico;
 import com.procel.api.entity.missions.EventoOcorrencia;
 import com.procel.api.entity.missions.EventoOcorrenciaEvidenciaPapel;
 import com.procel.api.entity.missions.EventoOcorrenciaStatus;
+import com.procel.api.entity.missions.EventoTipoDisparo;
 import com.procel.api.entity.sensors.DataType;
+import com.procel.api.entity.sensors.RegraOperador;
 import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.repository.missions.EventoDefinicaoRepository;
 import com.procel.api.service.academic.AcademicContext;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService;
 import com.procel.api.service.missions.EventoOcorrenciaService;
+import com.procel.api.service.missions.rules.ConditionEvaluationResult;
 import com.procel.api.service.missions.rules.MeasurementFact;
 import com.procel.api.service.missions.rules.MissionEvaluationContext;
 import com.procel.api.service.missions.rules.MissionRuleEvaluationResult;
@@ -35,7 +41,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +54,7 @@ import java.util.concurrent.ConcurrentMap;
 @Service
 public class MissionTemporalWindowEvaluationService {
     private static final String EVALUATOR_VERSION = "DROOLS_TEMPORAL_V1";
+    private static final String WINDOW_CLOSED_EVALUATOR_VERSION = "WINDOW_CLOSED_V1";
 
     private final EventoJanelaAvaliacaoService janelaService;
     private final EventoOcorrenciaService ocorrenciaService;
@@ -101,10 +112,6 @@ public class MissionTemporalWindowEvaluationService {
         if (!settings.isEnabled()) {
             return WindowEvaluationOutcome.skipped("Temporal windows are disabled");
         }
-        if (!settings.isDroolsEnabled()) {
-            janelaService.marcarFailed(janelaId, "Temporal Drools evaluation is disabled");
-            return WindowEvaluationOutcome.failed("Temporal Drools evaluation is disabled");
-        }
 
         EventoJanelaAvaliacao janela = janelaService.buscar(janelaId);
         if (janela.getStatus() == EventoJanelaAvaliacaoStatus.SATISFEITA) {
@@ -121,13 +128,20 @@ public class MissionTemporalWindowEvaluationService {
         try {
             JsonNode snapshot = objectMapper.readTree(janela.getContextoSnapshot());
             String sensorExternalId = requiredText(snapshot, "sensorExternalId");
-            List<MeasurementFact> facts = factsForWindow(janela, sensorExternalId);
-            MissionRuleEvaluationResult result = droolsEngine().evaluate(new MissionEvaluationContext(
-                    janela.getFimPrevistoEm(),
-                    janela.getEventoDefinicao(),
-                    Optional.empty(),
-                    facts
-            ));
+            boolean windowClosed = isWindowClosedEvent(janela);
+            if (!windowClosed && !settings.isDroolsEnabled()) {
+                janelaService.marcarFailed(janelaId, "Temporal Drools evaluation is disabled");
+                return WindowEvaluationOutcome.failed("Temporal Drools evaluation is disabled");
+            }
+            List<MeasurementFact> facts = factsForWindow(janela, sensorExternalId, !windowClosed);
+            MissionRuleEvaluationResult result = windowClosed
+                    ? evaluateWindowClosed(janela, facts)
+                    : droolsEngine().evaluate(new MissionEvaluationContext(
+                            janela.getFimPrevistoEm(),
+                            janela.getEventoDefinicao(),
+                            Optional.empty(),
+                            facts
+                    ));
             if (!result.matched()) {
                 janelaService.invalidar(janelaId, result.reason());
                 return WindowEvaluationOutcome.invalidated(result.reason());
@@ -220,7 +234,7 @@ public class MissionTemporalWindowEvaluationService {
                 ));
     }
 
-    private List<MeasurementFact> factsForWindow(EventoJanelaAvaliacao janela, String sensorExternalId) {
+    private List<MeasurementFact> factsForWindow(EventoJanelaAvaliacao janela, String sensorExternalId, boolean includeEnd) {
         return jdbcTemplate.query("""
                 select m.id as medicao_id,
                        pv.id as parametro_valor_id,
@@ -241,13 +255,171 @@ public class MissionTemporalWindowEvaluationService {
                 where c.id = ?
                   and s.external_id = ?
                   and m.timestamp >= ?
-                  and m.timestamp <= ?
+                  and m.timestamp %s ?
                 order by m.timestamp asc, m.id asc, pd.nome asc, pv.id asc
-                """, this::fact,
+                """.formatted(includeEnd ? "<=" : "<"), this::fact,
                 janela.getCompartimento().getId(),
                 sensorExternalId,
                 Timestamp.from(janela.getInicioEm()),
                 Timestamp.from(janela.getFimPrevistoEm()));
+    }
+
+    private MissionRuleEvaluationResult evaluateWindowClosed(EventoJanelaAvaliacao janela, List<MeasurementFact> facts) {
+        var event = janela.getEventoDefinicao();
+        validateWindowClosedEvent(event);
+        Map<UUID, MeasurementFact> latest = latestFactsByParameter(facts);
+        List<EventoCondicao> activeConditions = event.getCondicoes().stream()
+                .filter(EventoCondicao::isAtivo)
+                .sorted(Comparator.comparing(EventoCondicao::getOrdem, Comparator.nullsLast(Integer::compareTo)))
+                .toList();
+        List<ConditionEvaluationResult> conditionResults = new ArrayList<>();
+        List<MeasurementFact> evidences = new ArrayList<>();
+        for (EventoCondicao condition : activeConditions) {
+            ConditionEvaluation evaluation = evaluateCondition(condition, latest);
+            conditionResults.add(evaluation.result());
+            evaluation.evidence().ifPresent(evidences::add);
+        }
+        List<ConditionEvaluationResult> requiredResults = new ArrayList<>();
+        for (int i = 0; i < activeConditions.size(); i++) {
+            if (activeConditions.get(i).isObrigatoria()) {
+                requiredResults.add(conditionResults.get(i));
+            }
+        }
+        if (requiredResults.isEmpty()) {
+            return new MissionRuleEvaluationResult(event.getId(), false, janela.getFimPrevistoEm(),
+                    conditionResults, evidences, "No active required conditions");
+        }
+        boolean matched = event.getOperadorLogico() == EventoOperadorLogico.ANY
+                ? requiredResults.stream().anyMatch(ConditionEvaluationResult::matched)
+                : requiredResults.stream().allMatch(ConditionEvaluationResult::matched);
+        return new MissionRuleEvaluationResult(
+                event.getId(),
+                matched,
+                janela.getFimPrevistoEm(),
+                conditionResults,
+                evidences,
+                matched ? "Window closing conditions matched" : "Window closing conditions did not match"
+        );
+    }
+
+    private Map<UUID, MeasurementFact> latestFactsByParameter(List<MeasurementFact> facts) {
+        Map<UUID, MeasurementFact> latest = new LinkedHashMap<>();
+        facts.stream()
+                .sorted(Comparator
+                        .comparing(MeasurementFact::measuredAt)
+                        .thenComparing(f -> f.medicaoId() == null ? "" : f.medicaoId().toString())
+                        .thenComparing(f -> f.parametroValorId() == null ? "" : f.parametroValorId().toString()))
+                .forEach(fact -> latest.put(fact.parametroDefId(), fact));
+        return latest;
+    }
+
+    private ConditionEvaluation evaluateCondition(EventoCondicao condition, Map<UUID, MeasurementFact> factsByParameter) {
+        UUID parametroDefId = condition.getParametroDef().getId();
+        MeasurementFact fact = factsByParameter.get(parametroDefId);
+        if (fact == null) {
+            return new ConditionEvaluation(new ConditionEvaluationResult(
+                    condition.getId(),
+                    false,
+                    "Missing parameter fact for parametroDefId=" + parametroDefId,
+                    Optional.empty(),
+                    null,
+                    expectedValue(condition)
+            ), Optional.empty());
+        }
+        boolean matched = conditionMatches(condition, fact);
+        return new ConditionEvaluation(new ConditionEvaluationResult(
+                condition.getId(),
+                matched,
+                matched ? "Condition matched at window closing" : "Condition did not match at window closing",
+                Optional.ofNullable(fact.parametroValorId()),
+                fact.observedValue(),
+                expectedValue(condition)
+        ), Optional.of(fact));
+    }
+
+    private boolean conditionMatches(EventoCondicao condition, MeasurementFact fact) {
+        if (condition.getParametroDef().getDataType() != fact.dataType()) {
+            return false;
+        }
+        return switch (fact.dataType()) {
+            case NUMERIC -> numericMatches(condition, fact.numericValue());
+            case BOOLEAN -> booleanMatches(condition, fact.booleanValue());
+            case TEXT -> textMatches(condition, fact.textValue());
+        };
+    }
+
+    private static boolean numericMatches(EventoCondicao condition, BigDecimal value) {
+        if (value == null) return false;
+        return switch (condition.getOperador()) {
+            case GT -> compare(value, condition.getValorNumeric1()) > 0;
+            case GTE -> compare(value, condition.getValorNumeric1()) >= 0;
+            case LT -> compare(value, condition.getValorNumeric1()) < 0;
+            case LTE -> compare(value, condition.getValorNumeric1()) <= 0;
+            case EQ -> compare(value, condition.getValorNumeric1()) == 0;
+            case NEQ -> compare(value, condition.getValorNumeric1()) != 0;
+            case BETWEEN -> compare(value, condition.getValorNumeric1()) >= 0 && compare(value, condition.getValorNumeric2()) <= 0;
+            case OUTSIDE -> compare(value, condition.getValorNumeric1()) < 0 || compare(value, condition.getValorNumeric2()) > 0;
+            case CONTAINS -> false;
+        };
+    }
+
+    private static int compare(BigDecimal left, BigDecimal right) {
+        if (right == null) return -1;
+        return left.compareTo(right);
+    }
+
+    private static boolean booleanMatches(EventoCondicao condition, Boolean value) {
+        if (value == null || condition.getValorBoolean() == null) return false;
+        return switch (condition.getOperador()) {
+            case EQ -> value.equals(condition.getValorBoolean());
+            case NEQ -> !value.equals(condition.getValorBoolean());
+            default -> false;
+        };
+    }
+
+    private static boolean textMatches(EventoCondicao condition, String value) {
+        if (value == null || condition.getValorText() == null) return false;
+        return switch (condition.getOperador()) {
+            case EQ -> value.equals(condition.getValorText());
+            case NEQ -> !value.equals(condition.getValorText());
+            case CONTAINS -> value.contains(condition.getValorText());
+            default -> false;
+        };
+    }
+
+    private static String expectedValue(EventoCondicao condition) {
+        RegraOperador operator = condition.getOperador();
+        DataType type = condition.getParametroDef().getDataType();
+        return switch (type) {
+            case NUMERIC -> switch (operator) {
+                case BETWEEN, OUTSIDE -> numeric(condition.getValorNumeric1()) + ".." + numeric(condition.getValorNumeric2());
+                default -> numeric(condition.getValorNumeric1());
+            };
+            case BOOLEAN -> condition.getValorBoolean() == null ? null : condition.getValorBoolean().toString();
+            case TEXT -> condition.getValorText();
+        };
+    }
+
+    private static String numeric(BigDecimal value) {
+        return value == null ? null : value.toPlainString();
+    }
+
+    private static boolean isWindowClosedEvent(EventoJanelaAvaliacao janela) {
+        var event = janela.getEventoDefinicao();
+        return event.getTipoDisparo() == EventoTipoDisparo.JANELA_ENCERRADA
+                && event.getModoAvaliacao() == EventoModoAvaliacao.INSTANTANEO;
+    }
+
+    private static void validateWindowClosedEvent(com.procel.api.entity.missions.EventoDefinicao event) {
+        if (event.getTipoDisparo() != EventoTipoDisparo.JANELA_ENCERRADA) {
+            throw new IllegalArgumentException("JANELA_ENCERRADA evaluation requires JANELA_ENCERRADA trigger");
+        }
+        if (event.getModoAvaliacao() != EventoModoAvaliacao.INSTANTANEO) {
+            throw new IllegalArgumentException("JANELA_ENCERRADA supports only INSTANTANEO evaluation");
+        }
+        if (event.getOperadorLogico() == null) {
+            throw new IllegalArgumentException("operadorLogico is required");
+        }
     }
 
     private MeasurementFact fact(ResultSet rs, int rowNum) throws SQLException {
@@ -281,7 +453,9 @@ public class MissionTemporalWindowEvaluationService {
         root.put("inicioEm", janela.getInicioEm().toString());
         root.put("fimPrevistoEm", janela.getFimPrevistoEm().toString());
         root.put("evaluatedAt", result.evaluatedAt().toString());
-        root.put("evaluatorVersion", EVALUATOR_VERSION);
+        root.put("evaluatorVersion", isWindowClosedEvent(janela) ? WINDOW_CLOSED_EVALUATOR_VERSION : EVALUATOR_VERSION);
+        root.put("tipoDisparo", janela.getEventoDefinicao().getTipoDisparo().name());
+        root.put("modoAvaliacao", janela.getEventoDefinicao().getModoAvaliacao().name());
         root.put("factCount", factCount);
         root.put("reason", result.reason());
         ArrayNode evidence = root.putArray("evidences");
@@ -321,4 +495,9 @@ public class MissionTemporalWindowEvaluationService {
         static WindowEvaluationOutcome retry(String reason) { return new WindowEvaluationOutcome("retry", reason); }
         static WindowEvaluationOutcome skipped(String reason) { return new WindowEvaluationOutcome("skipped", reason); }
     }
+
+    private record ConditionEvaluation(
+            ConditionEvaluationResult result,
+            Optional<MeasurementFact> evidence
+    ) {}
 }
