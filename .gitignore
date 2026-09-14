@@ -6,6 +6,7 @@
 *.env
 !.env.example
 !.env.integrated.example
+!.env.staging.example
 !**/.env.example
 
 # =========================

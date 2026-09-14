@@ -1,0 +1,59 @@
+spring:
+  config:
+    activate:
+      on-profile: staging
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+
+logging:
+  level:
+    org.hibernate.SQL: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+procel:
+  security:
+    bootstrap-admin:
+      enabled: ${PROCEL_BOOTSTRAP_ADMIN_ENABLED:false}
+  analytics:
+    aggregation:
+      worker-enabled: ${PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED:false}
+  missions:
+    rule-engine: ${PROCEL_MISSIONS_RULE_ENGINE:simple}
+    drools:
+      max-facts-per-evaluation: ${PROCEL_MISSIONS_DROOLS_MAX_FACTS_PER_EVALUATION:5000}
+      max-cache-entries: ${PROCEL_MISSIONS_DROOLS_MAX_CACHE_ENTRIES:200}
+      cache-expiration: ${PROCEL_MISSIONS_DROOLS_CACHE_EXPIRATION:30m}
+      compilation-timeout: ${PROCEL_MISSIONS_DROOLS_COMPILATION_TIMEOUT:10s}
+      evaluation-timeout: ${PROCEL_MISSIONS_DROOLS_EVALUATION_TIMEOUT:5s}
+      maximum-sample-gap: ${PROCEL_MISSIONS_DROOLS_MAXIMUM_SAMPLE_GAP:5m}
+      maximum-evaluation-span: ${PROCEL_MISSIONS_DROOLS_MAXIMUM_EVALUATION_SPAN:24h}
+    evaluation:
+      worker-enabled: ${PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED:false}
+      fixed-delay: ${PROCEL_MISSIONS_EVALUATION_FIXED_DELAY:5s}
+      batch-size: ${PROCEL_MISSIONS_EVALUATION_BATCH_SIZE:20}
+      lease-duration: ${PROCEL_MISSIONS_EVALUATION_LEASE_DURATION:1m}
+      max-attempts: ${PROCEL_MISSIONS_EVALUATION_MAX_ATTEMPTS:5}
+      initial-backoff: ${PROCEL_MISSIONS_EVALUATION_INITIAL_BACKOFF:5s}
+      max-backoff: ${PROCEL_MISSIONS_EVALUATION_MAX_BACKOFF:5m}
+      temporal-windows:
+        enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED:false}
+        worker-enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED:false}
+        drools-enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED:false}
+        fixed-delay: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_FIXED_DELAY:5s}
+        batch-size: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_BATCH_SIZE:20}
+        lease-duration: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_LEASE_DURATION:1m}
+        max-attempts: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAX_ATTEMPTS:5}
+        max-backlog: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAX_BACKLOG:10000}
+        initial-backoff: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_INITIAL_BACKOFF:5s}
+        max-backoff: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAX_BACKOFF:5m}
+        maximum-sample-gap: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_SAMPLE_GAP:5m}
+        maximum-window-duration: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_WINDOW_DURATION:24h}
