@@ -112,7 +112,7 @@ public class MissionTemporalActivityProcessor {
     }
 
     @Transactional
-    public void invalidateOccurrence(UUID occurrenceId, String reason) {
+    public void invalidateOccurrence(UUID occurrenceId) {
         EventoOcorrencia occurrence = ocorrenciaRepository.findById(occurrenceId)
                 .orElseThrow(() -> new NotFoundException("EventoOcorrencia not found id=" + occurrenceId));
         if (occurrence.getStatus() == EventoOcorrenciaStatus.CONFIRMADO) {

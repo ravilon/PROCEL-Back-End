@@ -10,9 +10,7 @@ import com.procel.api.entity.missions.EventoJanelaEvidenciaPapel;
 import com.procel.api.entity.missions.EventoModoAvaliacao;
 import com.procel.api.entity.missions.EventoOperadorLogico;
 import com.procel.api.entity.missions.EventoTipoDisparo;
-import com.procel.api.entity.sensors.DataType;
 import com.procel.api.entity.sensors.Medicao;
-import com.procel.api.entity.sensors.RegraOperador;
 import com.procel.api.repository.missions.EventoDefinicaoRepository;
 import com.procel.api.service.academic.AcademicContext;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService;
@@ -270,7 +268,7 @@ public class MissionTemporalWindowUpdateService {
             EventoJanelaEvidenciaPapel papel
     ) {
         current.evidences().stream()
-                .map(MeasurementFact::parametroValorId)
+                .map(fact -> fact.parametroValorId())
                 .filter(Objects::nonNull)
                 .distinct()
                 .forEach(parametroValorId -> janelaService.anexarEvidencia(
@@ -285,16 +283,30 @@ public class MissionTemporalWindowUpdateService {
 
     private TemporalConditionEvaluation evaluateCurrent(EventoDefinicao event, List<MeasurementFact> facts) {
         List<EventoCondicao> required = event.getCondicoes().stream()
-                .filter(EventoCondicao::isAtivo)
-                .filter(EventoCondicao::isObrigatoria)
-                .sorted(Comparator.comparing(EventoCondicao::getOrdem, Comparator.nullsLast(Integer::compareTo)))
+                .filter(condicao -> condicao != null && condicao.isAtivo())
+                .filter(condicao -> condicao != null && condicao.isObrigatoria())
+                .sorted(Comparator.comparing(
+                        condicao -> condicao != null ? condicao.getOrdem() : null,
+                        (left, right) -> {
+                            if (left == null && right == null) {
+                                return 0;
+                            }
+                            if (left == null) {
+                                return -1;
+                            }
+                            if (right == null) {
+                                return 1;
+                            }
+                            return Integer.compare(left, right);
+                        }
+                ))
                 .toList();
         if (required.isEmpty()) {
             throw new IllegalArgumentException("DURACAO event requires active mandatory conditions");
         }
         List<MeasurementFact> evidences = required.stream()
                 .map(condition -> factFor(condition, facts))
-                .flatMap(Optional::stream)
+                .flatMap(optionalFact -> optionalFact.stream())
                 .toList();
         boolean matched = required.stream().allMatch(condition ->
                 factFor(condition, facts).map(fact -> conditionMatches(condition, fact)).orElse(false)

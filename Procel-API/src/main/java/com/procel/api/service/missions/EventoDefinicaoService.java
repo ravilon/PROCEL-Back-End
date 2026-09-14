@@ -1,13 +1,8 @@
 package com.procel.api.service.missions;
 
 import com.procel.api.dto.missions.EventoDTOs;
-import com.procel.api.entity.missions.EventoAgregacao;
 import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoDefinicao;
-import com.procel.api.entity.missions.EventoModoAvaliacao;
-import com.procel.api.entity.missions.EventoOperadorLogico;
-import com.procel.api.entity.missions.EventoPoliticaAtribuicao;
-import com.procel.api.entity.missions.EventoTipoDisparo;
 import com.procel.api.entity.missions.Missao;
 import com.procel.api.entity.sensors.ParametroDef;
 import com.procel.api.entity.sensors.RegraOperador;
@@ -20,7 +15,6 @@ import com.procel.api.repository.sensors.ParametroDefRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 

@@ -14,8 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Service
 @Transactional
@@ -92,7 +94,7 @@ public class SensorIngestionService {
             // MVP: sem semântica avançada. Só tipagem e persistência.
             try {
                 switch (def.getDataType()) {
-                    case BOOLEAN -> valor.setBooleanValue(coerceBoolean(rawValue));
+                    case BOOLEAN -> valor.setBooleanValue(coerceBoolean(rawValue).orElse(null));
                     case TEXT -> valor.setTextValue(rawValue != null ? rawValue.toString() : null);
                     case NUMERIC -> valor.setNumericValue(coerceNumeric(rawValue));
                 }
@@ -114,13 +116,13 @@ public class SensorIngestionService {
         return v != null ? v : fallback;
     }
 
-    private Boolean coerceBoolean(Object v) {
-        if (v == null) return null;
-        if (v instanceof Boolean b) return b;
+    private Optional<Boolean> coerceBoolean(Object v) {
+        if (v == null) return Optional.empty();
+        if (v instanceof Boolean b) return Optional.of(b);
 
-        String s = v.toString().trim().toLowerCase();
-        if (s.equals("true") || s.equals("1") || s.equals("yes") || s.equals("y")) return true;
-        if (s.equals("false") || s.equals("0") || s.equals("no") || s.equals("n")) return false;
+        String s = v.toString().trim().toLowerCase(Locale.ROOT);
+        if (s.equals("true") || s.equals("1") || s.equals("yes") || s.equals("y")) return Optional.of(true);
+        if (s.equals("false") || s.equals("0") || s.equals("no") || s.equals("n")) return Optional.of(false);
 
         throw new IllegalArgumentException("Cannot coerce boolean from: " + v);
     }

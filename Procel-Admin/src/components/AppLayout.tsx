@@ -58,7 +58,7 @@ const navigation: NavigationItem[] = [
     label: "Missoes",
     path: "/missoes",
     icon: <TaskAltOutlined />,
-    roles: ["ADMIN", "OPERADOR"],
+    roles: ["ADMIN", "OPERADOR", "ANALISTA"],
   },
   {
     label: "Sincronizacoes",

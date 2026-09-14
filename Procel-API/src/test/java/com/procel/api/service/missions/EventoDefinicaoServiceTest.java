@@ -31,7 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class EventoDefinicaoServiceTest {
@@ -87,7 +86,7 @@ class EventoDefinicaoServiceTest {
 
         var response = service.listarEventosDaMissao(missaoId);
 
-        assertThat(response).extracting(EventoDTOs.EventoDefinicaoResponse::nome)
+        assertThat(response).extracting((EventoDTOs.EventoDefinicaoResponse item) -> item.nome())
                 .containsExactly("Primeiro", "Segundo");
     }
 

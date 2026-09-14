@@ -10,7 +10,6 @@ import com.procel.api.entity.sensors.DataType;
 import com.procel.api.entity.sensors.ParametroDef;
 import com.procel.api.entity.sensors.RegraOperador;
 import com.procel.api.entity.sensors.TipoDeSensor;
-import com.procel.api.service.missions.rules.ConditionEvaluationResult;
 import com.procel.api.service.missions.rules.MeasurementFact;
 import com.procel.api.service.missions.rules.MissionEvaluationContext;
 import com.procel.api.service.missions.rules.MissionRuleEvaluationResult;
@@ -88,7 +87,7 @@ class DroolsMissionRuleEngineTest {
 
         MissionRuleEvaluationResult result = engine.evaluate(matched);
         assertEquivalent(result, simple.evaluate(matched));
-        assertThat(result.conditionResults()).extracting(ConditionEvaluationResult::matched)
+        assertThat(result.conditionResults()).extracting(conditionResult -> conditionResult.matched())
                 .containsExactly(true, true, false);
 
         MissionEvaluationContext missing = context(event,
@@ -111,7 +110,7 @@ class DroolsMissionRuleEngineTest {
         MissionRuleEvaluationResult result = engine.evaluate(context(event, fact));
 
         assertThat(result.matched()).isTrue();
-        assertThat(result.evidences()).extracting(MeasurementFact::parametroValorId)
+        assertThat(result.evidences()).extracting(measurementFact -> measurementFact.parametroValorId())
                 .containsExactly(fact.parametroValorId());
         assertThat(result.conditionResults().getFirst().parametroValorId()).contains(fact.parametroValorId());
     }

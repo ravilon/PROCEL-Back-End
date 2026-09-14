@@ -5,11 +5,8 @@ import com.procel.api.entity.missions.EventoOcorrencia;
 import com.procel.api.entity.missions.EventoOcorrenciaEvidencia;
 import com.procel.api.entity.missions.EventoOcorrenciaEvidenciaPapel;
 import com.procel.api.entity.missions.EventoOcorrenciaStatus;
-import com.procel.api.entity.rooms.Compartimento;
-import com.procel.api.entity.rooms.PeriodoAula;
 import com.procel.api.entity.sensors.Medicao;
 import com.procel.api.entity.sensors.ParametroValor;
-import com.procel.api.entity.sensors.Sensor;
 import com.procel.api.exception.ConflictException;
 import com.procel.api.exception.NotFoundException;
 import com.procel.api.repository.missions.EventoDefinicaoRepository;
@@ -33,7 +30,6 @@ import java.util.UUID;
 
 @Service
 public class EventoOcorrenciaService {
-    private static final String OCCURRENCE_IDEMPOTENCY_CONSTRAINT = "ux_evento_ocorrencia_chave_idempotencia";
     private static final String EVIDENCE_VALUE_CONSTRAINT = "ux_evento_evidencia_parametro_valor";
     private static final String EVIDENCE_MEASUREMENT_CONSTRAINT = "ux_evento_evidencia_medicao_sem_parametro";
 

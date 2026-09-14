@@ -3,7 +3,6 @@ package com.procel.api.service.missions.rules;
 import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoDefinicao;
 import com.procel.api.entity.missions.EventoModoAvaliacao;
-import com.procel.api.entity.missions.EventoOperadorLogico;
 import com.procel.api.entity.missions.EventoTipoDisparo;
 import com.procel.api.entity.sensors.DataType;
 import com.procel.api.entity.sensors.RegraOperador;
@@ -50,7 +49,8 @@ public class SimpleMissionRuleEngine implements MissionRuleEngine {
         }
 
         List<ConditionEvaluationResult> requiredResults = activeConditions.stream()
-                .filter(EventoCondicao::isObrigatoria)
+                .filter(Objects::nonNull)
+                .filter(eventoCondicao -> eventoCondicao.isObrigatoria())
                 .map(condition -> conditionResults.get(activeConditions.indexOf(condition)))
                 .toList();
         if (requiredResults.isEmpty()) {
@@ -58,8 +58,8 @@ public class SimpleMissionRuleEngine implements MissionRuleEngine {
         }
 
         boolean matched = switch (event.getOperadorLogico()) {
-            case ALL -> requiredResults.stream().allMatch(ConditionEvaluationResult::matched);
-            case ANY -> requiredResults.stream().anyMatch(ConditionEvaluationResult::matched);
+            case ALL -> requiredResults.stream().allMatch(result -> result != null && result.matched());
+            case ANY -> requiredResults.stream().anyMatch(result -> result != null && result.matched());
         };
         String reason = matched
                 ? "Required conditions matched"
@@ -95,10 +95,11 @@ public class SimpleMissionRuleEngine implements MissionRuleEngine {
 
     private static List<EventoCondicao> activeConditions(EventoDefinicao event) {
         return eventConditions(event).stream()
-                .filter(EventoCondicao::isAtivo)
+                .filter(Objects::nonNull)
+                .filter(condicao -> Boolean.TRUE.equals(condicao.isAtivo()))
                 .sorted(Comparator.comparing(
-                        EventoCondicao::getOrdem,
-                        Comparator.nullsLast(Integer::compareTo)
+                        (EventoCondicao condicao) -> condicao.getOrdem(),
+                        Comparator.nullsLast(Comparator.naturalOrder())
                 ))
                 .toList();
     }

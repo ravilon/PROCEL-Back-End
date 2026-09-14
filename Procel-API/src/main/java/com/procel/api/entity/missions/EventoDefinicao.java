@@ -114,8 +114,8 @@ public class EventoDefinicao {
     public List<EventoCondicao> getCondicoes() {
         return condicoes.stream()
                 .sorted(Comparator.comparing(
-                        EventoCondicao::getOrdem,
-                        Comparator.nullsLast(Integer::compareTo)
+                        condicao -> condicao == null ? null : condicao.getOrdem(),
+                        Comparator.nullsLast(Comparator.naturalOrder())
                 ))
                 .toList();
     }

@@ -4,13 +4,14 @@ import com.procel.api.entity.missions.EventoDefinicao;
 import com.procel.api.entity.missions.EventoModoAvaliacao;
 import com.procel.api.entity.missions.EventoTipoDisparo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.UUID;
 
-public interface EventoDefinicaoRepository extends JpaRepository<EventoDefinicao, UUID> {
+public interface EventoDefinicaoRepository extends JpaRepository<EventoDefinicao, UUID>, JpaSpecificationExecutor<EventoDefinicao> {
     List<EventoDefinicao> findByMissaoIdOrderByOrdemAscCreatedAtAsc(UUID missaoId);
 
     @Query("""

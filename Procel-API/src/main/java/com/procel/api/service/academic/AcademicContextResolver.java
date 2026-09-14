@@ -80,7 +80,7 @@ public class AcademicContextResolver {
                 LocalDateTime.of(periodoAula.getData(), periodoAula.getHoraInicio()),
                 LocalDateTime.of(periodoAula.getData(), periodoAula.getHoraFim()),
                 elegiveis.stream()
-                        .map(alunoDisciplina -> alunoDisciplina.getPessoa().getId())
+                        .map(AcademicContextResolver::pessoaId)
                         .toList()
         );
     }
@@ -109,7 +109,7 @@ public class AcademicContextResolver {
             List<AlunoDisciplina> elegiveis
     ) {
         Set<String> periodosLetivos = elegiveis.stream()
-                .map(AlunoDisciplina::getPeriodoLetivo)
+                .map(alunoDisciplina -> alunoDisciplina.getPeriodoLetivo())
                 .filter(periodoLetivo -> periodoLetivo != null && !periodoLetivo.isBlank())
                 .collect(Collectors.toUnmodifiableSet());
 
@@ -133,6 +133,13 @@ public class AcademicContextResolver {
     ) {
         return alunoDisciplina.getDisciplina() != null
                 && disciplina.getId().equals(alunoDisciplina.getDisciplina().getId());
+    }
+
+    private static String pessoaId(AlunoDisciplina alunoDisciplina) {
+        if (alunoDisciplina.getPessoa() == null || alunoDisciplina.getPessoa().getId() == null) {
+            throw new ConflictException("Eligible academic link has no Pessoa");
+        }
+        return alunoDisciplina.getPessoa().getId();
     }
 
     private static String normalizeRequired(String value, String field) {

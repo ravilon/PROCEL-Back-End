@@ -254,7 +254,13 @@ class TelemetryControllerTest {
         Document event = mongoTemplate.getCollection("raw_telemetry_events")
                 .find(new Document("_id", "reprocess-race"))
                 .first();
+        if (event == null) {
+            throw new AssertionError("raw telemetry event must exist");
+        }
         List<Document> raceAudit = event.getList("reprocessAudit", Document.class);
+        if (raceAudit == null) {
+            throw new AssertionError("reprocess audit must exist");
+        }
         assertThat(raceAudit).hasSize(1);
     }
 

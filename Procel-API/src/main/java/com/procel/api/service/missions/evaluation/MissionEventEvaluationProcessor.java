@@ -24,7 +24,6 @@ import com.procel.api.service.missions.EventoAvaliacaoRequestService.EventoAvali
 import com.procel.api.service.missions.MissionEventActivityProcessingException;
 import com.procel.api.service.missions.MissionEventActivityProcessor;
 import com.procel.api.service.missions.EventoOcorrenciaService;
-import com.procel.api.service.missions.rules.ConditionEvaluationResult;
 import com.procel.api.service.missions.rules.MeasurementFactFactory;
 import com.procel.api.service.missions.rules.MissionEvaluationContext;
 import com.procel.api.service.missions.rules.MissionRuleEngine;
@@ -216,9 +215,9 @@ public class MissionEventEvaluationProcessor {
         UUID occurrenceId = occurrence.getId();
 
         result.conditionResults().stream()
-                .filter(ConditionEvaluationResult::matched)
-                .map(ConditionEvaluationResult::parametroValorId)
-                .flatMap(Optional::stream)
+                .filter(conditionResult -> conditionResult != null && conditionResult.matched())
+                .map(conditionResult -> conditionResult.parametroValorId())
+                .flatMap(optionalParametroValorId -> optionalParametroValorId.stream())
                 .distinct()
                 .forEach(parametroValorId -> ocorrenciaService.anexarEvidencia(
                         new EventoOcorrenciaService.AnexarEvidenciaCommand(
@@ -272,7 +271,7 @@ public class MissionEventEvaluationProcessor {
     private ArrayNode conditions(EventoDefinicao event) {
         ArrayNode array = objectMapper.createArrayNode();
         event.getCondicoes().stream()
-                .sorted(Comparator.comparing(c -> c.getOrdem(), Comparator.nullsLast(Integer::compareTo)))
+                .sorted(Comparator.comparing(c -> c.getOrdem(), Comparator.nullsLast(Comparator.naturalOrder())))
                 .forEach(condition -> {
                     ObjectNode node = array.addObject();
                     node.put("id", condition.getId().toString());

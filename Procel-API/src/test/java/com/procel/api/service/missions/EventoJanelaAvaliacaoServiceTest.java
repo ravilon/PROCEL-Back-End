@@ -163,7 +163,7 @@ class EventoJanelaAvaliacaoServiceTest {
 
         long claimed = results.stream()
                 .map(List.class::cast)
-                .mapToLong(List::size)
+                .mapToLong(list -> ((List<?>) list).size())
                 .sum();
         assertThat(claimed).isOne();
     }

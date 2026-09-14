@@ -125,7 +125,7 @@ public class MissionTemporalWindowWorker {
                 }
             } catch (com.procel.api.service.missions.MissionEventActivityProcessingException ex) {
                 if (ex.permanent()) {
-                    temporalActivityProcessor.invalidateOccurrence(occurrenceId, rootMessage(ex));
+                    temporalActivityProcessor.invalidateOccurrence(occurrenceId);
                     log.warn("application={} event=mission_temporal_activity_processed occurrenceId={} status=failed reason={}",
                             APPLICATION, occurrenceId, rootMessage(ex));
                 } else {

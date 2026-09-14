@@ -10,13 +10,10 @@ import com.procel.api.entity.missions.EventoModoAvaliacao;
 import com.procel.api.entity.missions.EventoOcorrencia;
 import com.procel.api.entity.missions.EventoOcorrenciaEvidenciaPapel;
 import com.procel.api.entity.missions.EventoOcorrenciaStatus;
-import com.procel.api.entity.missions.EventoOperadorLogico;
 import com.procel.api.entity.missions.EventoTipoDisparo;
 import com.procel.api.entity.sensors.DataType;
 import com.procel.api.entity.sensors.Medicao;
-import com.procel.api.entity.sensors.ParametroValor;
 import com.procel.api.entity.sensors.RegraOperador;
-import com.procel.api.exception.ConflictException;
 import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.repository.missions.EventoDefinicaoRepository;
 import com.procel.api.repository.sensors.ParametroValorRepository;
@@ -125,14 +122,26 @@ public class MissionTransitionEventProcessor {
             Map<UUID, MeasurementFact> factsByParameter
     ) {
         validate(event);
+        Comparator<EventoCondicao> conditionOrder = Comparator.comparing(
+                condition -> condition == null ? null : condition.getOrdem(),
+                (left, right) -> {
+                    if (left == null && right == null) {
+                        return 0;
+                    }
+                    if (left == null) {
+                        return 1;
+                    }
+                    if (right == null) {
+                        return -1;
+                    }
+                    return Integer.compare(left, right);
+                }
+        );
         List<EventoCondicao> activeConditions = event.getCondicoes().stream()
-                .filter(EventoCondicao::isAtivo)
-                .sorted(Comparator.comparing(
-                        EventoCondicao::getOrdem,
-                        Comparator.nullsLast(Integer::compareTo)
-                ))
+                .filter(condition -> condition != null && condition.isAtivo())
+                .sorted(conditionOrder)
                 .toList();
-        if (activeConditions.stream().noneMatch(EventoCondicao::isObrigatoria)) {
+        if (activeConditions.stream().noneMatch(condition -> condition != null && condition.isObrigatoria())) {
             return new TransitionEvaluationResult(false, List.of(), List.of(), "No active required conditions");
         }
 
@@ -280,7 +289,7 @@ public class MissionTransitionEventProcessor {
     private static List<TransitionEvidence> changedResults(List<TransitionConditionResult> results) {
         return results.stream()
                 .filter(result -> result.conditionResult().matched())
-                .filter(TransitionConditionResult::changed)
+                .filter(result -> result.changed())
                 .flatMap(result -> result.previous()
                         .map(previous -> new TransitionEvidence(previous, result.current()))
                         .stream())
@@ -313,7 +322,7 @@ public class MissionTransitionEventProcessor {
                 previous,
                 changed,
                 conditionResult(condition, matched, reason, current),
-                previous.map(MeasurementFact::observedValue).orElse(null)
+                previous.map(fact -> fact.observedValue()).orElse(null)
         );
     }
 
@@ -482,7 +491,7 @@ public class MissionTransitionEventProcessor {
         Optional<Instant> firstPreviousMeasuredAt() {
             return evidences.stream()
                     .map(evidence -> evidence.previous().measuredAt())
-                    .min(Instant::compareTo);
+                    .min(Comparator.comparing((Instant instant) -> instant.toEpochMilli()));
         }
     }
 

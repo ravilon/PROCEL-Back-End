@@ -51,8 +51,11 @@ import java.util.stream.Collectors;
 
 public class DroolsMissionRuleEngine implements MissionRuleEngine {
     private static final Comparator<DroolsMeasurementFact> FACT_ORDER = Comparator
-            .comparing(DroolsMeasurementFact::measuredAt, Comparator.nullsLast(Instant::compareTo))
-            .thenComparing(f -> f.parametroDefId().toString())
+            .comparing(
+                    (DroolsMeasurementFact fact) -> fact.measuredAt(),
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            )
+            .thenComparing(f -> f.parametroDefId() == null ? "" : f.parametroDefId().toString())
             .thenComparing(f -> f.parametroValorId() == null ? "" : f.parametroValorId().toString());
 
     private final DroolsRuleEngineSettings settings;
@@ -98,7 +101,7 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
             }
 
             List<EventoCondicao> activeConditions = activeConditions(event);
-            if (activeConditions.stream().noneMatch(EventoCondicao::isObrigatoria)) {
+            if (activeConditions.stream().noneMatch(condition -> condition != null && condition.isObrigatoria())) {
                 MissionRuleEvaluationResult noRequired = new MissionRuleEvaluationResult(event.getId(), false, context.evaluationTime(), List.of(), List.of(),
                         "No active required conditions");
                 resultTag = "unmatched";
@@ -176,16 +179,19 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
                 .map(this::copyFact)
                 .sorted(FACT_ORDER)
                 .toList();
-        if (facts.stream().map(DroolsMeasurementFact::measuredAt).filter(Objects::nonNull).anyMatch(t -> t.isAfter(evaluationTime))) {
+        if (facts.stream()
+                .map(fact -> fact != null ? fact.measuredAt() : null)
+                .filter(Objects::nonNull)
+                .anyMatch(t -> t.isAfter(evaluationTime))) {
             recordLimitRejection(modeTag, "future_timestamp");
             throw new DroolsMissionRuleException("Drools facts cannot be measured after evaluationTime");
         }
         Set<String> sensors = facts.stream()
-                .map(DroolsMeasurementFact::sensorExternalId)
+                .map(fact -> fact == null ? null : fact.sensorExternalId())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Set<String> compartments = facts.stream()
-                .map(DroolsMeasurementFact::compartimentoId)
+                .map(fact -> fact == null ? null : fact.compartimentoId())
                 .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         if (sensors.size() > 1 || compartments.size() > 1) {
@@ -202,8 +208,17 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
     }
 
     private void rejectExcessiveTimeSpan(List<DroolsMeasurementFact> facts, String modeTag) {
-        Optional<Instant> min = facts.stream().map(DroolsMeasurementFact::measuredAt).min(Instant::compareTo);
-        Optional<Instant> max = facts.stream().map(DroolsMeasurementFact::measuredAt).max(Instant::compareTo);
+        Comparator<Instant> instantComparator = Comparator.naturalOrder();
+        Optional<Instant> min = facts.stream()
+                .filter(Objects::nonNull)
+                .map(fact -> fact.measuredAt())
+                .filter(Objects::nonNull)
+                .min(instantComparator);
+        Optional<Instant> max = facts.stream()
+                .filter(Objects::nonNull)
+                .map(fact -> fact.measuredAt())
+                .filter(Objects::nonNull)
+                .max(instantComparator);
         if (min.isPresent() && max.isPresent()
                 && Duration.between(min.get(), max.get()).compareTo(settings.maximumEvaluationSpan()) > 0) {
             recordLimitRejection(modeTag, "time_span");
@@ -295,9 +310,21 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
             List<DroolsConditionMatch> matches
     ) {
         Map<UUID, DroolsMeasurementFact> factByParameter = facts.stream()
-                .collect(Collectors.toMap(DroolsMeasurementFact::parametroDefId, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        fact -> fact.parametroDefId(),
+                        Function.identity(),
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
         Map<UUID, DroolsMeasurementFact> matchedFactsByCondition = matches.stream()
-                .collect(Collectors.toMap(DroolsConditionMatch::conditionId, DroolsConditionMatch::fact, (a, b) -> a, LinkedHashMap::new));
+                .filter(Objects::nonNull)
+                .collect(Collectors.toMap(
+                        match -> match.conditionId(),
+                        match -> match.fact(),
+                        (a, b) -> a,
+                        LinkedHashMap::new
+                ));
 
         List<ConditionEvaluationResult> conditionResults = new ArrayList<>();
         List<MeasurementFact> evidences = new ArrayList<>();
@@ -331,8 +358,10 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         Instant windowStart = context.evaluationTime().minusSeconds(event.getJanelaSegundos());
         Instant windowEnd = context.evaluationTime();
         Set<UUID> requiredConditionIds = activeConditions.stream()
-                .filter(EventoCondicao::isObrigatoria)
-                .map(EventoCondicao::getId)
+                .filter(Objects::nonNull)
+                .filter(condition -> condition.isObrigatoria())
+                .map(condition -> condition.getId())
+                .filter(Objects::nonNull)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         Map<Instant, Set<UUID>> matchedConditionsByTime = new LinkedHashMap<>();
         for (DroolsConditionMatch match : matches) {
@@ -345,7 +374,9 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         }
 
         List<Instant> sampleTimes = facts.stream()
-                .map(DroolsMeasurementFact::measuredAt)
+                .filter(Objects::nonNull)
+                .map(fact -> fact.measuredAt())
+                .filter(Objects::nonNull)
                 .filter(t -> t.isAfter(windowStart) && !t.isAfter(windowEnd))
                 .distinct()
                 .sorted()
@@ -376,8 +407,15 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         boolean matched = completedAt != null;
         Instant evidenceEnd = completedAt;
         Map<UUID, DroolsMeasurementFact> evidenceByCondition = matches.stream()
+                .filter(Objects::nonNull)
+                .filter(match -> match.fact() != null)
                 .filter(match -> evidenceEnd == null || !match.fact().measuredAt().isAfter(evidenceEnd))
-                .collect(Collectors.toMap(DroolsConditionMatch::conditionId, DroolsConditionMatch::fact, (a, b) -> b, LinkedHashMap::new));
+                .collect(Collectors.toMap(
+                        match -> match.conditionId(),
+                        match -> match.fact(),
+                        (a, b) -> b,
+                        LinkedHashMap::new
+                ));
 
         List<ConditionEvaluationResult> conditionResults = new ArrayList<>();
         for (EventoCondicao condition : activeConditions) {
@@ -386,7 +424,9 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
         }
 
         List<MeasurementFact> evidences = matches.stream()
-                .map(DroolsConditionMatch::fact)
+                .filter(Objects::nonNull)
+                .map(match -> match.fact())
+                .filter(Objects::nonNull)
                 .filter(f -> evidenceEnd == null || !f.measuredAt().isAfter(evidenceEnd))
                 .distinct()
                 .map(this::toMeasurementFact)
@@ -409,8 +449,8 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
             }
         }
         return switch (event.getOperadorLogico()) {
-            case ALL -> required.stream().allMatch(ConditionEvaluationResult::matched);
-            case ANY -> required.stream().anyMatch(ConditionEvaluationResult::matched);
+            case ALL -> required.stream().allMatch(result -> result != null && result.matched());
+            case ANY -> required.stream().anyMatch(result -> result != null && result.matched());
         };
     }
 
@@ -453,8 +493,10 @@ public class DroolsMissionRuleEngine implements MissionRuleEngine {
 
     private static List<EventoCondicao> activeConditions(EventoDefinicao event) {
         return event.getCondicoes().stream()
-                .filter(EventoCondicao::isAtivo)
-                .sorted(Comparator.comparing(EventoCondicao::getOrdem, Comparator.nullsLast(Integer::compareTo)))
+                .filter(condition -> condition != null && condition.isAtivo())
+                .sorted(Comparator.comparingInt(
+                        condition -> condition.getOrdem() != null ? condition.getOrdem() : Integer.MAX_VALUE
+                ))
                 .toList();
     }
 

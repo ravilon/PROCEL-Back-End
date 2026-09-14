@@ -40,9 +40,9 @@ class SimpleMissionRuleEngineTest {
                 booleanFact(presence, true)));
 
         assertThat(result.matched()).isTrue();
-        assertThat(result.conditionResults()).extracting(ConditionEvaluationResult::matched)
+        assertThat(result.conditionResults()).extracting(conditionResult -> conditionResult.matched())
                 .containsExactly(true, true);
-        assertThat(result.conditionResults()).extracting(ConditionEvaluationResult::eventoCondicaoId)
+        assertThat(result.conditionResults()).extracting(conditionResult -> conditionResult.eventoCondicaoId())
                 .containsExactly(event.getCondicoes().get(0).getId(), event.getCondicoes().get(1).getId());
     }
 
@@ -105,7 +105,7 @@ class SimpleMissionRuleEngineTest {
                 textFact(state, "OK")));
 
         assertThat(result.matched()).isTrue();
-        assertThat(result.conditionResults()).extracting(ConditionEvaluationResult::matched)
+        assertThat(result.conditionResults()).extracting(conditionResult -> conditionResult.matched())
                 .containsExactly(true, false);
     }
 

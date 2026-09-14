@@ -817,11 +817,6 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(temporalWorker.processAvailableBatch()).isGreaterThanOrEqualTo(1);
     }
 
-    private void processClaimed() {
-        var work = claimOne();
-        worker.processClaimed(work);
-    }
-
     private void processClaimed(UUID medicaoId) {
         var work = claimOne(medicaoId);
         worker.processClaimed(work);

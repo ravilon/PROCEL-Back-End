@@ -19,7 +19,6 @@ import com.procel.api.entity.sensors.DataType;
 import com.procel.api.entity.sensors.RegraOperador;
 import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.repository.missions.EventoDefinicaoRepository;
-import com.procel.api.service.academic.AcademicContext;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService;
 import com.procel.api.service.missions.EventoOcorrenciaService;
 import com.procel.api.service.missions.rules.ConditionEvaluationResult;
@@ -155,7 +154,7 @@ public class MissionTemporalWindowEvaluationService {
                     temporalActivityProcessor.processSatisfiedOccurrence(occurrence.getId(), result.evaluatedAt());
                 } catch (com.procel.api.service.missions.MissionEventActivityProcessingException ex) {
                     if (ex.permanent()) {
-                        temporalActivityProcessor.invalidateOccurrence(occurrence.getId(), rootMessage(ex));
+                        temporalActivityProcessor.invalidateOccurrence(occurrence.getId());
                         return WindowEvaluationOutcome.failed(rootMessage(ex));
                     }
                     throw ex;
@@ -269,8 +268,10 @@ public class MissionTemporalWindowEvaluationService {
         validateWindowClosedEvent(event);
         Map<UUID, MeasurementFact> latest = latestFactsByParameter(facts);
         List<EventoCondicao> activeConditions = event.getCondicoes().stream()
-                .filter(EventoCondicao::isAtivo)
-                .sorted(Comparator.comparing(EventoCondicao::getOrdem, Comparator.nullsLast(Integer::compareTo)))
+                .filter(condition -> condition != null && condition.isAtivo())
+                .sorted(Comparator.<EventoCondicao, Integer>comparing(
+                        condition -> condition.getOrdem(),
+                        Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
         List<ConditionEvaluationResult> conditionResults = new ArrayList<>();
         List<MeasurementFact> evidences = new ArrayList<>();
@@ -290,8 +291,8 @@ public class MissionTemporalWindowEvaluationService {
                     conditionResults, evidences, "No active required conditions");
         }
         boolean matched = event.getOperadorLogico() == EventoOperadorLogico.ANY
-                ? requiredResults.stream().anyMatch(ConditionEvaluationResult::matched)
-                : requiredResults.stream().allMatch(ConditionEvaluationResult::matched);
+                ? requiredResults.stream().anyMatch(result -> result != null && result.matched())
+                : requiredResults.stream().allMatch(result -> result != null && result.matched());
         return new MissionRuleEvaluationResult(
                 event.getId(),
                 matched,
@@ -306,7 +307,7 @@ public class MissionTemporalWindowEvaluationService {
         Map<UUID, MeasurementFact> latest = new LinkedHashMap<>();
         facts.stream()
                 .sorted(Comparator
-                        .comparing(MeasurementFact::measuredAt)
+                        .comparing((MeasurementFact fact) -> fact.measuredAt() == null ? Instant.EPOCH : fact.measuredAt())
                         .thenComparing(f -> f.medicaoId() == null ? "" : f.medicaoId().toString())
                         .thenComparing(f -> f.parametroValorId() == null ? "" : f.parametroValorId().toString()))
                 .forEach(fact -> latest.put(fact.parametroDefId(), fact));
