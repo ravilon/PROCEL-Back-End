@@ -90,7 +90,9 @@ public class MissionEvaluationProperties {
     }
 
     public static class TemporalWindows {
+        private boolean enabled = false;
         private boolean workerEnabled = false;
+        private boolean droolsEnabled = false;
         private Duration fixedDelay = Duration.ofSeconds(5);
         private int batchSize = 20;
         private Duration leaseDuration = Duration.ofMinutes(1);
@@ -101,8 +103,12 @@ public class MissionEvaluationProperties {
         private Duration maximumSampleGap = Duration.ofMinutes(5);
         private Duration maximumWindowDuration = Duration.ofHours(24);
 
+        public boolean isEnabled() { return enabled; }
+        public void setEnabled(boolean enabled) { this.enabled = enabled; }
         public boolean isWorkerEnabled() { return workerEnabled; }
         public void setWorkerEnabled(boolean workerEnabled) { this.workerEnabled = workerEnabled; }
+        public boolean isDroolsEnabled() { return droolsEnabled; }
+        public void setDroolsEnabled(boolean droolsEnabled) { this.droolsEnabled = droolsEnabled; }
         public Duration getFixedDelay() { return fixedDelay; }
         public void setFixedDelay(Duration fixedDelay) { this.fixedDelay = positiveOrDefault(fixedDelay, Duration.ofSeconds(5)); }
         public int getBatchSize() { return batchSize; }

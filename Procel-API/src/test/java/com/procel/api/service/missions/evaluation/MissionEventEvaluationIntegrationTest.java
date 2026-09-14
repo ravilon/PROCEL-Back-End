@@ -55,6 +55,7 @@ class MissionEventEvaluationIntegrationTest {
     @Autowired SensorIngestOrchestrator orchestrator;
     @Autowired EventoAvaliacaoRequestService requestService;
     @Autowired MissionEventEvaluationWorker worker;
+    @Autowired MissionTemporalWindowWorker temporalWorker;
     @Autowired MissionEvaluationProperties properties;
     @Autowired TransactionTemplate transactionTemplate;
     @MockitoBean ParametroQualificacaoService qualificacaoService;
@@ -85,6 +86,15 @@ class MissionEventEvaluationIntegrationTest {
         properties.setInitialBackoff(Duration.ofSeconds(1));
         properties.setMaxBackoff(Duration.ofSeconds(5));
         properties.setMaxAttempts(3);
+        properties.getTemporalWindows().setEnabled(false);
+        properties.getTemporalWindows().setWorkerEnabled(false);
+        properties.getTemporalWindows().setDroolsEnabled(false);
+        properties.getTemporalWindows().setMaximumSampleGap(Duration.ofSeconds(900));
+        properties.getTemporalWindows().setMaxAttempts(3);
+        properties.getTemporalWindows().setBatchSize(20);
+        properties.getTemporalWindows().setLeaseDuration(Duration.ofSeconds(30));
+        properties.getTemporalWindows().setInitialBackoff(Duration.ofSeconds(1));
+        properties.getTemporalWindows().setMaxBackoff(Duration.ofSeconds(5));
         seedSensor();
     }
 
@@ -187,6 +197,141 @@ class MissionEventEvaluationIntegrationTest {
 
         assertThat(worker.processAvailableBatch()).isZero();
         assertThat(count("evento_ocorrencia")).isEqualTo(0);
+    }
+
+    @Test
+    void temporalDisabledByDefaultDoesNotOpenWindow() {
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+        UUID medicaoId = ingest("msg-temporal-disabled", BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed();
+
+        assertThat(statusFor(medicaoId)).isEqualTo("IGNORED");
+        assertThat(count("evento_janela_avaliacao")).isZero();
+    }
+
+    @Test
+    void primeiraMedicaoAbreJanelaTemporal() {
+        enableTemporal(false);
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+
+        ingest("msg-temporal-open", BigDecimal.valueOf(25));
+        processClaimed();
+
+        assertThat(count("evento_janela_avaliacao")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("ABERTA");
+        assertThat(count("evento_janela_evidencia")).isEqualTo(1);
+    }
+
+    @Test
+    void sequenciaValidaMantemJanelaEFatosForaDeOrdemNaoImpedemConclusao() {
+        enableTemporal(true);
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+
+        ingestAt("msg-temporal-start", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-mid", measuredAt.plusSeconds(600), BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-mid-2", measuredAt.plusSeconds(1200), BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25));
+        processClaimed();
+
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("SATISFEITA");
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
+        assertThat(count("evento_ocorrencia_evidencia")).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void condicaoFalsaInvalidaEDuracaoInsuficienteNaoSatisfaz() {
+        enableTemporal(true);
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+
+        ingestAt("msg-temporal-invalid-start", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-invalid-false", measuredAt.plusSeconds(600), BigDecimal.valueOf(10));
+        processClaimed();
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("INVALIDADA");
+
+        cleanDatabase();
+        setUp();
+        enableTemporal(true);
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+        ingestAt("msg-temporal-short-start", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+        jdbcTemplate.update("update evento_janela_avaliacao set fim_previsto_em = ?, proxima_avaliacao_em = ?",
+                Timestamp.from(measuredAt.plusSeconds(600)), Timestamp.from(measuredAt.plusSeconds(600)));
+
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        temporalWorker.processAvailableBatch();
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("INVALIDADA");
+        assertThat(count("evento_ocorrencia")).isZero();
+    }
+
+    @Test
+    void lacunaExpiraERecuperacaoAposReinicioNaoDuplicaOcorrencia() {
+        enableTemporal(true);
+        properties.getTemporalWindows().setMaximumSampleGap(Duration.ofSeconds(300));
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+
+        ingestAt("msg-temporal-gap-start", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-gap-late", measuredAt.plusSeconds(600), BigDecimal.valueOf(25));
+        processClaimed();
+
+        assertThat(jdbcTemplate.queryForObject("""
+                select count(*) from evento_janela_avaliacao where status = 'EXPIRADA'
+                """, Long.class)).isEqualTo(1L);
+
+        cleanDatabase();
+        setUp();
+        enableTemporal(true);
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+        ingestAt("msg-temporal-restart-start", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-restart-mid", measuredAt.plusSeconds(900), BigDecimal.valueOf(25));
+        processClaimed();
+        ingestAt("msg-temporal-restart-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25));
+        processClaimed();
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        temporalWorker.processAvailableBatch();
+        jdbcTemplate.update("""
+                update evento_janela_avaliacao
+                set status = 'ABERTA', lease_until = null, proxima_avaliacao_em = now()
+                """);
+        temporalWorker.processAvailableBatch();
+
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(count("evento_ocorrencia_evidencia")).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
+    void janelasSaoIsoladasEntreSalasEAulas() {
+        enableTemporal(false);
+        seedAcademicContext("student-temporal");
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+
+        ingestAt("msg-temporal-room-a", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+
+        String firstRoom = roomId;
+        String firstSensor = sensorId;
+        setUp();
+        enableTemporal(false);
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
+        ingestAt("msg-temporal-room-b", measuredAt, BigDecimal.valueOf(25));
+        processClaimed();
+
+        assertThat(jdbcTemplate.queryForObject("select count(distinct compartimento_id) from evento_janela_avaliacao", Long.class))
+                .isEqualTo(1L);
+        assertThat(firstRoom).isNotEqualTo(roomId);
+        assertThat(firstSensor).isNotEqualTo(sensorId);
     }
 
     @Test
@@ -337,6 +482,22 @@ class MissionEventEvaluationIntegrationTest {
         return orchestrator.ingest("producer", request(messageId, value));
     }
 
+    private SensorIngestOrchestrator.IngestOutcome ingestAt(String messageId, Instant timestamp, BigDecimal value) {
+        Instant previous = measuredAt;
+        measuredAt = timestamp;
+        try {
+            return ingest(messageId, value);
+        } finally {
+            measuredAt = previous;
+        }
+    }
+
+    private void enableTemporal(boolean drools) {
+        properties.getTemporalWindows().setEnabled(true);
+        properties.getTemporalWindows().setDroolsEnabled(drools);
+        properties.getTemporalWindows().setWorkerEnabled(false);
+    }
+
     private void processClaimed() {
         var work = claimOne();
         worker.processClaimed(work);
@@ -397,6 +558,8 @@ class MissionEventEvaluationIntegrationTest {
                     atividade_evento,
                     xp_lancamento,
                     atividade,
+                    evento_janela_evidencia,
+                    evento_janela_avaliacao,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,
                     evento_avaliacao_request,
@@ -480,6 +643,30 @@ class MissionEventEvaluationIntegrationTest {
                 values (?, ?, 'Temperatura alta', 'MEDICAO_RECEBIDA', 'INSTANTANEO', 'ALL',
                         ?, 1, 1, true, now(), now())
                 """, eventId, missionId, politica.name());
+        jdbcTemplate.update("""
+                insert into evento_condicao
+                (id, evento_definicao_id, parametro_def_id, operador, valor_numeric_1,
+                 agregacao, obrigatoria, ordem, ativo, created_at)
+                values (?, ?, ?, 'GT', ?, 'ULTIMO', true, 1, ?, now())
+                """, conditionId, eventId, parametroDefId, threshold, conditionActive);
+    }
+
+    private void seedDurationEvent(BigDecimal threshold, boolean conditionActive, int janelaSegundos, int duracaoMinimaSegundos) {
+        missionId = UUID.randomUUID();
+        eventId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                insert into missao
+                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                values (?, 'Missao temporal', 'Descricao', 'Individual', 10, true, now(), 'UNICA', 1, true)
+                """, missionId);
+        jdbcTemplate.update("""
+                insert into evento_definicao
+                (id, missao_id, nome, tipo_disparo, modo_avaliacao, operador_logico, politica_atribuicao,
+                 janela_segundos, duracao_minima_segundos, quantidade_necessaria, ordem, ativo, created_at, updated_at)
+                values (?, ?, 'Temperatura sustentada', 'MEDICAO_RECEBIDA', 'DURACAO', 'ALL',
+                        'SEM_ATRIBUICAO_AUTOMATICA', ?, ?, 1, 1, true, now(), now())
+                """, eventId, missionId, janelaSegundos, duracaoMinimaSegundos);
         jdbcTemplate.update("""
                 insert into evento_condicao
                 (id, evento_definicao_id, parametro_def_id, operador, valor_numeric_1,

@@ -186,15 +186,6 @@ public class EventoJanelaAvaliacaoService {
 
     public int expirarJanelasVencidas(Instant now) {
         return transactionTemplate.execute(status -> {
-            int byTime = jdbcTemplate.update("""
-                    update evento_janela_avaliacao
-                    set status = 'EXPIRADA',
-                        lease_until = null,
-                        last_error = coalesce(last_error, 'Window end reached'),
-                        updated_at = now()
-                    where status in ('ABERTA','PROCESSING')
-                      and fim_previsto_em <= ?
-                    """, Timestamp.from(now));
             int byGap = jdbcTemplate.update("""
                     update evento_janela_avaliacao
                     set status = 'EXPIRADA',
@@ -202,12 +193,12 @@ public class EventoJanelaAvaliacaoService {
                         last_error = coalesce(last_error, 'Maximum sample gap exceeded'),
                         updated_at = now()
                     where status in ('ABERTA','PROCESSING')
+                      and ? < fim_previsto_em
                       and ultima_medicao_em is not null
                       and ultima_medicao_em + (? * interval '1 second') < ?
-                    """, properties.getTemporalWindows().getMaximumSampleGap().toSeconds(), Timestamp.from(now));
-            int total = byTime + byGap;
-            for (int i = 0; i < total; i++) metrics.missionTemporalWindowExpired();
-            return total;
+                    """, Timestamp.from(now), properties.getTemporalWindows().getMaximumSampleGap().toSeconds(), Timestamp.from(now));
+            for (int i = 0; i < byGap; i++) metrics.missionTemporalWindowExpired();
+            return byGap;
         });
     }
 

@@ -20,15 +20,18 @@ public class MissionTemporalWindowWorker {
     private static final String APPLICATION = "procel-api";
 
     private final EventoJanelaAvaliacaoService janelaService;
+    private final MissionTemporalWindowEvaluationService evaluationService;
     private final MissionEvaluationProperties properties;
     private final String workerId;
 
     public MissionTemporalWindowWorker(
             EventoJanelaAvaliacaoService janelaService,
+            MissionTemporalWindowEvaluationService evaluationService,
             MissionEvaluationProperties properties,
             ApiObservabilityMetrics metrics
     ) {
         this.janelaService = janelaService;
+        this.evaluationService = evaluationService;
         this.properties = properties;
         this.workerId = buildWorkerId();
         metrics.registerMissionTemporalWindowBacklogGauge(this, janelaService::countBacklog);
@@ -67,8 +70,17 @@ public class MissionTemporalWindowWorker {
             janelaService.marcarFailed(work.janelaId(), "Temporal window reached max attempts");
             outcome = "failed";
         } else {
-            janelaService.marcarRetry(work.janelaId(), now.plus(backoff(work.attempts())), "Temporal window processor is not connected");
-            outcome = "retry";
+            try {
+                var result = evaluationService.evaluateClaimed(work.janelaId(), now);
+                outcome = result.status();
+                if ("skipped".equals(outcome)) {
+                    janelaService.marcarRetry(work.janelaId(), now.plus(backoff(work.attempts())), result.reason());
+                    outcome = "retry";
+                }
+            } catch (RuntimeException ex) {
+                janelaService.marcarRetry(work.janelaId(), now.plus(backoff(work.attempts())), rootMessage(ex));
+                outcome = "retry";
+            }
         }
         log.info("application={} event=mission_temporal_window_processed janelaId={} eventoDefinicaoId={} compartimentoId={} status={} attempts={} workerId={}",
                 APPLICATION, work.janelaId(), work.eventoDefinicaoId(), work.compartimentoId(), outcome, work.attempts(), workerId);
@@ -78,6 +90,18 @@ public class MissionTemporalWindowWorker {
         long multiplier = 1L << Math.max(0, attempts - 1);
         long seconds = Math.multiplyExact(settings().getInitialBackoff().toSeconds(), multiplier);
         return Duration.ofSeconds(Math.min(seconds, settings().getMaxBackoff().toSeconds()));
+    }
+
+    private String rootMessage(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null) {
+            current = current.getCause();
+        }
+        String message = current.getMessage();
+        if (message == null || message.isBlank()) {
+            return current.getClass().getSimpleName();
+        }
+        return message.length() > 1000 ? message.substring(0, 1000) : message;
     }
 
     private MissionEvaluationProperties.TemporalWindows settings() {

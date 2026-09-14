@@ -29,4 +29,21 @@ public interface EventoDefinicaoRepository extends JpaRepository<EventoDefinicao
             @Param("tipoDisparo") EventoTipoDisparo tipoDisparo,
             @Param("modoAvaliacao") EventoModoAvaliacao modoAvaliacao
     );
+
+    @Query("""
+           select distinct e
+           from EventoDefinicao e
+           join fetch e.missao m
+           left join fetch e.condicoes c
+           left join fetch c.parametroDef pd
+           where e.ativo = true
+             and m.ativo = true
+             and e.tipoDisparo = :tipoDisparo
+             and e.modoAvaliacao = :modoAvaliacao
+           order by e.ordem asc, e.createdAt asc
+           """)
+    List<EventoDefinicao> findActiveMeasurementEvents(
+            @Param("tipoDisparo") EventoTipoDisparo tipoDisparo,
+            @Param("modoAvaliacao") EventoModoAvaliacao modoAvaliacao
+    );
 }

@@ -192,7 +192,7 @@ class EventoJanelaAvaliacaoServiceTest {
     }
 
     @Test
-    void expiracaoPorFimPrevistoELacunaDeAmostragem() {
+    void expiracaoPorLacunaDeAmostragemNaoExpiraFimPrevisto() {
         UUID byEnd = service.abrir(command("window-expire-end", start, end)).getId();
         UUID byGap = service.abrir(new EventoJanelaAvaliacaoService.AbrirJanelaCommand(
                 eventoId, compartimentoId, periodoAulaId, start, end.plusSeconds(3600),
@@ -201,8 +201,8 @@ class EventoJanelaAvaliacaoServiceTest {
 
         int expired = service.expirarJanelasVencidas(end.plusSeconds(600));
 
-        assertThat(expired).isGreaterThanOrEqualTo(2);
-        assertThat(status(byEnd)).isEqualTo("EXPIRADA");
+        assertThat(expired).isGreaterThanOrEqualTo(1);
+        assertThat(status(byEnd)).isEqualTo("ABERTA");
         assertThat(status(byGap)).isEqualTo("EXPIRADA");
     }
 

@@ -24,12 +24,14 @@ import static org.mockito.Mockito.when;
 
 class MissionTemporalWindowWorkerTest {
     EventoJanelaAvaliacaoService janelaService;
+    MissionTemporalWindowEvaluationService evaluationService;
     MissionEvaluationProperties properties;
     MissionTemporalWindowWorker worker;
 
     @BeforeEach
     void setUp() {
         janelaService = mock(EventoJanelaAvaliacaoService.class);
+        evaluationService = mock(MissionTemporalWindowEvaluationService.class);
         when(janelaService.countBacklog()).thenReturn(0L);
         properties = new MissionEvaluationProperties();
         properties.getTemporalWindows().setWorkerEnabled(true);
@@ -40,6 +42,7 @@ class MissionTemporalWindowWorkerTest {
         properties.getTemporalWindows().setMaxBackoff(Duration.ofSeconds(10));
         worker = new MissionTemporalWindowWorker(
                 janelaService,
+                evaluationService,
                 properties,
                 new ApiObservabilityMetrics(new SimpleMeterRegistry())
         );
@@ -55,14 +58,28 @@ class MissionTemporalWindowWorkerTest {
     }
 
     @Test
-    void janelaProcessadaSemEngineVoltaParaRetry() {
+    void janelaClaimadaEhAvaliada() {
         EventoJanelaWork work = work(1);
         when(janelaService.claimAvailable(1, Duration.ofSeconds(30), 2)).thenReturn(List.of(work));
+        when(evaluationService.evaluateClaimed(eq(work.janelaId()), any(Instant.class)))
+                .thenReturn(MissionTemporalWindowEvaluationService.WindowEvaluationOutcome.satisfied());
 
         assertThat(worker.processAvailableBatch()).isEqualTo(1);
 
         verify(janelaService).expirarJanelasVencidas(any(Instant.class));
-        verify(janelaService).marcarRetry(eq(work.janelaId()), any(Instant.class), eq("Temporal window processor is not connected"));
+        verify(evaluationService).evaluateClaimed(eq(work.janelaId()), any(Instant.class));
+    }
+
+    @Test
+    void avaliacaoAdiadaVoltaParaRetry() {
+        EventoJanelaWork work = work(1);
+        when(janelaService.claimAvailable(1, Duration.ofSeconds(30), 2)).thenReturn(List.of(work));
+        when(evaluationService.evaluateClaimed(eq(work.janelaId()), any(Instant.class)))
+                .thenReturn(MissionTemporalWindowEvaluationService.WindowEvaluationOutcome.skipped("not ready"));
+
+        assertThat(worker.processAvailableBatch()).isEqualTo(1);
+
+        verify(janelaService).marcarRetry(eq(work.janelaId()), any(Instant.class), eq("not ready"));
     }
 
     @Test

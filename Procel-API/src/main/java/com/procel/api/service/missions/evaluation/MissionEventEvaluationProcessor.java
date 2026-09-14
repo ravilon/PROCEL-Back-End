@@ -49,6 +49,7 @@ public class MissionEventEvaluationProcessor {
     private final AcademicContextResolver academicContextResolver;
     private final MeasurementFactFactory measurementFactFactory;
     private final MissionRuleEngine missionRuleEngine;
+    private final MissionTemporalWindowUpdateService temporalWindowUpdateService;
     private final EventoOcorrenciaService ocorrenciaService;
     private final MissionEventActivityProcessor activityProcessor;
     private final EventoAvaliacaoRequestService requestService;
@@ -62,6 +63,7 @@ public class MissionEventEvaluationProcessor {
             AcademicContextResolver academicContextResolver,
             MeasurementFactFactory measurementFactFactory,
             MissionRuleEngine missionRuleEngine,
+            MissionTemporalWindowUpdateService temporalWindowUpdateService,
             EventoOcorrenciaService ocorrenciaService,
             MissionEventActivityProcessor activityProcessor,
             EventoAvaliacaoRequestService requestService,
@@ -74,6 +76,7 @@ public class MissionEventEvaluationProcessor {
         this.academicContextResolver = academicContextResolver;
         this.measurementFactFactory = measurementFactFactory;
         this.missionRuleEngine = missionRuleEngine;
+        this.temporalWindowUpdateService = temporalWindowUpdateService;
         this.ocorrenciaService = ocorrenciaService;
         this.activityProcessor = activityProcessor;
         this.requestService = requestService;
@@ -100,27 +103,35 @@ public class MissionEventEvaluationProcessor {
                     EventoTipoDisparo.MEDICAO_RECEBIDA,
                     EventoModoAvaliacao.INSTANTANEO
             );
-            if (events.isEmpty()) {
-                return ProcessingOutcome.ignored("No applicable event definitions");
-            }
-
             List<ParametroValor> valores = parametroValorRepository.findAllByMedicao_Id(medicao.getId());
             var facts = measurementFactFactory.from(medicao, valores);
             int detected = 0;
 
-            for (EventoDefinicao event : events) {
-                MissionRuleEvaluationResult result = evaluate(event, optionalAcademic, facts, evaluationTime);
-                if (!result.matched()) {
-                    continue;
+            if (!events.isEmpty()) {
+                for (EventoDefinicao event : events) {
+                    MissionRuleEvaluationResult result = evaluate(event, optionalAcademic, facts, evaluationTime);
+                    if (!result.matched()) {
+                        continue;
+                    }
+                    EventoOcorrencia occurrence = persistOccurrenceAndEvidence(medicao, academicContext, event, result, evaluationTime);
+                    activityProcessor.process(
+                            occurrence.getId(),
+                            optionalAcademic,
+                            Optional.empty(),
+                            evaluationTime
+                    );
+                    detected++;
                 }
-                EventoOcorrencia occurrence = persistOccurrenceAndEvidence(medicao, academicContext, event, result, evaluationTime);
-                activityProcessor.process(
-                        occurrence.getId(),
-                        optionalAcademic,
-                        Optional.empty(),
-                        evaluationTime
-                );
-                detected++;
+            }
+
+            int temporalWindowsTouched = temporalWindowUpdateService.processMeasurement(
+                    medicao,
+                    academicContext,
+                    facts,
+                    evaluationTime
+            );
+            if (events.isEmpty() && temporalWindowsTouched == 0) {
+                return ProcessingOutcome.ignored("No applicable event definitions");
             }
 
             requestService.markCompleted(work.requestId());
