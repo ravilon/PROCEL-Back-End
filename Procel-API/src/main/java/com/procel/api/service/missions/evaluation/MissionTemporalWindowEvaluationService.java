@@ -51,6 +51,7 @@ public class MissionTemporalWindowEvaluationService {
     private final JdbcTemplate jdbcTemplate;
     private final MissionEvaluationProperties evaluationProperties;
     private final MissionRuleEngineProperties ruleEngineProperties;
+    private final MissionTemporalActivityProcessor temporalActivityProcessor;
     private final ApiObservabilityMetrics metrics;
     private final ObjectMapper objectMapper;
     private final ConcurrentMap<Duration, DroolsMissionRuleEngine> droolsEngines = new ConcurrentHashMap<>();
@@ -62,6 +63,7 @@ public class MissionTemporalWindowEvaluationService {
             JdbcTemplate jdbcTemplate,
             MissionEvaluationProperties evaluationProperties,
             MissionRuleEngineProperties ruleEngineProperties,
+            MissionTemporalActivityProcessor temporalActivityProcessor,
             ApiObservabilityMetrics metrics,
             ObjectMapper objectMapper
     ) {
@@ -71,6 +73,7 @@ public class MissionTemporalWindowEvaluationService {
         this.jdbcTemplate = jdbcTemplate;
         this.evaluationProperties = evaluationProperties;
         this.ruleEngineProperties = ruleEngineProperties;
+        this.temporalActivityProcessor = temporalActivityProcessor;
         this.metrics = metrics;
         this.objectMapper = objectMapper;
     }
@@ -133,6 +136,17 @@ public class MissionTemporalWindowEvaluationService {
             EventoOcorrencia occurrence = persistOccurrence(janela, sensorExternalId, result, facts.size());
             attachOccurrenceEvidence(occurrence.getId(), result);
             janelaService.satisfazer(janelaId);
+            if (settings.isActivitiesEnabled()) {
+                try {
+                    temporalActivityProcessor.processSatisfiedOccurrence(occurrence.getId(), result.evaluatedAt());
+                } catch (com.procel.api.service.missions.MissionEventActivityProcessingException ex) {
+                    if (ex.permanent()) {
+                        temporalActivityProcessor.invalidateOccurrence(occurrence.getId(), rootMessage(ex));
+                        return WindowEvaluationOutcome.failed(rootMessage(ex));
+                    }
+                    throw ex;
+                }
+            }
             return WindowEvaluationOutcome.satisfied();
         } catch (DroolsMissionRuleException | IllegalArgumentException ex) {
             janelaService.marcarFailed(janelaId, rootMessage(ex));

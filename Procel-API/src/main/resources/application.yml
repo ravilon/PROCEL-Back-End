@@ -57,6 +57,16 @@ procel:
   sensors:
     seed-path: seed/sensors/sensors.seed.json
 
+  missions:
+    rule-engine: ${PROCEL_MISSIONS_RULE_ENGINE:simple}
+    evaluation:
+      worker-enabled: ${PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED:false}
+      temporal-windows:
+        enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED:false}
+        worker-enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED:false}
+        drools-enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED:false}
+        activities-enabled: ${PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED:false}
+
   analytics:
     aggregation:
       worker-enabled: ${PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED:false}

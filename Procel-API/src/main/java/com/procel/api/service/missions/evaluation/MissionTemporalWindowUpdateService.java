@@ -373,9 +373,15 @@ public class MissionTemporalWindowUpdateService {
         root.put("evaluatorVersion", "TEMPORAL_WINDOW_V1");
         if (academicContext.empty()) {
             root.putNull("periodoAulaId");
+            root.putNull("disciplinaId");
+            root.putNull("turma");
+            root.putNull("periodoLetivo");
             root.putArray("eligiblePersonIds");
         } else {
             root.put("periodoAulaId", academicContext.periodoAulaId().toString());
+            if (academicContext.disciplinaId() == null) root.putNull("disciplinaId"); else root.put("disciplinaId", academicContext.disciplinaId());
+            if (academicContext.turma() == null) root.putNull("turma"); else root.put("turma", academicContext.turma());
+            if (academicContext.periodoLetivo() == null) root.putNull("periodoLetivo"); else root.put("periodoLetivo", academicContext.periodoLetivo());
             ArrayNode people = root.putArray("eligiblePersonIds");
             academicContext.pessoaElegivelIds().forEach(people::add);
         }

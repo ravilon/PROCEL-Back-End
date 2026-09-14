@@ -93,6 +93,7 @@ public class MissionEvaluationProperties {
         private boolean enabled = false;
         private boolean workerEnabled = false;
         private boolean droolsEnabled = false;
+        private boolean activitiesEnabled = false;
         private Duration fixedDelay = Duration.ofSeconds(5);
         private int batchSize = 20;
         private Duration leaseDuration = Duration.ofMinutes(1);
@@ -109,6 +110,8 @@ public class MissionEvaluationProperties {
         public void setWorkerEnabled(boolean workerEnabled) { this.workerEnabled = workerEnabled; }
         public boolean isDroolsEnabled() { return droolsEnabled; }
         public void setDroolsEnabled(boolean droolsEnabled) { this.droolsEnabled = droolsEnabled; }
+        public boolean isActivitiesEnabled() { return activitiesEnabled; }
+        public void setActivitiesEnabled(boolean activitiesEnabled) { this.activitiesEnabled = activitiesEnabled; }
         public Duration getFixedDelay() { return fixedDelay; }
         public void setFixedDelay(Duration fixedDelay) { this.fixedDelay = positiveOrDefault(fixedDelay, Duration.ofSeconds(5)); }
         public int getBatchSize() { return batchSize; }

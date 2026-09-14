@@ -21,17 +21,20 @@ public class MissionTemporalWindowWorker {
 
     private final EventoJanelaAvaliacaoService janelaService;
     private final MissionTemporalWindowEvaluationService evaluationService;
+    private final MissionTemporalActivityProcessor temporalActivityProcessor;
     private final MissionEvaluationProperties properties;
     private final String workerId;
 
     public MissionTemporalWindowWorker(
             EventoJanelaAvaliacaoService janelaService,
             MissionTemporalWindowEvaluationService evaluationService,
+            MissionTemporalActivityProcessor temporalActivityProcessor,
             MissionEvaluationProperties properties,
             ApiObservabilityMetrics metrics
     ) {
         this.janelaService = janelaService;
         this.evaluationService = evaluationService;
+        this.temporalActivityProcessor = temporalActivityProcessor;
         this.properties = properties;
         this.workerId = buildWorkerId();
         metrics.registerMissionTemporalWindowBacklogGauge(this, janelaService::countBacklog);
@@ -61,6 +64,7 @@ public class MissionTemporalWindowWorker {
             processClaimed(work, now);
             processed++;
         }
+        processed += processPendingSatisfiedOccurrences(now);
         return processed;
     }
 
@@ -106,6 +110,34 @@ public class MissionTemporalWindowWorker {
 
     private MissionEvaluationProperties.TemporalWindows settings() {
         return properties.getTemporalWindows();
+    }
+
+    private int processPendingSatisfiedOccurrences(Instant now) {
+        if (!settings().isActivitiesEnabled()) {
+            return 0;
+        }
+        int processed = 0;
+        for (UUID occurrenceId : temporalActivityProcessor.findPendingSatisfiedOccurrences(settings().getBatchSize())) {
+            try {
+                var result = temporalActivityProcessor.processSatisfiedOccurrence(occurrenceId, now);
+                if (result.processed()) {
+                    processed++;
+                }
+            } catch (com.procel.api.service.missions.MissionEventActivityProcessingException ex) {
+                if (ex.permanent()) {
+                    temporalActivityProcessor.invalidateOccurrence(occurrenceId, rootMessage(ex));
+                    log.warn("application={} event=mission_temporal_activity_processed occurrenceId={} status=failed reason={}",
+                            APPLICATION, occurrenceId, rootMessage(ex));
+                } else {
+                    log.warn("application={} event=mission_temporal_activity_processed occurrenceId={} status=retry reason={}",
+                            APPLICATION, occurrenceId, rootMessage(ex));
+                }
+            } catch (RuntimeException ex) {
+                log.warn("application={} event=mission_temporal_activity_processed occurrenceId={} status=retry reason={}",
+                        APPLICATION, occurrenceId, rootMessage(ex));
+            }
+        }
+        return processed;
     }
 
     private String buildWorkerId() {

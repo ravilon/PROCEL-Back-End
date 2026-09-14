@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 class MissionTemporalWindowWorkerTest {
     EventoJanelaAvaliacaoService janelaService;
     MissionTemporalWindowEvaluationService evaluationService;
+    MissionTemporalActivityProcessor temporalActivityProcessor;
     MissionEvaluationProperties properties;
     MissionTemporalWindowWorker worker;
 
@@ -32,6 +33,7 @@ class MissionTemporalWindowWorkerTest {
     void setUp() {
         janelaService = mock(EventoJanelaAvaliacaoService.class);
         evaluationService = mock(MissionTemporalWindowEvaluationService.class);
+        temporalActivityProcessor = mock(MissionTemporalActivityProcessor.class);
         when(janelaService.countBacklog()).thenReturn(0L);
         properties = new MissionEvaluationProperties();
         properties.getTemporalWindows().setWorkerEnabled(true);
@@ -43,6 +45,7 @@ class MissionTemporalWindowWorkerTest {
         worker = new MissionTemporalWindowWorker(
                 janelaService,
                 evaluationService,
+                temporalActivityProcessor,
                 properties,
                 new ApiObservabilityMetrics(new SimpleMeterRegistry())
         );

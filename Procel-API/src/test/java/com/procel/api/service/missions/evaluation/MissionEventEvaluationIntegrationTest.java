@@ -56,6 +56,7 @@ class MissionEventEvaluationIntegrationTest {
     @Autowired EventoAvaliacaoRequestService requestService;
     @Autowired MissionEventEvaluationWorker worker;
     @Autowired MissionTemporalWindowWorker temporalWorker;
+    @Autowired MissionTemporalActivityProcessor temporalActivityProcessor;
     @Autowired MissionEvaluationProperties properties;
     @Autowired TransactionTemplate transactionTemplate;
     @MockitoBean ParametroQualificacaoService qualificacaoService;
@@ -89,6 +90,7 @@ class MissionEventEvaluationIntegrationTest {
         properties.getTemporalWindows().setEnabled(false);
         properties.getTemporalWindows().setWorkerEnabled(false);
         properties.getTemporalWindows().setDroolsEnabled(false);
+        properties.getTemporalWindows().setActivitiesEnabled(false);
         properties.getTemporalWindows().setMaximumSampleGap(Duration.ofSeconds(900));
         properties.getTemporalWindows().setMaxAttempts(3);
         properties.getTemporalWindows().setBatchSize(20);
@@ -204,7 +206,7 @@ class MissionEventEvaluationIntegrationTest {
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
         UUID medicaoId = ingest("msg-temporal-disabled", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(medicaoId);
 
         assertThat(statusFor(medicaoId)).isEqualTo("IGNORED");
         assertThat(count("evento_janela_avaliacao")).isZero();
@@ -215,8 +217,8 @@ class MissionEventEvaluationIntegrationTest {
         enableTemporal(false);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
 
-        ingest("msg-temporal-open", BigDecimal.valueOf(25));
-        processClaimed();
+        UUID medicaoId = ingest("msg-temporal-open", BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(medicaoId);
 
         assertThat(count("evento_janela_avaliacao")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("ABERTA");
@@ -228,14 +230,14 @@ class MissionEventEvaluationIntegrationTest {
         enableTemporal(true);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
 
-        ingestAt("msg-temporal-start", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-mid", measuredAt.plusSeconds(600), BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-mid-2", measuredAt.plusSeconds(1200), BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25));
-        processClaimed();
+        UUID start = ingestAt("msg-temporal-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(start);
+        UUID mid = ingestAt("msg-temporal-mid", measuredAt.plusSeconds(600), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(mid);
+        UUID mid2 = ingestAt("msg-temporal-mid-2", measuredAt.plusSeconds(1200), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(mid2);
+        UUID end = ingestAt("msg-temporal-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(end);
 
         properties.getTemporalWindows().setWorkerEnabled(true);
         assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
@@ -244,6 +246,78 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(count("evento_ocorrencia")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
         assertThat(count("evento_ocorrencia_evidencia")).isGreaterThanOrEqualTo(1);
+        assertThat(count("atividade")).isZero();
+        assertThat(count("xp_lancamento")).isZero();
+    }
+
+    @Test
+    void temporalActivitiesEnabledCreatesStudentActivitiesProgressCompletionAndXp() {
+        enableTemporal(true);
+        properties.getTemporalWindows().setActivitiesEnabled(true);
+        seedAcademicContext("student-temporal-a", "student-temporal-b");
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800,
+                EventoPoliticaAtribuicao.ALUNOS_VINCULADOS, MissaoCicloTipo.POR_AULA, 1, true, 10);
+
+        satisfyTemporalWindow("temporal-activities");
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
+        assertThat(count("atividade")).isEqualTo(2);
+        assertThat(countWhere("atividade", "status = 'CONCLUIDA' and progresso_atual = 1 and progresso_necessario = 1")).isEqualTo(2);
+        assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO' and progresso_adicionado = 1")).isEqualTo(2);
+        assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO' and progresso_adicionado = 0")).isEqualTo(2);
+        assertThat(count("xp_lancamento")).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(20L);
+    }
+
+    @Test
+    void enablingTemporalActivitiesLaterProcessesConfirmedPendingOccurrences() {
+        enableTemporal(true);
+        seedAcademicContext("student-temporal-later");
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800,
+                EventoPoliticaAtribuicao.ALUNOS_VINCULADOS, MissaoCicloTipo.POR_AULA, 1, true, 10);
+
+        satisfyTemporalWindow("temporal-later");
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
+        assertThat(count("atividade")).isZero();
+
+        properties.getTemporalWindows().setActivitiesEnabled(true);
+        assertThat(temporalWorker.processAvailableBatch()).isEqualTo(1);
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
+        assertThat(count("atividade")).isEqualTo(1);
+        assertThat(count("xp_lancamento")).isEqualTo(1);
+    }
+
+    @Test
+    void concurrentTemporalActivityProcessingDoesNotDuplicateEffects() throws Exception {
+        enableTemporal(true);
+        seedAcademicContext("student-temporal-race");
+        seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800,
+                EventoPoliticaAtribuicao.ALUNOS_VINCULADOS, MissaoCicloTipo.UNICA, 1, true, 10);
+        satisfyTemporalWindow("temporal-race");
+        UUID occurrenceId = jdbcTemplate.queryForObject("select id from evento_ocorrencia", UUID.class);
+        properties.getTemporalWindows().setActivitiesEnabled(true);
+
+        var executor = Executors.newFixedThreadPool(2);
+        CountDownLatch start = new CountDownLatch(1);
+        var f1 = executor.submit(() -> {
+            start.await();
+            return temporalActivityProcessor.processSatisfiedOccurrence(occurrenceId, measuredAt.plusSeconds(1800)).processed();
+        });
+        var f2 = executor.submit(() -> {
+            start.await();
+            return temporalActivityProcessor.processSatisfiedOccurrence(occurrenceId, measuredAt.plusSeconds(1800)).processed();
+        });
+        start.countDown();
+        assertThat(f1.get()).isTrue();
+        assertThat(f2.get()).isTrue();
+        executor.shutdownNow();
+
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
+        assertThat(count("atividade")).isEqualTo(1);
+        assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
+        assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isEqualTo(1);
+        assertThat(count("xp_lancamento")).isEqualTo(1);
     }
 
     @Test
@@ -251,10 +325,10 @@ class MissionEventEvaluationIntegrationTest {
         enableTemporal(true);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
 
-        ingestAt("msg-temporal-invalid-start", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-invalid-false", measuredAt.plusSeconds(600), BigDecimal.valueOf(10));
-        processClaimed();
+        UUID invalidStart = ingestAt("msg-temporal-invalid-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(invalidStart);
+        UUID invalidFalse = ingestAt("msg-temporal-invalid-false", measuredAt.plusSeconds(600), BigDecimal.valueOf(10)).response().medicaoId();
+        processClaimed(invalidFalse);
 
         assertThat(jdbcTemplate.queryForObject("select status from evento_janela_avaliacao", String.class)).isEqualTo("INVALIDADA");
 
@@ -262,8 +336,8 @@ class MissionEventEvaluationIntegrationTest {
         setUp();
         enableTemporal(true);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
-        ingestAt("msg-temporal-short-start", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
+        UUID shortStart = ingestAt("msg-temporal-short-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(shortStart);
         jdbcTemplate.update("update evento_janela_avaliacao set fim_previsto_em = ?, proxima_avaliacao_em = ?",
                 Timestamp.from(measuredAt.plusSeconds(600)), Timestamp.from(measuredAt.plusSeconds(600)));
 
@@ -280,10 +354,10 @@ class MissionEventEvaluationIntegrationTest {
         properties.getTemporalWindows().setMaximumSampleGap(Duration.ofSeconds(300));
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
 
-        ingestAt("msg-temporal-gap-start", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-gap-late", measuredAt.plusSeconds(600), BigDecimal.valueOf(25));
-        processClaimed();
+        UUID gapStart = ingestAt("msg-temporal-gap-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(gapStart);
+        UUID gapLate = ingestAt("msg-temporal-gap-late", measuredAt.plusSeconds(600), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(gapLate);
 
         assertThat(jdbcTemplate.queryForObject("""
                 select count(*) from evento_janela_avaliacao where status = 'EXPIRADA'
@@ -293,12 +367,12 @@ class MissionEventEvaluationIntegrationTest {
         setUp();
         enableTemporal(true);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
-        ingestAt("msg-temporal-restart-start", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-restart-mid", measuredAt.plusSeconds(900), BigDecimal.valueOf(25));
-        processClaimed();
-        ingestAt("msg-temporal-restart-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25));
-        processClaimed();
+        UUID restartStart = ingestAt("msg-temporal-restart-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(restartStart);
+        UUID restartMid = ingestAt("msg-temporal-restart-mid", measuredAt.plusSeconds(900), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(restartMid);
+        UUID restartEnd = ingestAt("msg-temporal-restart-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(restartEnd);
         properties.getTemporalWindows().setWorkerEnabled(true);
         temporalWorker.processAvailableBatch();
         jdbcTemplate.update("""
@@ -317,16 +391,16 @@ class MissionEventEvaluationIntegrationTest {
         seedAcademicContext("student-temporal");
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
 
-        ingestAt("msg-temporal-room-a", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
+        UUID roomA = ingestAt("msg-temporal-room-a", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(roomA);
 
         String firstRoom = roomId;
         String firstSensor = sensorId;
         setUp();
         enableTemporal(false);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
-        ingestAt("msg-temporal-room-b", measuredAt, BigDecimal.valueOf(25));
-        processClaimed();
+        UUID roomB = ingestAt("msg-temporal-room-b", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(roomB);
 
         assertThat(jdbcTemplate.queryForObject("select count(distinct compartimento_id) from evento_janela_avaliacao", Long.class))
                 .isEqualTo(1L);
@@ -339,7 +413,7 @@ class MissionEventEvaluationIntegrationTest {
         seedEvent(true, BigDecimal.valueOf(20), true);
         UUID medicaoId = ingest("msg-match", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(medicaoId);
 
         assertThat(statusFor(medicaoId)).as(lastErrorFor(medicaoId)).isEqualTo("COMPLETED");
         assertThat(count("evento_ocorrencia")).isEqualTo(1);
@@ -359,7 +433,7 @@ class MissionEventEvaluationIntegrationTest {
                 MissaoCicloTipo.POR_AULA, 1, true);
         UUID medicaoId = ingest("msg-academic", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(medicaoId);
 
         assertThat(statusFor(medicaoId)).as(lastErrorFor(medicaoId)).isEqualTo("COMPLETED");
         assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
@@ -378,7 +452,7 @@ class MissionEventEvaluationIntegrationTest {
         seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
                 MissaoCicloTipo.UNICA, 2, true);
         UUID medicaoId = ingest("msg-progress-retry", BigDecimal.valueOf(25)).response().medicaoId();
-        var work = claimOne();
+        var work = claimOne(medicaoId);
 
         worker.processClaimed(work);
         jdbcTemplate.update("""
@@ -386,7 +460,7 @@ class MissionEventEvaluationIntegrationTest {
                 set status = 'RETRY', available_at = now(), processed_at = null
                 where id = ?
                 """, work.requestId());
-        worker.processClaimed(claimOne());
+        worker.processClaimed(claimOne(medicaoId));
 
         assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
         assertThat(count("atividade")).isEqualTo(1);
@@ -400,9 +474,9 @@ class MissionEventEvaluationIntegrationTest {
         seedAcademicContext("student-manual");
         seedEvent(true, BigDecimal.valueOf(20), true, EventoPoliticaAtribuicao.ALUNOS_VINCULADOS,
                 MissaoCicloTipo.UNICA, 1, false);
-        ingest("msg-manual", BigDecimal.valueOf(25));
+        UUID medicaoId = ingest("msg-manual", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(medicaoId);
 
         assertThat(jdbcTemplate.queryForObject("select status from atividade", String.class)).isEqualTo("EM_ANDAMENTO");
         assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
@@ -418,7 +492,7 @@ class MissionEventEvaluationIntegrationTest {
                 MissaoCicloTipo.POR_PRESENCA, 1, true);
         UUID unsupportedCycle = ingest("msg-unsupported-cycle", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(unsupportedCycle);
         assertThat(statusFor(unsupportedCycle)).isEqualTo("FAILED");
 
         cleanDatabase();
@@ -428,7 +502,7 @@ class MissionEventEvaluationIntegrationTest {
                 MissaoCicloTipo.UNICA, 1, true);
         UUID unsupportedPolicy = ingest("msg-unsupported-policy", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(unsupportedPolicy);
         assertThat(statusFor(unsupportedPolicy)).isEqualTo("FAILED");
     }
 
@@ -437,14 +511,14 @@ class MissionEventEvaluationIntegrationTest {
         seedEvent(true, BigDecimal.valueOf(30), true);
         UUID unmatchedMedicaoId = ingest("msg-unmatched", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(unmatchedMedicaoId);
         assertThat(statusFor(unmatchedMedicaoId)).isEqualTo("COMPLETED");
         assertThat(count("evento_ocorrencia")).isEqualTo(0);
 
         jdbcTemplate.update("update evento_definicao set ativo = false");
         UUID ignoredMedicaoId = ingest("msg-ignored", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(ignoredMedicaoId);
         assertThat(statusFor(ignoredMedicaoId)).isEqualTo("IGNORED");
     }
 
@@ -452,7 +526,7 @@ class MissionEventEvaluationIntegrationTest {
     void retryDoesNotDuplicateOccurrenceOrEvidence() {
         seedEvent(true, BigDecimal.valueOf(20), true);
         UUID medicaoId = ingest("msg-retry", BigDecimal.valueOf(25)).response().medicaoId();
-        var work = claimOne();
+        var work = claimOne(medicaoId);
 
         worker.processClaimed(work);
         jdbcTemplate.update("""
@@ -460,7 +534,7 @@ class MissionEventEvaluationIntegrationTest {
                 set status = 'RETRY', available_at = now(), processed_at = null
                 where id = ?
                 """, work.requestId());
-        var retry = claimOne();
+        var retry = claimOne(medicaoId);
         worker.processClaimed(retry);
 
         assertThat(statusFor(medicaoId)).isEqualTo("COMPLETED");
@@ -474,12 +548,21 @@ class MissionEventEvaluationIntegrationTest {
         seedAmbiguousClasses();
         UUID ambiguousMedicaoId = ingest("msg-ambiguous", BigDecimal.valueOf(25)).response().medicaoId();
 
-        processClaimed();
+        processClaimed(ambiguousMedicaoId);
         assertThat(statusFor(ambiguousMedicaoId)).isEqualTo("FAILED");
     }
 
     private SensorIngestOrchestrator.IngestOutcome ingest(String messageId, BigDecimal value) {
-        return orchestrator.ingest("producer", request(messageId, value));
+        var outcome = orchestrator.ingest("producer", request(messageId, value));
+        makeRequestAvailable(outcome);
+        return outcome;
+    }
+
+    private void makeRequestAvailable(SensorIngestOrchestrator.IngestOutcome outcome) {
+        if (outcome.response() != null && outcome.response().medicaoId() != null) {
+            jdbcTemplate.update("update evento_avaliacao_request set available_at = now() where medicao_id = ?",
+                    outcome.response().medicaoId());
+        }
     }
 
     private SensorIngestOrchestrator.IngestOutcome ingestAt(String messageId, Instant timestamp, BigDecimal value) {
@@ -498,8 +581,26 @@ class MissionEventEvaluationIntegrationTest {
         properties.getTemporalWindows().setWorkerEnabled(false);
     }
 
+    private void satisfyTemporalWindow(String prefix) {
+        UUID start = ingestAt("msg-" + prefix + "-start", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(start);
+        UUID mid = ingestAt("msg-" + prefix + "-mid", measuredAt.plusSeconds(600), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(mid);
+        UUID mid2 = ingestAt("msg-" + prefix + "-mid-2", measuredAt.plusSeconds(1200), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(mid2);
+        UUID end = ingestAt("msg-" + prefix + "-end", measuredAt.plusSeconds(1800), BigDecimal.valueOf(25)).response().medicaoId();
+        processClaimed(end);
+        properties.getTemporalWindows().setWorkerEnabled(true);
+        assertThat(temporalWorker.processAvailableBatch()).isGreaterThanOrEqualTo(1);
+    }
+
     private void processClaimed() {
         var work = claimOne();
+        worker.processClaimed(work);
+    }
+
+    private void processClaimed(UUID medicaoId) {
+        var work = claimOne(medicaoId);
         worker.processClaimed(work);
     }
 
@@ -519,9 +620,62 @@ class MissionEventEvaluationIntegrationTest {
         throw new IllegalStateException("No evaluation request available for claim");
     }
 
+    private EventoAvaliacaoRequestService.EventoAvaliacaoWork claimOne(UUID medicaoId) {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            var claimed = jdbcTemplate.query("""
+                    update evento_avaliacao_request request
+                    set status = 'PROCESSING',
+                        attempts = request.attempts + 1,
+                        claimed_at = now(),
+                        lease_until = now() + interval '30 seconds',
+                        processed_at = null,
+                        last_error = null,
+                        updated_at = now()
+                    where request.id in (
+                        select candidate.id
+                        from evento_avaliacao_request candidate
+                        where candidate.medicao_id = ?
+                          and candidate.attempts < 3
+                          and (
+                                (
+                                    candidate.status in ('PENDING','RETRY')
+                                    and candidate.available_at <= now()
+                                )
+                                or (
+                                    candidate.status = 'PROCESSING'
+                                    and candidate.lease_until <= now()
+                                )
+                            )
+                        for update of candidate skip locked
+                        limit 1
+                    )
+                    returning request.id, request.medicao_id, request.attempts
+                    """, (rs, rowNum) -> new EventoAvaliacaoRequestService.EventoAvaliacaoWork(
+                    rs.getObject("id", UUID.class),
+                    rs.getObject("medicao_id", UUID.class),
+                    rs.getInt("attempts")
+            ), medicaoId);
+            if (!claimed.isEmpty()) {
+                return claimed.getFirst();
+            }
+            try {
+                Thread.sleep(25);
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Interrupted while waiting for evaluation request", ex);
+            }
+        }
+        var rows = jdbcTemplate.queryForList("""
+                select status, attempts, available_at, lease_until, processed_at, last_error
+                from evento_avaliacao_request
+                where medicao_id = ?
+                """, medicaoId);
+        throw new IllegalStateException("No evaluation request available for medicaoId=" + medicaoId + " rows=" + rows);
+    }
+
     private SensorIngestDTOs.CanonicalIngestRequest request(String messageId, BigDecimal value) {
         return new SensorIngestDTOs.CanonicalIngestRequest(
-                messageId,
+                messageId + "-" + suffix,
                 sensorId,
                 measuredAt,
                 MedicaoIngestaoSource.API,
@@ -652,21 +806,36 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     private void seedDurationEvent(BigDecimal threshold, boolean conditionActive, int janelaSegundos, int duracaoMinimaSegundos) {
+        seedDurationEvent(threshold, conditionActive, janelaSegundos, duracaoMinimaSegundos,
+                EventoPoliticaAtribuicao.SEM_ATRIBUICAO_AUTOMATICA, MissaoCicloTipo.UNICA, 1, true, 10);
+    }
+
+    private void seedDurationEvent(
+            BigDecimal threshold,
+            boolean conditionActive,
+            int janelaSegundos,
+            int duracaoMinimaSegundos,
+            EventoPoliticaAtribuicao politica,
+            MissaoCicloTipo cicloTipo,
+            int progressoNecessario,
+            boolean conclusaoAutomatica,
+            int value
+    ) {
         missionId = UUID.randomUUID();
         eventId = UUID.randomUUID();
         UUID conditionId = UUID.randomUUID();
         jdbcTemplate.update("""
                 insert into missao
                 (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
-                values (?, 'Missao temporal', 'Descricao', 'Individual', 10, true, now(), 'UNICA', 1, true)
-                """, missionId);
+                values (?, 'Missao temporal', 'Descricao', 'Individual', ?, true, now(), ?, ?, ?)
+                """, missionId, value, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
         jdbcTemplate.update("""
                 insert into evento_definicao
                 (id, missao_id, nome, tipo_disparo, modo_avaliacao, operador_logico, politica_atribuicao,
                  janela_segundos, duracao_minima_segundos, quantidade_necessaria, ordem, ativo, created_at, updated_at)
                 values (?, ?, 'Temperatura sustentada', 'MEDICAO_RECEBIDA', 'DURACAO', 'ALL',
-                        'SEM_ATRIBUICAO_AUTOMATICA', ?, ?, 1, 1, true, now(), now())
-                """, eventId, missionId, janelaSegundos, duracaoMinimaSegundos);
+                        ?, ?, ?, 1, 1, true, now(), now())
+                """, eventId, missionId, politica.name(), janelaSegundos, duracaoMinimaSegundos);
         jdbcTemplate.update("""
                 insert into evento_condicao
                 (id, evento_definicao_id, parametro_def_id, operador, valor_numeric_1,
