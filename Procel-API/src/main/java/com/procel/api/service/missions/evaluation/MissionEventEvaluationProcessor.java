@@ -49,6 +49,7 @@ public class MissionEventEvaluationProcessor {
     private final AcademicContextResolver academicContextResolver;
     private final MeasurementFactFactory measurementFactFactory;
     private final MissionRuleEngine missionRuleEngine;
+    private final MissionTransitionEventProcessor transitionEventProcessor;
     private final MissionTemporalWindowUpdateService temporalWindowUpdateService;
     private final EventoOcorrenciaService ocorrenciaService;
     private final MissionEventActivityProcessor activityProcessor;
@@ -63,6 +64,7 @@ public class MissionEventEvaluationProcessor {
             AcademicContextResolver academicContextResolver,
             MeasurementFactFactory measurementFactFactory,
             MissionRuleEngine missionRuleEngine,
+            MissionTransitionEventProcessor transitionEventProcessor,
             MissionTemporalWindowUpdateService temporalWindowUpdateService,
             EventoOcorrenciaService ocorrenciaService,
             MissionEventActivityProcessor activityProcessor,
@@ -76,6 +78,7 @@ public class MissionEventEvaluationProcessor {
         this.academicContextResolver = academicContextResolver;
         this.measurementFactFactory = measurementFactFactory;
         this.missionRuleEngine = missionRuleEngine;
+        this.transitionEventProcessor = transitionEventProcessor;
         this.temporalWindowUpdateService = temporalWindowUpdateService;
         this.ocorrenciaService = ocorrenciaService;
         this.activityProcessor = activityProcessor;
@@ -124,18 +127,24 @@ public class MissionEventEvaluationProcessor {
                 }
             }
 
+            var transitionOutcome = transitionEventProcessor.processMeasurement(
+                    medicao,
+                    academicContext,
+                    facts,
+                    evaluationTime
+            );
             int temporalWindowsTouched = temporalWindowUpdateService.processMeasurement(
                     medicao,
                     academicContext,
                     facts,
                     evaluationTime
             );
-            if (events.isEmpty() && temporalWindowsTouched == 0) {
+            if (events.isEmpty() && transitionOutcome.evaluatedEvents() == 0 && temporalWindowsTouched == 0) {
                 return ProcessingOutcome.ignored("No applicable event definitions");
             }
 
             requestService.markCompleted(work.requestId());
-            return ProcessingOutcome.completed(detected);
+            return ProcessingOutcome.completed(detected + transitionOutcome.detectedEvents());
         } catch (MissionEventEvaluationFailure ex) {
             throw ex;
         } catch (MissionEventActivityProcessingException ex) {

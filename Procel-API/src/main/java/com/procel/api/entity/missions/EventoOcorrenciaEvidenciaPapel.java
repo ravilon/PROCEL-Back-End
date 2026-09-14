@@ -5,5 +5,7 @@ public enum EventoOcorrenciaEvidenciaPapel {
     CONDICAO,
     MANUTENCAO,
     ENCERRAMENTO,
-    BASELINE
+    BASELINE,
+    ANTES,
+    DEPOIS
 }

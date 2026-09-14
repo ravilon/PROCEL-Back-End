@@ -213,6 +213,133 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     @Test
+    void transitionDisabledByDefaultDoesNotCreateOccurrence() {
+        seedTransitionEvent("temperature", parametroDefId, "NUMERIC", "GT", BigDecimal.valueOf(20), null, null);
+        UUID first = ingestAt("msg-transition-disabled-first", measuredAt, BigDecimal.valueOf(18)).response().medicaoId();
+        UUID second = ingestAt("msg-transition-disabled-second", measuredAt.plusSeconds(60), BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed(first);
+        processClaimed(second);
+
+        assertThat(statusFor(second)).isEqualTo("IGNORED");
+        assertThat(count("evento_ocorrencia")).isZero();
+    }
+
+    @Test
+    void firstTransitionMeasurementIsNotATransitionAndNumericChangeCreatesOccurrenceEvidence() {
+        enableTemporal(false);
+        seedTransitionEvent("temperature", parametroDefId, "NUMERIC", "GT", BigDecimal.valueOf(20), null, null);
+        UUID first = ingestAt("msg-transition-first", measuredAt, BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed(first);
+
+        assertThat(statusFor(first)).isEqualTo("COMPLETED");
+        assertThat(count("evento_ocorrencia")).isZero();
+
+        UUID second = ingestAt("msg-transition-second", measuredAt.plusSeconds(60), BigDecimal.valueOf(26)).response().medicaoId();
+        processClaimed(second);
+
+        assertThat(statusFor(second)).as(lastErrorFor(second)).isEqualTo("COMPLETED");
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
+        assertThat(jdbcTemplate.queryForObject("select contexto_snapshot::text from evento_ocorrencia", String.class))
+                .contains("TRANSITION_V1")
+                .contains(second.toString())
+                .contains("previousObservedValue")
+                .contains("currentObservedValue");
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'ANTES'")).isEqualTo(1);
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'DEPOIS'")).isEqualTo(1);
+        assertThat(count("atividade")).isZero();
+        assertThat(count("xp_lancamento")).isZero();
+    }
+
+    @Test
+    void transitionSupportsBooleanAndTextValues() {
+        enableTemporal(false);
+        UUID booleanParam = seedParametroDef("presence", "BOOLEAN");
+        UUID textParam = seedParametroDef("mode", "TEXT");
+        seedTransitionEvent("presence", booleanParam, "BOOLEAN", "EQ", null, true, null);
+        UUID booleanFirst = ingestRawAt("msg-transition-bool-first", measuredAt, Map.of("temperature", BigDecimal.valueOf(20), "presence", false)).response().medicaoId();
+        UUID booleanSecond = ingestRawAt("msg-transition-bool-second", measuredAt.plusSeconds(60), Map.of("temperature", BigDecimal.valueOf(20), "presence", true)).response().medicaoId();
+
+        processClaimed(booleanFirst);
+        processClaimed(booleanSecond);
+
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel in ('ANTES','DEPOIS')")).isEqualTo(2);
+
+        cleanDatabase();
+        setUp();
+        enableTemporal(false);
+        textParam = seedParametroDef("mode", "TEXT");
+        seedTransitionEvent("mode", textParam, "TEXT", "EQ", null, null, "eco");
+        UUID textFirst = ingestRawAt("msg-transition-text-first", measuredAt, Map.of("temperature", BigDecimal.valueOf(20), "mode", "off")).response().medicaoId();
+        UUID textSecond = ingestRawAt("msg-transition-text-second", measuredAt.plusSeconds(60), Map.of("temperature", BigDecimal.valueOf(20), "mode", "eco")).response().medicaoId();
+
+        processClaimed(textFirst);
+        processClaimed(textSecond);
+
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel in ('ANTES','DEPOIS')")).isEqualTo(2);
+    }
+
+    @Test
+    void transitionRetryDoesNotDuplicateOccurrenceEvidenceActivitiesOrXp() {
+        enableTemporal(false);
+        properties.getTemporalWindows().setActivitiesEnabled(true);
+        seedAcademicContext("student-transition");
+        seedTransitionEvent("temperature", parametroDefId, "NUMERIC", "GT", BigDecimal.valueOf(20), null, null,
+                EventoPoliticaAtribuicao.ALUNOS_VINCULADOS, MissaoCicloTipo.UNICA, 1, true, 10);
+        UUID first = ingestAt("msg-transition-effects-first", measuredAt, BigDecimal.valueOf(19)).response().medicaoId();
+        UUID second = ingestAt("msg-transition-effects-second", measuredAt.plusSeconds(60), BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed(first);
+        var work = claimOne(second);
+        worker.processClaimed(work);
+        jdbcTemplate.update("""
+                update evento_avaliacao_request
+                set status = 'RETRY', available_at = now(), processed_at = null
+                where id = ?
+                """, work.requestId());
+        worker.processClaimed(claimOne(second));
+
+        assertThat(statusFor(second)).as(lastErrorFor(second)).isEqualTo("COMPLETED");
+        assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'ANTES'")).isEqualTo(1);
+        assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'DEPOIS'")).isEqualTo(1);
+        assertThat(count("atividade")).isEqualTo(1);
+        assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
+        assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isEqualTo(1);
+        assertThat(count("xp_lancamento")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(10L);
+    }
+
+    @Test
+    void transitionUsesLatestStrictlyPreviousMeasurementByTimestamp() {
+        enableTemporal(false);
+        seedTransitionEvent("temperature", parametroDefId, "NUMERIC", "GT", BigDecimal.valueOf(20), null, null);
+        UUID older = ingestAt("msg-transition-order-older", measuredAt, BigDecimal.valueOf(10)).response().medicaoId();
+        UUID previous = ingestAt("msg-transition-order-prev", measuredAt.plusSeconds(60), BigDecimal.valueOf(25)).response().medicaoId();
+        UUID sameTimestamp = ingestAt("msg-transition-order-same", measuredAt.plusSeconds(120), BigDecimal.valueOf(5)).response().medicaoId();
+        UUID current = ingestAt("msg-transition-order-current", measuredAt.plusSeconds(120), BigDecimal.valueOf(25)).response().medicaoId();
+
+        processClaimed(older);
+        processClaimed(previous);
+        processClaimed(sameTimestamp);
+        processClaimed(current);
+
+        assertThat(count("evento_ocorrencia")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("""
+                select count(*)
+                from evento_ocorrencia_evidencia evidence
+                join parametro_valor value on value.id = evidence.parametro_valor_id
+                where evidence.papel = 'ANTES'
+                  and value.medicao_id = ?
+                """, Long.class, sameTimestamp)).isZero();
+    }
+
+    @Test
     void primeiraMedicaoAbreJanelaTemporal() {
         enableTemporal(false);
         seedDurationEvent(BigDecimal.valueOf(20), true, 3600, 1800);
@@ -575,6 +702,18 @@ class MissionEventEvaluationIntegrationTest {
         }
     }
 
+    private SensorIngestOrchestrator.IngestOutcome ingestRawAt(String messageId, Instant timestamp, Map<String, Object> values) {
+        Instant previous = measuredAt;
+        measuredAt = timestamp;
+        try {
+            var outcome = orchestrator.ingest("producer", request(messageId, values));
+            makeRequestAvailable(outcome);
+            return outcome;
+        } finally {
+            measuredAt = previous;
+        }
+    }
+
     private void enableTemporal(boolean drools) {
         properties.getTemporalWindows().setEnabled(true);
         properties.getTemporalWindows().setDroolsEnabled(drools);
@@ -674,13 +813,17 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     private SensorIngestDTOs.CanonicalIngestRequest request(String messageId, BigDecimal value) {
+        return request(messageId, Map.of("temperature", value));
+    }
+
+    private SensorIngestDTOs.CanonicalIngestRequest request(String messageId, Map<String, Object> values) {
         return new SensorIngestDTOs.CanonicalIngestRequest(
                 messageId + "-" + suffix,
                 sensorId,
                 measuredAt,
                 MedicaoIngestaoSource.API,
                 measuredAt,
-                Map.of("temperature", value)
+                values
         );
     }
 
@@ -704,6 +847,15 @@ class MissionEventEvaluationIntegrationTest {
                 insert into parametro_def (id, tipo_nome, nome, data_type, ativo)
                 values (?, ?, 'temperature', 'NUMERIC', true)
                 """, parametroDefId, tipoSensor);
+    }
+
+    private UUID seedParametroDef(String nome, String dataType) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update("""
+                insert into parametro_def (id, tipo_nome, nome, data_type, ativo)
+                values (?, ?, ?, ?, true)
+                """, id, tipoSensor, nome, dataType);
+        return id;
     }
 
     private void cleanDatabase() {
@@ -842,6 +994,56 @@ class MissionEventEvaluationIntegrationTest {
                  agregacao, obrigatoria, ordem, ativo, created_at)
                 values (?, ?, ?, 'GT', ?, 'ULTIMO', true, 1, ?, now())
                 """, conditionId, eventId, parametroDefId, threshold, conditionActive);
+    }
+
+    private void seedTransitionEvent(
+            String parametroNome,
+            UUID parametroId,
+            String dataType,
+            String operador,
+            BigDecimal numericValue,
+            Boolean booleanValue,
+            String textValue
+    ) {
+        seedTransitionEvent(parametroNome, parametroId, dataType, operador, numericValue, booleanValue, textValue,
+                EventoPoliticaAtribuicao.SEM_ATRIBUICAO_AUTOMATICA, MissaoCicloTipo.UNICA, 1, true, 10);
+    }
+
+    private void seedTransitionEvent(
+            String parametroNome,
+            UUID parametroId,
+            String dataType,
+            String operador,
+            BigDecimal numericValue,
+            Boolean booleanValue,
+            String textValue,
+            EventoPoliticaAtribuicao politica,
+            MissaoCicloTipo cicloTipo,
+            int progressoNecessario,
+            boolean conclusaoAutomatica,
+            int value
+    ) {
+        missionId = UUID.randomUUID();
+        eventId = UUID.randomUUID();
+        UUID conditionId = UUID.randomUUID();
+        jdbcTemplate.update("""
+                insert into missao
+                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                values (?, 'Missao transicao', 'Descricao', 'Individual', ?, true, now(), ?, ?, ?)
+                """, missionId, value, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
+        jdbcTemplate.update("""
+                insert into evento_definicao
+                (id, missao_id, nome, tipo_disparo, modo_avaliacao, operador_logico, politica_atribuicao,
+                 quantidade_necessaria, ordem, ativo, created_at, updated_at)
+                values (?, ?, ?, 'MEDICAO_RECEBIDA', 'TRANSICAO', 'ALL',
+                        ?, 1, 1, true, now(), now())
+                """, eventId, missionId, "Transicao " + parametroNome, politica.name());
+        jdbcTemplate.update("""
+                insert into evento_condicao
+                (id, evento_definicao_id, parametro_def_id, operador, valor_numeric_1, valor_boolean, valor_text,
+                 agregacao, obrigatoria, ordem, ativo, created_at)
+                values (?, ?, ?, ?, ?, ?, ?, 'ULTIMO', true, 1, true, now())
+                """, conditionId, eventId, parametroId, operador, numericValue, booleanValue, textValue);
     }
 
     private void seedAcademicContext(String... pessoaIds) {
