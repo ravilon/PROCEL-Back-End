@@ -37,7 +37,7 @@ O resumo manual dos contratos esta em `Contratos-HTTP.md`.
 - ingestao externa por perfil;
 - Telemetry REST;
 - listagem, detalhe e reprocessamento;
-- jobs de agregacao e consulta de progresso.
+- jobs de agregacao, consulta de progresso e consultas analiticas.
 
 `Postman/PROCEL-API/PROCEL-API-Env.postman_environment.json` define variaveis locais. Nao ha credenciais de producao.
 
@@ -47,4 +47,6 @@ O resumo manual dos contratos esta em `Contratos-HTTP.md`.
 
 ## Observacao
 
-As colecoes nao devem inventar endpoints. Buckets analiticos existem no banco, mas uma API ampla de consulta de resultados fica reservada para etapa futura.
+As colecoes nao devem inventar endpoints. Para contratos vivos, prefira sempre
+`/v3/api-docs`, especialmente para rotas administrativas do motor de missoes e
+consultas de XP, que evoluiram depois das colecoes manuais iniciais.

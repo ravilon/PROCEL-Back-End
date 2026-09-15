@@ -27,7 +27,7 @@ O repositorio contem tres aplicacoes principais:
 
 | Area | Tecnologia |
 | --- | --- |
-| Backend | Java 21, Spring Boot 4.0.3, Spring Security, Spring Data JPA/MongoDB |
+| Backend | Java 21, Spring Boot 4.0.8, Spring Security, Spring Data JPA/MongoDB |
 | Banco canonico | PostgreSQL, Flyway |
 | Banco bruto | MongoDB |
 | MQTT | MQTT 5, Eclipse Paho MQTT v5, QoS 1 |
@@ -41,7 +41,7 @@ Dispositivos e produtores podem enviar telemetria bruta por REST ou MQTT para o 
 
 O worker canonico do `Procel-Telemetry`, desabilitado por padrao, faz claim atomico de eventos `RECEIVED`, consulta o snapshot de integracao do `Procel-API`, seleciona o perfil/parser sem resolver ambiguidades silenciosamente e chama a rota interna de ingestao do `Procel-API` com JWT curto de role fixa `TELEMETRY_SERVICE`.
 
-O `Procel-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao e buckets numericos. O `Procel-Admin` consome `Procel-API` e `Procel-Telemetry` usando o JWT do usuario autenticado.
+O `Procel-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao, buckets numericos, motor de eventos de missoes, janelas temporais, atividades ciclicas e ledger de XP. O `Procel-Admin` consome `Procel-API` e `Procel-Telemetry` usando o JWT do usuario autenticado.
 
 `Procel-Telemetry` nao acessa diretamente o PostgreSQL.
 
@@ -142,11 +142,56 @@ buckets com paginacao server-side. O grafico usa apenas a pagina atual para nao
 buscar milhares de pontos silenciosamente. Calculos analiticos permanecem no
 backend.
 
+### Missoes, Eventos e XP
+
+O catalogo de missoes possui eventos configuraveis por `EventoDefinicao` e
+`EventoCondicao`. O processamento instantaneo usa `SimpleMissionRuleEngine` por
+padrao. O Drools permanece opt-in e e usado somente no fluxo temporal quando as
+flags temporais estao habilitadas.
+
+O motor persiste `EventoAvaliacaoRequest`, `EventoOcorrencia` e evidencias. Para
+eventos temporais, `EventoJanelaAvaliacao` e suas evidencias permitem recuperar
+janelas `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA` depois de reinicio. Quando
+habilitado por flag, ocorrencias confirmadas processam beneficiarios academicos,
+atividades ciclicas, progresso, conclusao automatica e XP de forma idempotente.
+
+O saldo de XP nao fica salvo em `Pessoa`; ele e calculado pela soma append-only
+de `xp_lancamento`. Conclusoes manuais continuam sem concessao automatica de XP.
+
+Endpoints administrativos de operacao do motor:
+
+```text
+GET  /api/admin/missions/events
+GET  /api/admin/missions/evaluation-requests
+GET  /api/admin/missions/windows
+GET  /api/admin/missions/windows/{windowId}
+GET  /api/admin/missions/windows/{windowId}/evidences
+POST /api/admin/missions/windows/{windowId}/retry
+POST /api/admin/missions/windows/{windowId}/satisfy
+POST /api/admin/missions/windows/{windowId}/invalidate
+POST /api/admin/missions/windows/{windowId}/expire
+POST /api/admin/missions/windows/{windowId}/fail
+GET  /api/admin/missions/occurrences
+GET  /api/admin/missions/occurrences/{occurrenceId}
+GET  /api/admin/missions/occurrences/{occurrenceId}/evidences
+POST /api/admin/missions/occurrences/{occurrenceId}/status
+GET  /api/admin/missions/workers/status
+POST /api/admin/missions/workers/evaluation/run
+POST /api/admin/missions/workers/temporal-windows/run
+```
+
+Consulta de XP:
+
+```text
+GET /api/pessoas/{pessoaId}/xp
+GET /api/pessoas/{pessoaId}/xp/lancamentos
+```
+
 ## Bancos
 
 ### PostgreSQL
 
-O PostgreSQL armazena dominio canonico: pessoas, cursos, disciplinas, presencas, sensores, medicoes, parametros, regras, perfis de integracao, metadata de ingestao, jobs de agregacao, janelas e buckets numericos.
+O PostgreSQL armazena dominio canonico: pessoas, cursos, disciplinas, presencas, sensores, medicoes, parametros, regras, perfis de integracao, metadata de ingestao, jobs de agregacao, janelas e buckets numericos, missoes, eventos, janelas temporais, ocorrencias, atividades e ledger de XP.
 
 Flyway e a fonte de verdade do schema. Migrations antigas nao devem ser alteradas.
 
@@ -183,6 +228,11 @@ O JWT de servico usado pelo worker e curto, assinado com segredo configurado e n
 | `PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS` | Origens permitidas |
 | `PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED` | Habilita worker de agregacao |
 | `PROCEL_ANALYTICS_AGGREGATION_VERSION` | Versao logica do algoritmo de buckets |
+| `PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED` | Habilita worker de avaliacao instantanea de eventos de missoes |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita infraestrutura de janelas temporais |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED` | Habilita Drools no fluxo temporal |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita efeitos de atividades/XP para ocorrencias temporais satisfeitas |
 
 ### Procel-Telemetry
 
@@ -391,7 +441,7 @@ API-Doc/Postman/
 API-Doc/Insomnia/
 ```
 
-As colecoes cobrem autenticacao, ingestao canonica, integracoes, snapshot, telemetria bruta, reprocessamento, jobs de agregacao e consultas de progresso.
+As colecoes cobrem autenticacao, ingestao canonica, integracoes, snapshot, telemetria bruta, reprocessamento, jobs de agregacao, consultas analiticas e consultas de progresso.
 
 ## Documentacao Adicional
 
@@ -408,7 +458,7 @@ Documentos/Catalogo-Dados.md
 
 - A tela de analises limita o grafico a pagina atual dos buckets; uma API dedicada
   para series temporais densas fica reservada para a etapa 12.
-- Prometheus, metricas detalhadas, rate limiting, backup automatizado e E2E integrado ficam reservados para evolucao operacional da etapa 12.
+- Rate limiting, backup automatizado e E2E integrado de staging/producao ficam reservados para evolucao operacional da etapa 12.
 - `spring.jpa.hibernate.ddl-auto=update` ainda aparece na configuracao local da API, mas a criacao do schema deve ser feita por Flyway.
 
 ## Roadmap
@@ -426,7 +476,7 @@ Documentos/Catalogo-Dados.md
 | 9 | Buckets e medias analiticas | Concluida |
 | 10 | API de consulta analitica | Concluida |
 | 11 | Interface analitica e graficos | Concluida |
-| 12 | Deploy integrado, observabilidade, seguranca e E2E | Parcial |
+| 12 | Deploy integrado, observabilidade, seguranca, motor de missoes e E2E | Parcial |
 
 Progresso atual: **91,7%** (`11/12`).
 

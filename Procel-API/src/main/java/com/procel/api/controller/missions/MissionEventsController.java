@@ -25,7 +25,7 @@ import java.util.UUID;
 @RestController
 @Tag(
         name = "Mission Events",
-        description = "Catalogo persistente de definicoes de eventos de missoes e suas condicoes. Esta API apenas configura eventos; nao avalia medicoes nem cria atividades."
+        description = "Catalogo persistente de definicoes de eventos de missoes e suas condicoes."
 )
 public class MissionEventsController {
 
@@ -38,7 +38,7 @@ public class MissionEventsController {
     @PostMapping("/missions/{missionId}/events")
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Cria definicao de evento para uma missao", description = "Requer ADMIN. Nao executa avaliacao nem cria atividades.")
+    @Operation(summary = "Cria definicao de evento para uma missao", description = "Requer ADMIN.")
     @ApiResponse(responseCode = "201", description = "Evento criado.")
     @ApiResponse(responseCode = "400", description = "Dados invalidos.")
     @ApiResponse(responseCode = "403", description = "Sem permissao.")

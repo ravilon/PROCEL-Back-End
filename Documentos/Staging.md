@@ -4,9 +4,11 @@ Este documento descreve como provisionar um staging seguro do PROCEL no Coolify 
 
 ## Objetivo
 
-Validar, em ambiente isolado, o caminho `Medicao -> EventoAvaliacaoRequest -> EventoJanelaAvaliacao DURACAO -> Drools -> EventoOcorrencia`.
+Validar, em ambiente isolado, o caminho `Medicao -> EventoAvaliacaoRequest -> EventoJanelaAvaliacao DURACAO/TRANSICAO/JANELA_ENCERRADA -> avaliacao temporal, com Drools quando habilitado -> EventoOcorrencia`.
 
-Este staging nao deve conectar atividades, beneficiarios ou XP ao fluxo temporal.
+Atividades, beneficiarios e XP so devem ser conectados quando
+`PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true` estiver
+habilitada explicitamente em staging.
 
 ## Recursos Isolados
 
@@ -49,6 +51,7 @@ Flags temporais da API para a validacao:
 - `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED=true`
 - `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED=true`
 - `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED=true`
+- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true`, somente quando a validacao incluir atividades/XP
 
 Para validacao rapida, use duracoes curtas:
 
@@ -64,7 +67,7 @@ Para validacao rapida, use duracoes curtas:
 4. Criar MQTT staging, com TLS e credenciais proprias quando exposto fora da rede privada.
 5. Publicar Procel-API com `SPRING_PROFILES_ACTIVE=staging`.
 6. Validar `GET /actuator/health` da API.
-7. Confirmar Flyway em `V24`.
+7. Confirmar Flyway em `V25`.
 8. Publicar Procel-Telemetry com `SPRING_PROFILES_ACTIVE=staging`.
 9. Validar `GET /actuator/health` da Telemetry.
 10. Validar `/actuator/prometheus` com credencial administrativa.
@@ -116,7 +119,7 @@ Antes de qualquer limpeza destrutiva, gere contagem por tabela e revise os IDs.
 GO para conectar atividades temporais de forma controlada:
 
 - health da API e Telemetry `UP`;
-- Flyway em `V24`;
+- Flyway em `V25`;
 - workers explicitamente habilitados apenas em staging;
 - duracao satisfeita gera uma unica ocorrencia confirmada;
 - interrupcao invalida janela sem ocorrencia;
@@ -126,8 +129,9 @@ GO para conectar atividades temporais de forma controlada:
 - duas salas mantem isolamento;
 - backlog volta para zero apos lote controlado;
 - cache Drools apresenta hits depois do prewarm;
+- se atividades/XP estiverem habilitados, atividade, progresso, conclusao automatica e `xp_lancamento` sao criados uma unica vez;
 - sem erros persistentes nos contadores de falha;
-- memoria e latencia dentro dos thresholds provisórios.
+- memoria e latencia dentro dos thresholds provisorios.
 
 NO-GO:
 

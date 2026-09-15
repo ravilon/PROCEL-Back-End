@@ -2,13 +2,14 @@
 
 ## Problema
 
-O PROCEL precisa decidir se vale evoluir a prova de conceito do Drools para uma integracao de producao no fluxo de missoes. O objetivo tecnico avaliado foi suportar regras configuraveis e cenarios temporais com evidencias, relogio controlado, limites operacionais e isolamento entre avaliacoes, sem conectar o Drools ao worker e sem trocar o `SimpleMissionRuleEngine` como padrao.
+O PROCEL precisa decidir se vale evoluir a prova de conceito do Drools para uma integracao de producao no fluxo de missoes. O objetivo tecnico avaliado foi suportar regras configuraveis e cenarios temporais com evidencias, relogio controlado, limites operacionais e isolamento entre avaliacoes, sem trocar o `SimpleMissionRuleEngine` como padrao.
 
 ## Contexto
 
 - `SimpleMissionRuleEngine` permanece a implementacao padrao.
 - `DroolsMissionRuleEngine` continua opt-in por `procel.missions.rule-engine=drools`.
-- O worker de missoes nao chama Drools nesta etapa.
+- O worker instantaneo de missoes nao chama Drools.
+- O worker temporal pode chamar Drools somente quando `procel.missions.evaluation.temporal-windows.drools-enabled=true`.
 - Nao ha DRL fornecido por usuario; as regras sao geradas a partir de `EventoDefinicao` e `EventoCondicao`.
 - Nao ha acesso a repositories, entidades JPA, persistencia, atividades ou XP dentro do engine.
 
@@ -137,7 +138,7 @@ Resultados principais:
 - Compilacao fria e cara e precisa ser pre-aquecida ou amortizada por cache.
 - O modelo atual de timeout protege o caller, mas custa overhead por avaliacao.
 - O benchmark forkado e suficiente para decisao da POC, mas ainda deve ser repetido em ambiente dedicado antes de SLO final.
-- O modo temporal ainda e POC; nao ha janelas persistidas nem integracao com worker.
+- O modo temporal possui janelas persistidas e worker opt-in, mas continua desconectado por padrao e exige validacao controlada antes de producao.
 - O cenario frio e bastante verboso por logs internos do KIE a cada criacao de `KieBase`; convem ajustar logging em execucoes de benchmark longas, sem alterar logs de producao.
 
 ## Criterios para conexao futura ao worker
@@ -154,7 +155,7 @@ Conectar ao worker somente se todos os criterios forem atendidos:
 
 ## Decisao recomendada
 
-Manter experimental. Nao adotar Drools como engine de producao nem conecta-lo ao worker ainda.
+Manter experimental. Nao adotar Drools como engine padrao nem habilitar o fluxo temporal em producao sem validacao operacional controlada.
 
 Justificativa:
 
@@ -163,4 +164,4 @@ Justificativa:
 - O custo de compilacao fria e a alocacao ainda exigem governanca operacional.
 - O benchmark forkado confirmou viabilidade tecnica com cache quente, mas o ambiente ainda nao representa producao nem ha SLO operacional aprovado.
 
-Recomendacao objetiva: evoluir Drools apenas para cenarios temporais/CEP que o engine simples nao cobre bem, mantendo `SimpleMissionRuleEngine` como padrao e sem conectar ao worker ate os criterios acima serem cumpridos.
+Recomendacao objetiva: usar Drools apenas para cenarios temporais/CEP que o engine simples nao cobre bem, mantendo `SimpleMissionRuleEngine` como padrao e mantendo o worker temporal, atividades e XP atras de flags ate os criterios acima serem cumpridos em staging.

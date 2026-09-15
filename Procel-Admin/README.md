@@ -24,6 +24,7 @@
 | `/disciplinas` | Minhas disciplinas | `USUARIO`, `ADMIN`, `OPERADOR`, `ANALISTA` |
 | `/sensores` | Sensores e regras | `ADMIN`, `OPERADOR` |
 | `/missoes` | Missoes e atividades | `ADMIN`, `OPERADOR` |
+| `/missoes/motor` | Operacao do motor de missoes | `ADMIN`, `OPERADOR`, `ANALISTA` |
 | `/sincronizacoes` | Sincronizacoes de salas/aulas | `ADMIN`, `OPERADOR` |
 | `/integracoes` | Perfis de integracao | `ADMIN` |
 | `/integracoes/perfis/:profileId` | Detalhe de perfil | `ADMIN` |
@@ -37,6 +38,7 @@
 - catalogo de pessoas, cursos, disciplinas, compartimentos e sensores;
 - administracao de sensores e regras;
 - missoes e atividades;
+- operacao do motor de missoes: eventos/condicoes, requests, janelas/evidencias, ocorrencias/evidencias, status e execucao manual de workers;
 - sincronizacao de salas e aulas;
 - integracoes, perfis, parser versions, bindings e snapshot;
 - listagem, detalhe e reprocessamento de eventos brutos da Telemetry;

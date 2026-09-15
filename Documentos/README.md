@@ -10,5 +10,10 @@ Documentacao tecnica complementar do PROCEL.
 | `MQTT.md` | Contrato e operacao MQTT |
 | `Seguranca-e-Operacao.md` | Seguranca, secrets, CORS e operacao |
 | `Catalogo-Dados.md` | Catalogo de tabelas e collections |
+| `Decisao-Drools-POC.md` | Decisao tecnica e benchmark do Drools opt-in |
+| `MissionEventWindowClosedSemantics.md` | Semantica de eventos `JANELA_ENCERRADA` |
+| `Staging.md` | Provisionamento e validacao segura de staging |
 
 Os diagramas distinguem componentes implementados, parciais e planejados. `Procel-Telemetry` nao deve ser representado acessando diretamente o PostgreSQL.
+O DER do banco analitico deve acompanhar as migrations Flyway atuais, mantendo o
+estilo visual existente.

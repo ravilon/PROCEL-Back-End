@@ -16,6 +16,9 @@ Telemetry, MongoDB, MQTT ou do Compose integrado.
 - Snapshot de integracao usado pelo worker canonico.
 - Jobs assincronos de agregacao por periodo.
 - Persistencia de buckets numericos em `analytics_numeric_bucket`.
+- Catalogo, avaliacao e operacao de eventos de missoes.
+- Janelas temporais persistentes para eventos `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA`.
+- Beneficiarios academicos, atividades ciclicas, progresso e ledger append-only de XP quando as flags correspondentes estao habilitadas.
 
 ## PostgreSQL e Flyway
 
@@ -26,6 +29,11 @@ O schema e criado por migrations em `src/main/resources/db/migration`. Migration
 - `V18`: jobs e janelas de agregacao.
 - `V19`: buckets numericos analiticos.
 - `V20`: catalogo persistente de definicoes de eventos de missoes.
+- `V21`: requests, ocorrencias e evidencias de eventos.
+- `V22`: atividades ciclicas e vinculos `atividade_evento`.
+- `V23`: ledger append-only de XP.
+- `V24`: janelas temporais de avaliacao e evidencias.
+- `V25`: evidencias `ANTES`/`DEPOIS` para transicoes.
 
 Embora `spring.jpa.hibernate.ddl-auto=update` ainda esteja no `application.yml`, Flyway e a fonte de verdade do schema.
 
@@ -51,8 +59,10 @@ uma entidade propria `PeriodoLetivo`, com vigencia/calendario academico, e
 relacionar a ocorrencia da aula ao periodo por regra temporal explicita. Essa
 entidade nao faz parte desta primeira fundacao.
 
-Esta etapa nao cria motor de eventos, Drools, missoes automaticas, XP, sensor de
-presenca, nem usa `presenca` como requisito para elegibilidade.
+O motor de eventos usa esse contexto para resolver beneficiarios academicos
+quando a politica do evento permite. O snapshot da ocorrencia preserva o
+contexto usado no processamento para evitar recalculo silencioso de matriculas
+atuais em retries ou processamento tardio.
 
 ## Catalogo De Eventos De Missoes
 
@@ -62,9 +72,15 @@ por FK. O operador das condicoes reutiliza `RegraOperador`, porque a semantica
 e a mesma dos comparadores ja usados em regras de parametros: comparacoes
 numericas, igualdade/diferenca booleana e comparacoes textuais.
 
-Esta etapa persiste configuracao apenas. Ela nao avalia medicoes, nao compila
-Drools, nao cria atividades, nao atribui participantes automaticamente e nao
-registra ocorrencias/evidencias.
+O modo instantaneo continua usando `SimpleMissionRuleEngine` por padrao. O
+Drools e opt-in e reservado ao fluxo temporal quando
+`procel.missions.evaluation.temporal-windows.drools-enabled=true`.
+
+Eventos `MEDICAO_RECEBIDA + INSTANTANEO` geram requests idempotentes e
+ocorrencias confirmadas quando suas condicoes sao satisfeitas. Eventos
+`DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA` usam janelas temporais persistidas,
+lease e evidencias. Ocorrencias confirmadas podem gerar atividades, progresso,
+conclusao automatica e XP, respeitando as flags do fluxo temporal.
 
 Endpoints administrativos:
 
@@ -82,6 +98,88 @@ DELETE /api/mission-events/{eventId}/conditions/{conditionId}
 `ADMIN` pode criar, editar, ativar, desativar e remover logicamente eventos.
 `OPERADOR` e `ANALISTA` podem consultar. Eventos ligados a missao inativa podem
 ser editados, mas nao ativados.
+
+## Motor De Missoes
+
+O worker de avaliacao fica desabilitado por padrao. Quando habilitado, ele
+processa `EventoAvaliacaoRequest` com claim atomico, lease, retry e conclusao
+somente depois de processar os efeitos da ocorrencia.
+
+Flags principais:
+
+| Propriedade | Default | Efeito |
+| --- | --- | --- |
+| `procel.missions.rule-engine` | `simple` | Mantem `SimpleMissionRuleEngine` como padrao; `drools` e opt-in |
+| `procel.missions.evaluation.worker-enabled` | `false` | Habilita worker de requests instantaneos |
+| `procel.missions.evaluation.temporal-windows.enabled` | `false` | Habilita criacao/atualizacao de janelas temporais |
+| `procel.missions.evaluation.temporal-windows.worker-enabled` | `false` | Habilita worker temporal |
+| `procel.missions.evaluation.temporal-windows.drools-enabled` | `false` | Usa Drools no fluxo temporal |
+| `procel.missions.evaluation.temporal-windows.activities-enabled` | `false` | Aplica atividades/progresso/XP para ocorrencias temporais satisfeitas |
+
+`DURACAO` abre janela quando todas as condicoes obrigatorias estao satisfeitas,
+mantem evidencias enquanto continuam satisfeitas, invalida interrupcoes e expira
+lacunas acima de `maximumSampleGap`. Ao atingir `fimPrevistoEm`, o worker
+reconstroi os fatos do PostgreSQL e avalia com Drools.
+
+`TRANSICAO` detecta mudanca real entre o valor anterior e atual do mesmo
+sensor/parametro, para `NUMERIC`, `BOOLEAN` e `TEXT`, persistindo evidencias
+`ANTES` e `DEPOIS`.
+
+`JANELA_ENCERRADA` avalia o estado observado no fim de uma janela persistida,
+usando os fatos/evidencias do intervalo. A semantica detalhada fica em
+`Documentos/MissionEventWindowClosedSemantics.md`.
+
+## Atividades E XP
+
+As atividades sao instancias por pessoa, missao e `chave_ciclo`. A missao define
+`ciclo_tipo`, `progresso_necessario` e `conclusao_automatica`; a atividade copia
+essa configuracao ao ser criada.
+
+`atividade_evento` registra vinculos idempotentes de progresso e conclusao entre
+atividade e ocorrencia. Uma mesma ocorrencia nao adiciona progresso duas vezes.
+
+Quando uma atividade e concluida automaticamente pela primeira vez por uma
+ocorrencia confirmada, `XpRewardService` cria uma concessao append-only em
+`xp_lancamento` com chave `xp:activity:{atividadeId}:completion`. Valor zero de
+`Missao.value` nao cria lancamento. Conclusao manual por endpoint de atividade
+nao concede XP automaticamente.
+
+Consulta:
+
+```text
+GET /api/pessoas/{pessoaId}/xp
+GET /api/pessoas/{pessoaId}/xp/lancamentos
+```
+
+`ADMIN` e `OPERADOR` consultam qualquer pessoa; usuario comum consulta apenas o
+proprio saldo e extrato.
+
+## Administracao Do Motor
+
+Endpoints operacionais:
+
+```text
+GET  /api/admin/missions/events
+GET  /api/admin/missions/evaluation-requests
+GET  /api/admin/missions/windows
+GET  /api/admin/missions/windows/{windowId}
+GET  /api/admin/missions/windows/{windowId}/evidences
+POST /api/admin/missions/windows/{windowId}/retry
+POST /api/admin/missions/windows/{windowId}/satisfy
+POST /api/admin/missions/windows/{windowId}/invalidate
+POST /api/admin/missions/windows/{windowId}/expire
+POST /api/admin/missions/windows/{windowId}/fail
+GET  /api/admin/missions/occurrences
+GET  /api/admin/missions/occurrences/{occurrenceId}
+GET  /api/admin/missions/occurrences/{occurrenceId}/evidences
+POST /api/admin/missions/occurrences/{occurrenceId}/status
+GET  /api/admin/missions/workers/status
+POST /api/admin/missions/workers/evaluation/run
+POST /api/admin/missions/workers/temporal-windows/run
+```
+
+Essas rotas reutilizam os servicos existentes e servem para consulta,
+diagnostico, transicoes operacionais controladas e execucao manual de workers.
 
 ## Ingestao Canonica
 
@@ -200,6 +298,12 @@ Principais permissoes:
 | `PROCEL_ANALYTICS_AGGREGATION_BACKOFF` | Backoff por tentativa |
 | `PROCEL_ANALYTICS_AGGREGATION_BATCH_SIZE` | Janelas por ciclo |
 | `PROCEL_ANALYTICS_AGGREGATION_VERSION` | Versao dos buckets |
+| `PROCEL_MISSIONS_RULE_ENGINE` | Engine de regras; default `simple` |
+| `PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED` | Habilita worker de requests |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita janelas temporais |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED` | Habilita Drools temporal |
+| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita atividades/XP a partir de ocorrencias temporais |
 
 ## Execucao
 
@@ -245,4 +349,4 @@ http://localhost:8080/v3/api-docs
 
 ## Testes
 
-Os testes cobrem ingestao, idempotencia, seguranca, migrations, integracoes, rotas internas, jobs de agregacao, claim concorrente, lease, retry e buckets numericos com PostgreSQL via Testcontainers.
+Os testes cobrem ingestao, idempotencia, seguranca, migrations, integracoes, rotas internas, jobs de agregacao, claim concorrente, lease, retry, buckets numericos, motor de missoes, Drools opt-in, janelas temporais, atividades, XP e administracao operacional com PostgreSQL via Testcontainers.

@@ -15,4 +15,4 @@ Arquivos existentes:
 | `criaSalas.sql` | Script legado relacionado a salas |
 | `procel_consultas_uteis.sql` | Consultas operacionais auxiliares |
 
-Nao use estes arquivos como fonte unica de verdade para o schema atual. As tabelas recentes de integracao, telemetry metadata, agregacao e buckets estao nas migrations Flyway.
+Nao use estes arquivos como fonte unica de verdade para o schema atual. As tabelas recentes de integracao, telemetry metadata, agregacao, buckets, motor de missoes, janelas temporais, atividades ciclicas e ledger de XP estao nas migrations Flyway.

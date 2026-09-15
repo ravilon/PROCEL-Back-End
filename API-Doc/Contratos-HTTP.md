@@ -33,6 +33,29 @@ Base local: `http://localhost:8080`
 | `/api/analytics/aggregation-jobs/{id}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Estado e progresso |
 | `/api/analytics/numeric-buckets` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista buckets persistidos e paginados; filtros existentes mas sem intersecao retornam pagina vazia |
 | `/api/analytics/numeric-buckets/summary` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Consolida somente buckets persistidos; media ponderada por `sampleCount` |
+| `/api/missions/{missionId}/events` | GET/POST | `ADMIN`, `OPERADOR`, `ANALISTA` para consulta; `ADMIN` para escrita | `200`, `201` | Eventos configuraveis de missoes |
+| `/api/mission-events/{eventId}` | GET/PUT/DELETE | `ADMIN`, `OPERADOR`, `ANALISTA` para consulta; `ADMIN` para escrita | `200`, `204` | Detalhe, edicao e remocao logica de evento |
+| `/api/mission-events/{eventId}/conditions` | POST | `ADMIN` | `201` | Cria condicao de evento |
+| `/api/mission-events/{eventId}/conditions/{conditionId}` | PUT/DELETE | `ADMIN` | `200`, `204` | Edita ou remove condicao |
+| `/api/admin/missions/events` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Consulta operacional de eventos |
+| `/api/admin/missions/evaluation-requests` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Requests do motor de eventos |
+| `/api/admin/missions/windows` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Janelas temporais paginadas |
+| `/api/admin/missions/windows/{windowId}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Detalhe de janela temporal |
+| `/api/admin/missions/windows/{windowId}/evidences` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Evidencias de janela |
+| `/api/admin/missions/windows/{windowId}/retry` | POST | `ADMIN` | `200` | Reagenda janela elegivel |
+| `/api/admin/missions/windows/{windowId}/satisfy` | POST | `ADMIN` | `200` | Marca janela como satisfeita de forma operacional |
+| `/api/admin/missions/windows/{windowId}/invalidate` | POST | `ADMIN` | `200` | Invalida janela |
+| `/api/admin/missions/windows/{windowId}/expire` | POST | `ADMIN` | `200` | Expira janela |
+| `/api/admin/missions/windows/{windowId}/fail` | POST | `ADMIN` | `200` | Marca janela como failed |
+| `/api/admin/missions/occurrences` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Ocorrencias paginadas |
+| `/api/admin/missions/occurrences/{occurrenceId}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Detalhe de ocorrencia |
+| `/api/admin/missions/occurrences/{occurrenceId}/evidences` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Evidencias de ocorrencia |
+| `/api/admin/missions/occurrences/{occurrenceId}/status` | POST | `ADMIN` | `200` | Transicao operacional de status |
+| `/api/admin/missions/workers/status` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Flags, backlog e estado dos workers |
+| `/api/admin/missions/workers/evaluation/run` | POST | `ADMIN` | `200` | Execucao manual do worker de avaliacao |
+| `/api/admin/missions/workers/temporal-windows/run` | POST | `ADMIN` | `200` | Execucao manual do worker temporal |
+| `/api/pessoas/{pessoaId}/xp` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Saldo calculado pelo ledger |
+| `/api/pessoas/{pessoaId}/xp/lancamentos` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Extrato paginado e ordenado |
 
 Erros comuns: `400` validacao, `401` ausente/invalido, `403` role insuficiente, `404` recurso inexistente, `409` conflito idempotente ou de estado, `422` payload semanticamente invalido.
 
@@ -123,6 +146,16 @@ series longas fica pendente para a etapa 12.
 Os valores decimais chegam como JSON number por serializacao de `BigDecimal`.
 O frontend usa esses numeros para exibicao e grafico, sem persistir calculos
 derivados e sem recalcular media consolidada.
+
+### Motor de Missoes
+
+Eventos instantaneos usam `SimpleMissionRuleEngine` por padrao. Janelas temporais
+e Drools permanecem opt-in por configuracao. Ocorrencias confirmadas registram
+snapshot e evidencias; os efeitos em atividades, progresso, conclusao automatica
+e XP sao idempotentes e usam constraints no PostgreSQL.
+
+`xp_lancamento` e append-only. O saldo retornado por `/api/pessoas/{pessoaId}/xp`
+e calculado pela soma de concessoes, estornos e ajustes existentes no ledger.
 
 ## Procel-Telemetry
 

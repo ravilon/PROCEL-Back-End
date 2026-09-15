@@ -22,10 +22,12 @@
 | Procel-API | PostgreSQL | `avaliacao_parametro_valor` | Resultado de avaliacao | `id` | Sem TTL automatico | API | Consultas operacionais | Canonico | Derivado de parametro valor |
 | Procel-API | PostgreSQL | `pessoa`, `pessoa_role` | Usuarios e roles | `id`, role por pessoa | Sem TTL automatico | Admin/bootstrap | Seguranca/Admin | Canonico | Dados pessoais; proteger acesso |
 | Procel-API | PostgreSQL | `curso`, `disciplina`, `aluno_disciplina`, `periodo_aula`, `presenca` | Dominio academico | PKs proprias | Sem TTL automatico | Admin/sync | Admin/API | Canonico | `AlunoDisciplina.periodo_letivo` qualifica vinculos; `PeriodoAula` nao armazena periodo letivo; pode conter dados pessoais |
-| Procel-API | PostgreSQL | `missao`, `atividade` | Missoes e atividades, incluindo configuracao e instancia de ciclo | `id`, `pessoa_id + missao_id + chave_ciclo` | Sem TTL automatico | Admin/usuario/motor futuro | Admin/API/motor futuro | Canonico/operacional | `Missao.ciclo_tipo` default `UNICA`; `Atividade` copia ciclo, progresso necessario e conclusao automatica no momento da criacao |
-| Procel-API | PostgreSQL | `atividade_evento` | Vinculo idempotente entre atividade e ocorrencia de evento | `atividade_id + evento_ocorrencia_id + tipo` | Sem TTL automatico | Motor futuro | Auditoria/progresso futuro | Operacional | Nao apagar fisicamente; progresso ainda nao e aplicado nesta etapa |
-| Procel-API | PostgreSQL | `evento_definicao`, `evento_condicao` | Catalogo de eventos configuraveis de missoes | `id`, condicao por `evento_definicao_id + ordem` | Sem TTL automatico | Admin/API | Futuro motor de eventos | Configuracao | Apenas configuracao; condicoes referenciam `ParametroDef` por FK |
-| Procel-API | PostgreSQL | `evento_ocorrencia`, `evento_ocorrencia_evidencia`, `evento_avaliacao_request` | Persistencia operacional do motor de eventos | `id`, `chave_idempotencia`, uma request por `medicao_id` | Sem TTL automatico | Interno/API futura | Motor de eventos | Operacional | Snapshots em JSONB; evidencias nao sao removidas fisicamente; worker fora do escopo |
+| Procel-API | PostgreSQL | `missao`, `atividade` | Missoes e atividades, incluindo configuracao e instancia de ciclo | `id`, `pessoa_id + missao_id + chave_ciclo` | Sem TTL automatico | Admin/usuario/motor de missoes | Admin/API/motor de missoes | Canonico/operacional | `Missao.ciclo_tipo` default `UNICA`; `Atividade` copia ciclo, progresso necessario e conclusao automatica no momento da criacao |
+| Procel-API | PostgreSQL | `atividade_evento` | Vinculo idempotente entre atividade e ocorrencia de evento | `atividade_id + evento_ocorrencia_id + tipo` | Sem TTL automatico | Motor de missoes | Auditoria/progresso/conclusao | Operacional | Nao apagar fisicamente; evita progresso e conclusao duplicados em retry |
+| Procel-API | PostgreSQL | `xp_lancamento` | Ledger append-only de XP | `id`, `chave_idempotencia`, uma concessao automatica por atividade | Sem TTL automatico | Motor de missoes | API de saldo/extrato | Auditoria | Saldo de XP e calculado por soma; nao armazenar saldo em `pessoa` |
+| Procel-API | PostgreSQL | `evento_definicao`, `evento_condicao` | Catalogo de eventos configuraveis de missoes | `id`, condicao por `evento_definicao_id + ordem` | Sem TTL automatico | Admin/API | Motor de eventos | Configuracao | Condicoes referenciam `ParametroDef` por FK; Drools temporal e opt-in |
+| Procel-API | PostgreSQL | `evento_ocorrencia`, `evento_ocorrencia_evidencia`, `evento_avaliacao_request` | Persistencia operacional do motor de eventos | `id`, `chave_idempotencia`, uma request por `medicao_id` | Sem TTL automatico | Motor de eventos | Motor de atividades/Admin | Operacional | Snapshots em JSONB; evidencias nao sao removidas fisicamente; transicoes usam papeis `ANTES`/`DEPOIS` |
+| Procel-API | PostgreSQL | `evento_janela_avaliacao`, `evento_janela_evidencia` | Janelas temporais persistentes de missoes | `id`, `chave_idempotencia` | Sem TTL automatico | Motor temporal | Worker temporal/Admin | Operacional | Claim atomico, lease, retry, recuperacao apos reinicio e evidencias por medicao/parametro |
 
 ## Fundacao de atividades ciclicas
 
@@ -34,3 +36,13 @@
 - A unicidade passa de `pessoa_id + missao_id` para `pessoa_id + missao_id + chave_ciclo`, permitindo multiplas execucoes da mesma missao em ciclos diferentes.
 - A hierarquia manual existente permanece segura para `UNICA`. Ciclos recorrentes ainda nao replicam arvores de missoes filhas automaticamente.
 - Beneficiarios academicos suportados nesta etapa: `ALUNOS_VINCULADOS`, `ATIVADOR_DA_MISSAO` e `SEM_ATRIBUICAO_AUTOMATICA`. `ALUNOS_VINCULADOS_COM_OCUPACAO` e `CHECKIN_CONFIRMADO` sao explicitamente nao suportadas enquanto nao houver confirmacao de ocupacao/check-in.
+- Ocorrencias confirmadas podem aplicar progresso idempotente via `atividade_evento`. Ocorrencias temporais so aplicam atividades/XP quando `procel.missions.evaluation.temporal-windows.activities-enabled=true`.
+- XP automatico e concedido somente para conclusao automatica de atividade por ocorrencia confirmada, com lancamento append-only em `xp_lancamento`.
+
+## Motor de eventos de missoes
+
+- `V20` cria `evento_definicao` e `evento_condicao` para regras configuraveis.
+- `V21` cria `evento_avaliacao_request`, `evento_ocorrencia` e `evento_ocorrencia_evidencia`.
+- `V24` cria `evento_janela_avaliacao` e `evento_janela_evidencia` para `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA`.
+- `V25` amplia papeis de evidencia de ocorrencia com `ANTES` e `DEPOIS` para transicoes.
+- Workers permanecem desabilitados por padrao; Drools e exclusivo do fluxo temporal opt-in.

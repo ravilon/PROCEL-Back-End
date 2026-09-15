@@ -53,6 +53,33 @@ Procel-API:
 - `procel.analytics.queries`
 - `procel.analytics.query.errors`
 - `procel.analytics.query.duration`
+- `procel.missions.activities.created`
+- `procel.missions.activities.progressed`
+- `procel.missions.activities.completed`
+- `procel.missions.beneficiaries.resolved`
+- `procel.missions.beneficiaries.empty`
+- `procel.missions.activity.processing.failures`
+- `procel.missions.xp.granted`
+- `procel.missions.xp.amount`
+- `procel.missions.xp.duplicates`
+- `procel.missions.xp.failures`
+- `procel.missions.drools.compilations`
+- `procel.missions.drools.compilation.duration`
+- `procel.missions.drools.compilation.failures`
+- `procel.missions.drools.cache.hits`
+- `procel.missions.drools.cache.misses`
+- `procel.missions.drools.cache.evictions`
+- `procel.missions.drools.evaluations`
+- `procel.missions.drools.evaluation.duration`
+- `procel.missions.drools.evaluation.failures`
+- `procel.missions.drools.facts`
+- `procel.missions.drools.limit.rejections`
+- `procel.missions.temporal.windows.opened`
+- `procel.missions.temporal.windows.satisfied`
+- `procel.missions.temporal.windows.expired`
+- `procel.missions.temporal.windows.failed`
+- `procel.missions.temporal.windows.retries`
+- `procel.missions.temporal.windows.backlog`
 
 Tags usadas:
 
@@ -60,6 +87,9 @@ Tags usadas:
 - `outcome`
 - `status`
 - `type`
+- `mode`
+- `result`
+- `limit`
 
 Tags proibidas por alta cardinalidade:
 
@@ -71,6 +101,7 @@ Tags proibidas por alta cardinalidade:
 - `userId`
 - `payload`
 - texto livre de erro
+- ids de evento, ocorrencia, janela, atividade, missao, medicao, sala, sensor ou pessoa
 
 ## Consultas básicas
 
