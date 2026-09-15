@@ -2,6 +2,9 @@ import { apiRequest } from "../lib/api";
 import type { Session } from "../types/auth";
 import type {
   EvaluationRequest,
+  EventoCondicao,
+  EventoCondicaoRequest,
+  EventoDefinicaoRequest,
   EventDefinitionSummary,
   EventoDefinicao,
   EventoOcorrenciaStatus,
@@ -51,6 +54,79 @@ export function getMissionEvent(eventId: string, session?: Session | null) {
   return apiRequest<EventoDefinicao>(
     `/api/mission-events/${encodeURIComponent(eventId)}`,
     {},
+    session,
+  );
+}
+
+export function listMissionEventsForMission(missionId: string, session?: Session | null) {
+  return apiRequest<EventoDefinicao[]>(
+    `/api/missions/${encodeURIComponent(missionId)}/events`,
+    {},
+    session,
+  );
+}
+
+export function createMissionEvent(
+  missionId: string,
+  payload: EventoDefinicaoRequest,
+  session?: Session | null,
+) {
+  return apiRequest<EventoDefinicao>(
+    `/api/missions/${encodeURIComponent(missionId)}/events`,
+    { method: "POST", body: JSON.stringify(payload) },
+    session,
+  );
+}
+
+export function updateMissionEvent(
+  eventId: string,
+  payload: EventoDefinicaoRequest,
+  session?: Session | null,
+) {
+  return apiRequest<EventoDefinicao>(
+    `/api/mission-events/${encodeURIComponent(eventId)}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    session,
+  );
+}
+
+export function deleteMissionEvent(eventId: string, session?: Session | null) {
+  return apiRequest<void>(
+    `/api/mission-events/${encodeURIComponent(eventId)}`,
+    { method: "DELETE" },
+    session,
+  );
+}
+
+export function createMissionCondition(
+  eventId: string,
+  payload: EventoCondicaoRequest,
+  session?: Session | null,
+) {
+  return apiRequest<EventoCondicao>(
+    `/api/mission-events/${encodeURIComponent(eventId)}/conditions`,
+    { method: "POST", body: JSON.stringify(payload) },
+    session,
+  );
+}
+
+export function updateMissionCondition(
+  eventId: string,
+  conditionId: string,
+  payload: EventoCondicaoRequest,
+  session?: Session | null,
+) {
+  return apiRequest<EventoCondicao>(
+    `/api/mission-events/${encodeURIComponent(eventId)}/conditions/${encodeURIComponent(conditionId)}`,
+    { method: "PUT", body: JSON.stringify(payload) },
+    session,
+  );
+}
+
+export function deleteMissionCondition(eventId: string, conditionId: string, session?: Session | null) {
+  return apiRequest<void>(
+    `/api/mission-events/${encodeURIComponent(eventId)}/conditions/${encodeURIComponent(conditionId)}`,
+    { method: "DELETE" },
     session,
   );
 }

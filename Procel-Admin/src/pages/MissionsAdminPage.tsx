@@ -74,6 +74,7 @@ import type {
   PageResponse,
   WindowEvidence,
 } from "../types";
+import { MissionTriggerConfigurator } from "../features/missions/MissionTriggerConfigurator";
 
 const eventTypes: EventoTipoDisparo[] = ["MEDICAO_RECEBIDA", "CHECKIN_CONFIRMADO"];
 const eventModes: EventoModoAvaliacao[] = ["INSTANTANEO", "DURACAO", "TRANSICAO", "JANELA_ENCERRADA"];
@@ -131,7 +132,7 @@ export function MissionsAdminPage() {
 }
 
 function MissionCatalogPanel() {
-  const { session } = useAuth();
+  const { session, hasAnyRole } = useAuth();
   const queryClient = useQueryClient();
   const [form, setForm] = useState({
     titulo: "",
@@ -223,6 +224,7 @@ function MissionCatalogPanel() {
             mission={mission}
             missions={missions.data ?? []}
             onUpdated={() => queryClient.invalidateQueries({ queryKey: ["missions"] })}
+            canConfigure={hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")}
           />
         ))}
         {!missions.isLoading && roots.length === 0 && (
@@ -674,15 +676,18 @@ function MissionNode({
   mission,
   missions,
   onUpdated,
+  canConfigure,
   depth = 0,
 }: {
   mission: Missao;
   missions: Missao[];
   onUpdated: () => Promise<unknown>;
+  canConfigure: boolean;
   depth?: number;
 }) {
-  const { session } = useAuth();
+  const { session, hasAnyRole } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [configuringTriggers, setConfiguringTriggers] = useState(false);
   const [form, setForm] = useState({
     titulo: mission.titulo,
     descricao: mission.descricao ?? "",
@@ -727,6 +732,7 @@ function MissionNode({
           <Stack direction="row" spacing={1} alignItems="flex-start" flexWrap="wrap">
             <Chip label={`${mission.value} XP`} size="small" />
             <ActiveChip active={mission.ativo} />
+            {canConfigure && <Button size="small" startIcon={<PlayArrowOutlined />} onClick={() => setConfiguringTriggers(true)}>Configurar gatilhos</Button>}
             <Button size="small" startIcon={<EditOutlined />} onClick={() => setEditing(true)}>Editar</Button>
           </Stack>
         </Stack>
@@ -735,7 +741,7 @@ function MissionNode({
       {children.length > 0 && (
         <Stack spacing={1.5} sx={{ mt: 1.5 }}>
           {children.map((child) => (
-            <MissionNode key={child.id} mission={child} missions={missions} onUpdated={onUpdated} depth={depth + 1} />
+            <MissionNode key={child.id} mission={child} missions={missions} onUpdated={onUpdated} canConfigure={canConfigure} depth={depth + 1} />
           ))}
         </Stack>
       )}
@@ -770,6 +776,12 @@ function MissionNode({
           </Button>
         </DialogActions>
       </Dialog>
+      <MissionTriggerConfigurator
+        mission={mission}
+        readOnly={!hasAnyRole("ADMIN")}
+        open={configuringTriggers}
+        onClose={() => setConfiguringTriggers(false)}
+      />
     </Box>
   );
 }

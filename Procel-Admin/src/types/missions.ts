@@ -115,6 +115,33 @@ export interface EventoDefinicao {
   condicoes: EventoCondicao[];
 }
 
+export interface EventoDefinicaoRequest {
+  nome: string;
+  descricao?: string | null;
+  tipoDisparo: EventoTipoDisparo;
+  modoAvaliacao: EventoModoAvaliacao;
+  operadorLogico: EventoOperadorLogico;
+  politicaAtribuicao: EventoPoliticaAtribuicao;
+  janelaSegundos?: number | null;
+  duracaoMinimaSegundos?: number | null;
+  quantidadeNecessaria?: number | null;
+  cooldownSegundos?: number | null;
+  ordem?: number | null;
+  ativo: boolean;
+}
+
+export interface EventoCondicaoRequest {
+  parametroDefId: string;
+  operador: EventoRegraOperador;
+  valorNumeric1?: number | null;
+  valorNumeric2?: number | null;
+  valorBoolean?: boolean | null;
+  valorText?: string | null;
+  agregacao: EventoAgregacao;
+  obrigatoria: boolean;
+  ordem: number;
+}
+
 export interface EventDefinitionSummary {
   id: string;
   missaoId: string;

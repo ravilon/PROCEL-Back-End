@@ -4,20 +4,28 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import {
+  createMissionCondition,
+  createMissionEvent,
+  deleteMissionCondition,
+  deleteMissionEvent,
   getMissionEvent,
   getMissionOccurrence,
   getMissionWindow,
   getMissionWorkerStatus,
   listEvaluationRequests,
   listMissionEvents,
+  listMissionEventsForMission,
   listMissionOccurrences,
   listMissionWindows,
   listOccurrenceEvidence,
   listWindowEvidence,
   operateMissionWindow,
   runMissionWorker,
+  updateMissionCondition,
+  updateMissionEvent,
 } from "../../api/missions";
 import { apiRequest } from "../../lib/api";
+import { listSensorTypes } from "../../api/sensors";
 import { adminSession } from "../../test/fixtures/sensorIntegrations";
 import type {
   EventoDefinicao,
@@ -44,6 +52,17 @@ vi.mock("../../api/missions", () => ({
   operateMissionWindow: vi.fn(),
   runMissionWorker: vi.fn(),
   updateOccurrenceStatus: vi.fn(),
+  createMissionCondition: vi.fn(),
+  createMissionEvent: vi.fn(),
+  deleteMissionCondition: vi.fn(),
+  deleteMissionEvent: vi.fn(),
+  listMissionEventsForMission: vi.fn(),
+  updateMissionCondition: vi.fn(),
+  updateMissionEvent: vi.fn(),
+}));
+
+vi.mock("../../api/sensors", () => ({
+  listSensorTypes: vi.fn(),
 }));
 
 vi.mock("../../lib/api", () => {
@@ -122,6 +141,14 @@ const eventDetail: EventoDefinicao = {
   }],
 };
 
+const sensorTypes = [{
+  nome: "AC",
+  parametros: [
+    { id: "param-1", tipoNome: "AC", nome: "presence", dataType: "BOOLEAN" as const, ativo: true },
+    { id: "param-2", tipoNome: "AC", nome: "ac_setpoint_c", dataType: "NUMERIC" as const, ativo: true },
+  ],
+}];
+
 const windowRow: MissionWindow = {
   id: "window-1",
   eventoDefinicaoId: "event-1",
@@ -179,6 +206,14 @@ describe("MissionsAdminPage", () => {
     roles = ["ADMIN"];
     vi.mocked(apiRequest).mockResolvedValue([mission]);
     vi.mocked(listMissionEvents).mockResolvedValue(page([event]));
+    vi.mocked(listMissionEventsForMission).mockResolvedValue([eventDetail]);
+    vi.mocked(listSensorTypes).mockResolvedValue(sensorTypes);
+    vi.mocked(createMissionEvent).mockResolvedValue(eventDetail);
+    vi.mocked(updateMissionEvent).mockResolvedValue(eventDetail);
+    vi.mocked(createMissionCondition).mockResolvedValue(eventDetail.condicoes[0]);
+    vi.mocked(updateMissionCondition).mockResolvedValue(eventDetail.condicoes[0]);
+    vi.mocked(deleteMissionEvent).mockResolvedValue(undefined);
+    vi.mocked(deleteMissionCondition).mockResolvedValue(undefined);
     vi.mocked(getMissionEvent).mockResolvedValue(eventDetail);
     vi.mocked(listEvaluationRequests).mockResolvedValue(page([{
       id: "request-1",
@@ -336,5 +371,52 @@ describe("MissionsAdminPage", () => {
 
     expect(screen.getByText("Acesso negado")).toBeInTheDocument();
     expect(listMissionEvents).not.toHaveBeenCalled();
+  });
+
+  it("permite ao admin criar um gatilho e uma condicao tipada", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText("Economia de energia");
+    await user.click(screen.getByRole("button", { name: "Configurar gatilhos" }));
+    const dialog = await screen.findByRole("dialog", { name: /Configurar gatilhos/ });
+    await user.click(within(dialog).getByRole("button", { name: "Novo" }));
+    await user.clear(within(dialog).getByRole("textbox", { name: "Nome" }));
+    await user.type(within(dialog).getByRole("textbox", { name: "Nome" }), "AC inteligente");
+    await user.click(within(dialog).getByRole("button", { name: "Salvar gatilho" }));
+
+    await waitFor(() => {
+      expect(createMissionEvent).toHaveBeenCalledWith(
+        "mission-1",
+        expect.objectContaining({ nome: "AC inteligente", modoAvaliacao: "INSTANTANEO" }),
+        expect.anything(),
+      );
+    });
+  });
+
+  it("bloqueia alteracoes de gatilhos para operador de consulta", async () => {
+    roles = ["ANALISTA"];
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText("Economia de energia");
+    await user.click(screen.getByRole("button", { name: "Configurar gatilhos" }));
+    const dialog = await screen.findByRole("dialog", { name: /Configurar gatilhos/ });
+    expect(within(dialog).queryByRole("button", { name: "Salvar gatilho" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("button", { name: "Novo" })).not.toBeInTheDocument();
+  });
+
+  it("valida nome antes de chamar a API", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await screen.findByText("Economia de energia");
+    await user.click(screen.getByRole("button", { name: "Configurar gatilhos" }));
+    const dialog = await screen.findByRole("dialog", { name: /Configurar gatilhos/ });
+    await user.click(within(dialog).getByRole("button", { name: "Novo" }));
+    await user.click(within(dialog).getByRole("button", { name: "Salvar gatilho" }));
+
+    expect(await within(dialog).findByText("Nome do gatilho e obrigatorio.")).toBeInTheDocument();
+    expect(createMissionEvent).not.toHaveBeenCalled();
   });
 });
