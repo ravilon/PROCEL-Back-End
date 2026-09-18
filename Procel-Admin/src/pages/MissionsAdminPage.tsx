@@ -134,6 +134,7 @@ export function MissionsAdminPage() {
 function MissionCatalogPanel() {
   const { session, hasAnyRole } = useAuth();
   const queryClient = useQueryClient();
+  const [showOnlyActive, setShowOnlyActive] = useState(false);
   const [form, setForm] = useState({
     titulo: "",
     descricao: "",
@@ -143,8 +144,8 @@ function MissionCatalogPanel() {
     parentId: "",
   });
   const missions = useQuery({
-    queryKey: ["missions"],
-    queryFn: () => apiRequest<Missao[]>("/api/missoes", {}, session),
+    queryKey: ["missions", { showOnlyActive }],
+    queryFn: () => apiRequest<Missao[]>(showOnlyActive ? "/api/missoes?ativo=true" : "/api/missoes", {}, session),
   });
   const roots = useMemo(
     () => missions.data?.filter((mission) => !mission.parentId) ?? [],
@@ -216,6 +217,15 @@ function MissionCatalogPanel() {
         <Stack direction="row" spacing={1} alignItems="center">
           <AccountTreeOutlined />
           <Typography variant="h6">Arvore de missoes</Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Stack direction="row" spacing={1} alignItems="center">
+            <Typography variant="body2" color="text.secondary">Somente ativas</Typography>
+            <Switch
+              checked={showOnlyActive}
+              onChange={(event) => setShowOnlyActive(event.target.checked)}
+              inputProps={{ "aria-label": "Mostrar somente missoes ativas" }}
+            />
+          </Stack>
         </Stack>
         {missions.isLoading && <CircularProgress size={24} />}
         {roots.map((mission) => (

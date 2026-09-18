@@ -78,7 +78,7 @@ const groups: Group[] = [
   {
     name: "Missoes e atividades",
     endpoints: [
-      { name: "Listar missoes", description: "Catalogo de missoes.", method: "GET", path: "/api/missoes", roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO"], queryFields: [{ name: "ativo", label: "Ativo", options: [{ value: "true", label: "Sim" }, { value: "false", label: "Nao" }] }] },
+      { name: "Listar missoes", description: "Catalogo de missoes.", method: "GET", path: "/api/missoes", roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO"], queryFields: [{ name: "ativo", label: "Status", options: [{ value: "true", label: "Ativas" }, { value: "false", label: "Inativas" }] }] },
       { name: "Criar missao", description: "Cria modelo de missao.", method: "POST", path: "/api/missoes", roles: manager, body: JSON.stringify({ titulo: "", descricao: "", tipo: "Individual", value: 20, ativo: true }, null, 2) },
       { name: "Buscar missao", description: "Consulta por UUID.", method: "GET", path: "/api/missoes/{missaoId}", roles: ["ADMIN", "OPERADOR", "ANALISTA", "USUARIO"], pathFields: [{ name: "missaoId", label: "ID da missao", required: true }] },
       { name: "Atualizar missao", description: "Edita modelo.", method: "PUT", path: "/api/missoes/{missaoId}", roles: manager, pathFields: [{ name: "missaoId", label: "ID da missao", required: true }], body: JSON.stringify({ titulo: "", descricao: "", tipo: "Individual", value: 20, ativo: true }, null, 2) },

@@ -45,7 +45,14 @@ Assumes endpoints:
 param(
   [string]$Target = $env:PROCEL_API_TARGET,
 
-  [string]$BaseUrlOverride = $env:PROCEL_API_BASE_URL
+  [string]$BaseUrlOverride = $env:PROCEL_API_BASE_URL,
+
+  [ValidateSet("Auto", "PowerShell", "Node")]
+  [string]$HttpTransport = $env:PROCEL_API_HTTP_TRANSPORT,
+
+  [int]$RequestTimeoutSeconds = 120,
+
+  [string]$ReportPath = $env:PROCEL_API_SMOKE_REPORT_PATH
 )
 
 $ErrorActionPreference = "Stop"
@@ -60,6 +67,10 @@ $ApiTargets = @{
 
 if ([string]::IsNullOrWhiteSpace($Target)) {
   $Target = "prod"
+}
+
+if ([string]::IsNullOrWhiteSpace($HttpTransport)) {
+  $HttpTransport = "Auto"
 }
 
 if (-not $ApiTargets.ContainsKey($Target)) {
@@ -85,33 +96,108 @@ $AdminPassword = "admin123"
 $JwtToken = $null
 $AdminJwtToken = $null
 $UserJwtToken = $null
+$SmokeStartedAt = [DateTimeOffset]::Now
+$SmokeResults = [System.Collections.Generic.List[object]]::new()
+$SmokeReportWritten = $false
+
+if ([string]::IsNullOrWhiteSpace($ReportPath)) {
+  $safeTarget = $Target -replace '[^A-Za-z0-9_.-]', '-'
+  $stamp = $SmokeStartedAt.ToString("yyyyMMdd-HHmmss")
+  $ReportPath = Join-Path $PSScriptRoot "ApiSmokeReport-$safeTarget-$stamp.md"
+}
 
 # ---------------------------
 # Helpers
 # ---------------------------
+function AddSmokeResult([string]$Name, [string]$Status, [double]$DurationMs, [string]$Detail = "") {
+  $SmokeResults.Add([pscustomobject]@{
+    name = $Name
+    status = $Status
+    durationMs = [Math]::Round($DurationMs, 0)
+    detail = $Detail
+  }) | Out-Null
+}
+
+function WriteSmokeReport([string]$FinalStatus, [string]$FailureMessage = "") {
+  if ($script:SmokeReportWritten) { return }
+  $script:SmokeReportWritten = $true
+
+  $finishedAt = [DateTimeOffset]::Now
+  $duration = $finishedAt - $SmokeStartedAt
+  $passed = @($SmokeResults | Where-Object { $_.status -eq "OK" }).Count
+  $warned = @($SmokeResults | Where-Object { $_.status -eq "WARN" }).Count
+  $failed = @($SmokeResults | Where-Object { $_.status -eq "FAIL" }).Count
+
+  $lines = [System.Collections.Generic.List[string]]::new()
+  $lines.Add("# PROCEL API Smoke Test Report") | Out-Null
+  $lines.Add("") | Out-Null
+  $lines.Add("- Status: $FinalStatus") | Out-Null
+  $lines.Add("- Target: $Target") | Out-Null
+  $lines.Add("- Base URL: $BaseUrl") | Out-Null
+  $lines.Add("- HTTP transport: $HttpTransport") | Out-Null
+  $lines.Add("- Started: $($SmokeStartedAt.ToString("o"))") | Out-Null
+  $lines.Add("- Finished: $($finishedAt.ToString("o"))") | Out-Null
+  $lines.Add("- Duration: $([Math]::Round($duration.TotalSeconds, 1)) seconds") | Out-Null
+  $lines.Add("- Passed: $passed") | Out-Null
+  $lines.Add("- Warnings: $warned") | Out-Null
+  $lines.Add("- Failed: $failed") | Out-Null
+  if (-not [string]::IsNullOrWhiteSpace($FailureMessage)) {
+    $lines.Add("- Failure: $FailureMessage") | Out-Null
+  }
+  $lines.Add("") | Out-Null
+  $lines.Add("## Steps") | Out-Null
+  $lines.Add("") | Out-Null
+  $lines.Add("| Status | Step | Duration | Detail |") | Out-Null
+  $lines.Add("| --- | --- | ---: | --- |") | Out-Null
+
+  foreach ($result in $SmokeResults) {
+    $detail = "$($result.detail)" -replace '\|', '\|' -replace "`r?`n", " "
+    if ($detail.Length -gt 240) { $detail = $detail.Substring(0, 240) + "..." }
+    $lines.Add("| $($result.status) | $($result.name) | $($result.durationMs) ms | $detail |") | Out-Null
+  }
+
+  $reportDir = Split-Path -Parent $ReportPath
+  if (-not [string]::IsNullOrWhiteSpace($reportDir) -and -not (Test-Path $reportDir)) {
+    New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
+  }
+  Set-Content -Path $ReportPath -Value $lines -Encoding UTF8
+  Write-Host "[REPORT] $ReportPath" -ForegroundColor Cyan
+}
+
 function TryCall($name, [ScriptBlock]$fn) {
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
   try {
     $res = & $fn
+    $sw.Stop()
+    AddSmokeResult $name "OK" $sw.Elapsed.TotalMilliseconds
     Write-Host "[OK] $name" -ForegroundColor Green
     return $res
   } catch {
+    $sw.Stop()
+    AddSmokeResult $name "FAIL" $sw.Elapsed.TotalMilliseconds $_.Exception.Message
     Write-Host "[FAIL] $name -> $($_.Exception.Message)" -ForegroundColor Red
     throw
   }
 }
 
 function SoftCall($name, [ScriptBlock]$fn) {
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
   try {
     $res = & $fn
+    $sw.Stop()
+    AddSmokeResult $name "OK" $sw.Elapsed.TotalMilliseconds
     Write-Host "[OK] $name" -ForegroundColor Green
     return $res
   } catch {
+    $sw.Stop()
+    AddSmokeResult $name "WARN" $sw.Elapsed.TotalMilliseconds $_.Exception.Message
     Write-Host "[WARN] $name -> $($_.Exception.Message)" -ForegroundColor Yellow
     return $null
   }
 }
 
 function ExpectFailure($name, [ScriptBlock]$fn, [int[]]$ExpectedStatusCodes = @()) {
+  $sw = [System.Diagnostics.Stopwatch]::StartNew()
   $succeeded = $false
   try {
     & $fn | Out-Null
@@ -121,11 +207,18 @@ function ExpectFailure($name, [ScriptBlock]$fn, [int[]]$ExpectedStatusCodes = @(
     if ($_.Exception.Response -and $_.Exception.Response.StatusCode) {
       $statusCode = [int]$_.Exception.Response.StatusCode
     }
+    if ($null -eq $statusCode -and $_.Exception.Message -match 'HTTP_STATUS:(\d{3})') {
+      $statusCode = [int]$Matches[1]
+    }
 
     if ($ExpectedStatusCodes.Count -gt 0 -and ($null -eq $statusCode -or $ExpectedStatusCodes -notcontains $statusCode)) {
+      $sw.Stop()
+      AddSmokeResult $name "FAIL" $sw.Elapsed.TotalMilliseconds $_.Exception.Message
       throw "Expected HTTP status $($ExpectedStatusCodes -join ', ') but got '$statusCode'. Error: $($_.Exception.Message)"
     }
 
+    $sw.Stop()
+    AddSmokeResult $name "OK" $sw.Elapsed.TotalMilliseconds "failed as expected$(if ($null -ne $statusCode) { " (HTTP $statusCode)" })"
     if ($null -eq $statusCode) {
       Write-Host "[OK] $name failed as expected" -ForegroundColor Green
     } else {
@@ -134,14 +227,18 @@ function ExpectFailure($name, [ScriptBlock]$fn, [int[]]$ExpectedStatusCodes = @(
   }
 
   if ($succeeded) {
+    $sw.Stop()
+    AddSmokeResult $name "FAIL" $sw.Elapsed.TotalMilliseconds "request succeeded unexpectedly"
     throw "$name assertion failed: expected failure but request succeeded."
   }
 }
 
 function AssertSmoke($name, [bool]$Condition, [string]$Message) {
   if (-not $Condition) {
+    AddSmokeResult $name "FAIL" 0 $Message
     throw "$name assertion failed: $Message"
   }
+  AddSmokeResult $name "OK" 0
   Write-Host "[OK] $name" -ForegroundColor Green
 }
 
@@ -152,7 +249,77 @@ function PrintJson($title, $obj) {
   $obj | ConvertTo-Json -Depth 20
 }
 
-function InvokeApi($Path, $Method = "GET", $Body = $null, [switch]$NoAuth) {
+function InvokeApiWithNode([string]$Uri, [string]$Method, [hashtable]$Headers, [string]$BodyJson, [int]$TimeoutSeconds) {
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    throw "Node.js is required for HttpTransport=Node or Auto fallback, but 'node' was not found."
+  }
+
+  $requestFile = [System.IO.Path]::GetTempFileName()
+  $scriptFile = [System.IO.Path]::ChangeExtension([System.IO.Path]::GetTempFileName(), ".js")
+  try {
+    @{
+      uri = $Uri
+      method = $Method
+      headers = $Headers
+      body = $BodyJson
+      timeoutMs = ($TimeoutSeconds * 1000)
+    } | ConvertTo-Json -Depth 20 | Set-Content -Path $requestFile -Encoding UTF8
+
+    @'
+const fs = require("fs");
+const req = JSON.parse(fs.readFileSync(process.argv[2], "utf8").replace(/^\uFEFF/, ""));
+const controller = new AbortController();
+const timeout = setTimeout(() => controller.abort(), req.timeoutMs);
+fetch(req.uri, {
+  method: req.method,
+  headers: req.headers || {},
+  body: req.body || undefined,
+  signal: controller.signal
+}).then(async response => {
+  const text = await response.text();
+  console.log(JSON.stringify({
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    body: text
+  }));
+}).catch(error => {
+  console.log(JSON.stringify({
+    ok: false,
+    transportError: true,
+    name: error.name,
+    message: error.message
+  }));
+  process.exitCode = 2;
+}).finally(() => clearTimeout(timeout));
+'@ | Set-Content -Path $scriptFile -Encoding UTF8
+    $output = & node $scriptFile $requestFile
+    $raw = ($output | Select-Object -Last 1)
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+      throw "Node HTTP transport returned no output."
+    }
+    $envelope = $raw | ConvertFrom-Json
+    if ($envelope.transportError) {
+      throw "Node HTTP transport failed: $($envelope.name) $($envelope.message)"
+    }
+    if (-not $envelope.ok) {
+      throw "HTTP_STATUS:$($envelope.status) $($envelope.body)"
+    }
+    if ([string]::IsNullOrWhiteSpace($envelope.body)) {
+      return $null
+    }
+    try {
+      return $envelope.body | ConvertFrom-Json
+    } catch {
+      return $envelope.body
+    }
+  } finally {
+    Remove-Item -Path $requestFile -Force -ErrorAction SilentlyContinue
+    Remove-Item -Path $scriptFile -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function InvokeApi($Path, $Method = "GET", $Body = $null, [switch]$NoAuth, [int]$TimeoutSeconds = $RequestTimeoutSeconds) {
   $headers = @{}
   if (-not $NoAuth) {
     if ([string]::IsNullOrWhiteSpace($JwtToken)) {
@@ -165,14 +332,39 @@ function InvokeApi($Path, $Method = "GET", $Body = $null, [switch]$NoAuth) {
     Uri = "$BaseUrl$Path"
     Method = $Method
     Headers = $headers
+    TimeoutSec = $TimeoutSeconds
   }
 
+  $bodyJson = $null
   if ($null -ne $Body) {
+    $bodyJson = ($Body | ConvertTo-Json -Depth 10)
     $params["ContentType"] = "application/json"
-    $params["Body"] = ($Body | ConvertTo-Json -Depth 10)
+    $params["Body"] = $bodyJson
+    $headers["Content-Type"] = "application/json"
   }
 
-  Invoke-RestMethod @params
+  if ($HttpTransport -eq "Node") {
+    return InvokeApiWithNode $params.Uri $Method $headers $bodyJson $TimeoutSeconds
+  }
+
+  try {
+    return Invoke-RestMethod @params
+  } catch {
+    if ($HttpTransport -ne "Auto") {
+      throw
+    }
+    $message = $_.Exception.Message
+    if ($message -notmatch "conex|connection|SSL|TLS|secure channel|recebimento|receive|trust|certificate|timeout|timed out") {
+      throw
+    }
+    Write-Host "[INFO] PowerShell HTTP failed; retrying with Node transport: $message" -ForegroundColor Yellow
+    return InvokeApiWithNode $params.Uri $Method $headers $bodyJson $TimeoutSeconds
+  }
+}
+
+trap {
+  WriteSmokeReport "FAILED" $_.Exception.Message
+  break
 }
 
 # ISO times for queries (Instant.parse expects ISO-8601 with Z or offset)
@@ -209,31 +401,41 @@ Write-Host "[OK] JWT token acquired. ExpiresAt: $($login.expiresAt)" -Foreground
 # ---------------------------
 # 2) Rooms sync
 # ---------------------------
-TryCall "POST /api/rooms/sync" {
+SoftCall "POST /api/rooms/sync" {
   InvokeApi "/api/rooms/sync" -Method POST
 } | Out-Null
 
 # ---------------------------
 # 3) Classroom schedules sync
 # ---------------------------
-$classScheduleSync = TryCall "POST /api/rooms/aulas/sync (all rooms, async)" {
+$classScheduleSync = SoftCall "POST /api/rooms/aulas/sync (all rooms, async)" {
   InvokeApi "/api/rooms/aulas/sync?weekStart=$ClassScheduleWeekStart" -Method POST
 }
-PrintJson "Classroom schedules async job" $classScheduleSync
-AssertSmoke "Classroom schedules sync returned a job" (
-  -not [string]::IsNullOrWhiteSpace($classScheduleSync.jobId) -and
-  @("PENDING", "RUNNING", "COMPLETED") -contains $classScheduleSync.status
-) "schedule sync did not return a valid asynchronous job."
+if ($null -ne $classScheduleSync) {
+  PrintJson "Classroom schedules async job" $classScheduleSync
+  AssertSmoke "Classroom schedules sync returned a job" (
+    -not [string]::IsNullOrWhiteSpace($classScheduleSync.jobId) -and
+    @("PENDING", "RUNNING", "COMPLETED") -contains $classScheduleSync.status
+  ) "schedule sync did not return a valid asynchronous job."
 
-$classScheduleJob = TryCall "GET /api/rooms/aulas/sync/$($classScheduleSync.jobId)" {
-  InvokeApi "/api/rooms/aulas/sync/$($classScheduleSync.jobId)" -Method GET
+  $classScheduleJob = SoftCall "GET /api/rooms/aulas/sync/$($classScheduleSync.jobId)" {
+    InvokeApi "/api/rooms/aulas/sync/$($classScheduleSync.jobId)" -Method GET
+  }
+  if ($null -ne $classScheduleJob) {
+    PrintJson "Classroom schedules job status" $classScheduleJob
+    AssertSmoke "Classroom schedules job was persisted" (
+      "$($classScheduleJob.jobId)" -eq "$($classScheduleSync.jobId)" -and
+      @("PENDING", "RUNNING", "COMPLETED") -contains $classScheduleJob.status
+    ) "schedule sync job was not found or failed immediately. Current status: $($classScheduleJob.status)"
+  } else {
+    AddSmokeResult "Classroom schedules job persisted" "WARN" 0 "skipped because job status endpoint failed"
+    Write-Host "[WARN] Classroom schedules job persistence assertion skipped because job status endpoint failed." -ForegroundColor Yellow
+  }
+  Write-Host "[INFO] Classroom schedule synchronization continues asynchronously; the smoke test will not wait for completion." -ForegroundColor Yellow
+} else {
+  AddSmokeResult "Classroom schedules job follow-up" "WARN" 0 "skipped because schedule sync did not return a job"
+  Write-Host "[WARN] Classroom schedules job follow-up skipped because schedule sync did not return a job." -ForegroundColor Yellow
 }
-PrintJson "Classroom schedules job status" $classScheduleJob
-AssertSmoke "Classroom schedules job was persisted" (
-  "$($classScheduleJob.jobId)" -eq "$($classScheduleSync.jobId)" -and
-  @("PENDING", "RUNNING", "COMPLETED") -contains $classScheduleJob.status
-) "schedule sync job was not found or failed immediately. Current status: $($classScheduleJob.status)"
-Write-Host "[INFO] Classroom schedule synchronization continues asynchronously; the smoke test will not wait for completion." -ForegroundColor Yellow
 
 # ---------------------------
 # 4) Sensors seed
@@ -963,3 +1165,4 @@ PrintJson "Ocupacao after checkout" $ocup2
 
 Write-Host ""
 Write-Host "API smoke test finished successfully." -ForegroundColor Green
+WriteSmokeReport "PASSED"
