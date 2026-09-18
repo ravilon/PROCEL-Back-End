@@ -28,9 +28,104 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 class RegrasServiceTest {
+    @Test
+    void allowsMultipleActiveRulesForSameParameterInGroup() {
+        GrupoRegraRepository grupoRepo = mock(GrupoRegraRepository.class);
+        RegraParametroRepository regraRepo = mock(RegraParametroRepository.class);
+        ParametroDefRepository parametroRepo = mock(ParametroDefRepository.class);
+        RegrasService service = new RegrasService(
+                grupoRepo,
+                regraRepo,
+                parametroRepo,
+                mock(SensorRepository.class),
+                mock(SensorGrupoRegraRepository.class)
+        );
+        UUID grupoId = UUID.randomUUID();
+        UUID parametroId = UUID.randomUUID();
+        GrupoRegra grupo = new GrupoRegra("Grupo", null, true);
+        ReflectionTestUtils.setField(grupo, "id", grupoId);
+        ParametroDef parametro = new ParametroDef(
+                new TipoDeSensor("SII_LIGHT"), "light", null, DataType.BOOLEAN, null);
+        ReflectionTestUtils.setField(parametro, "id", parametroId);
+
+        when(grupoRepo.findById(grupoId)).thenReturn(Optional.of(grupo));
+        when(parametroRepo.findById(parametroId)).thenReturn(Optional.of(parametro));
+        when(regraRepo.save(any(RegraParametro.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        service.criarRegra(grupoId, new RegraDTOs.RegraParametroRequest(
+                parametroId,
+                "Luz ligada ok",
+                "light = true",
+                RegraOperador.EQ,
+                null,
+                null,
+                null,
+                true,
+                AvaliacaoResultado.IDEAL,
+                0,
+                1,
+                true
+        ));
+        service.criarRegra(grupoId, new RegraDTOs.RegraParametroRequest(
+                parametroId,
+                "Luz desligada alerta",
+                "light = false",
+                RegraOperador.EQ,
+                null,
+                null,
+                null,
+                false,
+                AvaliacaoResultado.ALERTA,
+                2,
+                2,
+                true
+        ));
+
+        verify(regraRepo, times(2)).save(any(RegraParametro.class));
+    }
+
+    @Test
+    void linksGroupWithMultipleRulesForSameParameterToSensor() {
+        GrupoRegraRepository grupoRepo = mock(GrupoRegraRepository.class);
+        RegraParametroRepository regraRepo = mock(RegraParametroRepository.class);
+        SensorRepository sensorRepo = mock(SensorRepository.class);
+        SensorGrupoRegraRepository sensorGrupoRepo = mock(SensorGrupoRegraRepository.class);
+        RegrasService service = new RegrasService(
+                grupoRepo,
+                regraRepo,
+                mock(ParametroDefRepository.class),
+                sensorRepo,
+                sensorGrupoRepo
+        );
+        UUID grupoId = UUID.randomUUID();
+        UUID parametroId = UUID.randomUUID();
+        TipoDeSensor tipo = new TipoDeSensor("SII_LIGHT");
+        Sensor sensor = new Sensor("SII-LIGHT-001", "Sensor luz", tipo, null);
+        GrupoRegra grupo = new GrupoRegra("Grupo luz", null, true);
+        ReflectionTestUtils.setField(grupo, "id", grupoId);
+        ParametroDef parametro = new ParametroDef(tipo, "light", null, DataType.BOOLEAN, null);
+        ReflectionTestUtils.setField(parametro, "id", parametroId);
+        RegraParametro onRule = regra(grupo, parametro, "Luz ligada ok", true, AvaliacaoResultado.IDEAL);
+        RegraParametro offRule = regra(grupo, parametro, "Luz desligada alerta", false, AvaliacaoResultado.ALERTA);
+
+        when(sensorRepo.findByExternalIdAndAtivoTrue("SII-LIGHT-001")).thenReturn(Optional.of(sensor));
+        when(grupoRepo.findById(grupoId)).thenReturn(Optional.of(grupo));
+        when(regraRepo.findAllByGrupoRegra_IdAndAtivoTrueOrderByPrioridadeDescSeveridadeDesc(grupoId))
+                .thenReturn(List.of(onRule, offRule));
+        when(sensorGrupoRepo.save(any(SensorGrupoRegra.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = service.vincularGrupoAoSensor(
+                "SII-LIGHT-001",
+                new RegraDTOs.SensorGrupoRegraRequest(grupoId, SensorGrupoRegraStatus.ATIVO, null, null)
+        );
+
+        assertThat(response.sensorExternalId()).isEqualTo("SII-LIGHT-001");
+        assertThat(response.status()).isEqualTo(SensorGrupoRegraStatus.ATIVO);
+    }
 
     @Test
     void updatesRuleWithoutReplacingItsId() {
@@ -124,6 +219,24 @@ class RegrasServiceTest {
         service.removerVinculoDoSensor("SII-001", vinculoId);
 
         verify(sensorGrupoRepo).delete(vinculo);
+    }
+
+    private static RegraParametro regra(
+            GrupoRegra grupo,
+            ParametroDef parametro,
+            String nome,
+            boolean valor,
+            AvaliacaoResultado resultado
+    ) {
+        RegraParametro regra = new RegraParametro();
+        regra.setGrupoRegra(grupo);
+        regra.setParametroDef(parametro);
+        regra.setNome(nome);
+        regra.setOperador(RegraOperador.EQ);
+        regra.setValorBoolean(valor);
+        regra.setResultado(resultado);
+        regra.setAtivo(true);
+        return regra;
     }
 
     private static RegrasService service(

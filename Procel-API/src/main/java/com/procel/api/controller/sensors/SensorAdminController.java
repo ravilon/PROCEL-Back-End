@@ -73,7 +73,7 @@ public class SensorAdminController {
     }
 
     @DeleteMapping("/parameters/{parametroId}")
-    @Operation(summary = "Oculta parametro preservando historico e regras")
+    @Operation(summary = "Remove parametro sem vinculos; se houver historico ou regras, apenas oculta")
     public void ocultarParametro(@PathVariable java.util.UUID parametroId) {
         service.ocultarParametro(parametroId);
     }

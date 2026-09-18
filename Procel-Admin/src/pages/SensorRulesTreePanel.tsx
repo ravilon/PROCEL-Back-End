@@ -419,6 +419,24 @@ function RuleGroupTreeNode({
       });
     },
   });
+  const removeRule = useMutation({
+    mutationFn: (ruleId: string) =>
+      apiRequest<void>(
+        `/api/rules/groups/${link.grupoRegraId}/rules/${ruleId}`,
+        { method: "DELETE" },
+        session,
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["rules", "groups", link.grupoRegraId],
+      });
+    },
+  });
+  const handleRemoveRule = (rule: RegraParametro) => {
+    if (window.confirm(`Remover a regra "${rule.nome}" deste grupo?`)) {
+      removeRule.mutate(rule.id);
+    }
+  };
   const handleUnlink = () => {
     if (
       window.confirm(
@@ -502,6 +520,22 @@ function RuleGroupTreeNode({
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <Chip size="small" label={rule.resultado} />
                   {!rule.ativo && <Chip size="small" label="Inativa" />}
+                  {rule.ativo && (
+                    <IconButton
+                      size="small"
+                      color="error"
+                      aria-label={`Remover regra ${rule.nome}`}
+                      title="Remover regra"
+                      disabled={removeRule.isPending}
+                      onClick={() => handleRemoveRule(rule)}
+                    >
+                      {removeRule.isPending ? (
+                        <CircularProgress size={16} />
+                      ) : (
+                        <DeleteOutlined fontSize="small" />
+                      )}
+                    </IconButton>
+                  )}
                 </Stack>
               </Stack>
             </Box>

@@ -172,7 +172,7 @@ function SensorTypesPanel() {
       await queryClient.invalidateQueries({ queryKey: ["sensor-admin", "types"] });
     },
   });
-  const hideParameter = useMutation({
+  const deleteParameter = useMutation({
     mutationFn: (parameterId: string) =>
       apiRequest<void>(
         `/api/sensor-admin/parameters/${parameterId}`,
@@ -300,7 +300,7 @@ function SensorTypesPanel() {
                       checked={showHiddenParameters}
                       onChange={(_, checked) => setShowHiddenParameters(checked)}
                     />
-                    <Typography variant="body2">Mostrar ocultos</Typography>
+                    <Typography variant="body2">Mostrar inativos</Typography>
                   </Stack>
                   <Button
                     size="small"
@@ -328,7 +328,7 @@ function SensorTypesPanel() {
                     <Box>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography fontWeight={600}>{item.nome}</Typography>
-                        {!item.ativo && <Chip label="Oculto" size="small" />}
+                        {!item.ativo && <Chip label="Inativo" size="small" />}
                       </Stack>
                     <Typography variant="body2" color="text.secondary">
                       {item.dataType}
@@ -349,10 +349,10 @@ function SensorTypesPanel() {
                           <Button
                             size="small"
                             color="error"
-                            onClick={() => hideParameter.mutate(item.id)}
-                            disabled={hideParameter.isPending}
+                            onClick={() => deleteParameter.mutate(item.id)}
+                            disabled={deleteParameter.isPending}
                           >
-                            Ocultar
+                            Excluir
                           </Button>
                         </>
                       ) : (

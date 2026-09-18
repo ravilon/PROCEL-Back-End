@@ -82,16 +82,38 @@ class SensorAdminServiceTest {
     }
 
     @Test
-    void hidesAndRestoresParameterWithoutDeletingIt() {
+    void deletesParameterWhenItHasNoLinkedRows() {
         TipoDeSensorRepository tipoRepo = mock(TipoDeSensorRepository.class);
         ParametroDefRepository parametroRepo = mock(ParametroDefRepository.class);
-        SensorAdminService service = service(tipoRepo, parametroRepo, mock(EntityManager.class));
+        EntityManager entityManager = mock(EntityManager.class);
+        SensorAdminService service = service(tipoRepo, parametroRepo, entityManager);
+        ParametroDef parametro = new ParametroDef(
+                new TipoDeSensor("SII_SMART"), "temperature", null, DataType.NUMERIC, "C");
+        UUID id = UUID.randomUUID();
+        ReflectionTestUtils.setField(parametro, "id", id);
+        when(parametroRepo.findById(id)).thenReturn(Optional.of(parametro));
+        stubParameterReferenceCount(entityManager, 0L);
+
+        service.ocultarParametro(id);
+
+        verify(parametroRepo).delete(parametro);
+        verify(parametroRepo).flush();
+        assertThat(parametro.isAtivo()).isTrue();
+    }
+
+    @Test
+    void hidesAndRestoresLinkedParameterWithoutDeletingIt() {
+        TipoDeSensorRepository tipoRepo = mock(TipoDeSensorRepository.class);
+        ParametroDefRepository parametroRepo = mock(ParametroDefRepository.class);
+        EntityManager entityManager = mock(EntityManager.class);
+        SensorAdminService service = service(tipoRepo, parametroRepo, entityManager);
         ParametroDef parametro = new ParametroDef(
                 new TipoDeSensor("SII_SMART"), "temperature", null, DataType.NUMERIC, "C");
         UUID id = UUID.randomUUID();
         ReflectionTestUtils.setField(parametro, "id", id);
         when(parametroRepo.findById(id)).thenReturn(Optional.of(parametro));
         when(parametroRepo.save(parametro)).thenReturn(parametro);
+        stubParameterReferenceCount(entityManager, 1L);
 
         service.ocultarParametro(id);
         assertThat(parametro.isAtivo()).isFalse();
@@ -123,6 +145,12 @@ class SensorAdminServiceTest {
         assertThat(restored.ativo()).isTrue();
     }
 
+    private static void stubParameterReferenceCount(EntityManager entityManager, long count) {
+        Query query = mock(Query.class);
+        when(entityManager.createNativeQuery(any(String.class))).thenReturn(query);
+        when(query.setParameter(any(String.class), any())).thenReturn(query);
+        when(query.getSingleResult()).thenReturn(count);
+    }
     private static SensorAdminService service(
             TipoDeSensorRepository tipoRepo,
             ParametroDefRepository parametroRepo,

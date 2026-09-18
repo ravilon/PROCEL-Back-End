@@ -72,9 +72,6 @@ public class RegrasService {
         }
         validateRegra(parametroDef, req);
         boolean ativo = req.ativo() == null || req.ativo();
-        if (ativo && regraRepo.existsByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(grupoId, req.parametroDefId())) {
-            throw new IllegalArgumentException("GrupoRegra already has an active rule for parametroDefId=" + req.parametroDefId());
-        }
 
         RegraParametro regra = new RegraParametro();
         regra.setGrupoRegra(grupo);
@@ -119,17 +116,6 @@ public class RegrasService {
         }
         validateRegra(parametroDef, req);
         boolean ativo = req.ativo() == null || req.ativo();
-        if (ativo) {
-            boolean duplicate = regraRepo
-                    .findAllByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(grupoId, req.parametroDefId())
-                    .stream()
-                    .anyMatch(existing -> !existing.getId().equals(regraId));
-            if (duplicate) {
-                throw new IllegalArgumentException(
-                        "GrupoRegra already has an active rule for parametroDefId="
-                                + req.parametroDefId());
-            }
-        }
 
         applyRegra(regra, parametroDef, req, ativo);
         return toRegraResponse(regraRepo.save(regra));
@@ -386,9 +372,7 @@ public class RegrasService {
                                 + " but sensor tipo=" + sensorTipoNome
                 );
             }
-            if (!proposedParametroIds.add(parametroDef.getId())) {
-                throw new IllegalArgumentException("GrupoRegra has more than one active rule for parametroDefId=" + parametroDef.getId());
-            }
+            proposedParametroIds.add(parametroDef.getId());
         }
 
         validateNoSensorRuleConflicts(sensor, proposedParametroIds, validoDe, validoAte, SensorGrupoRegraStatus.ATIVO);

@@ -162,6 +162,11 @@ public class SensorAdminService {
     @Transactional
     public void ocultarParametro(UUID parametroId) {
         ParametroDef parametro = findParametro(parametroId);
+        if (!hasParametroLinks(parametroId)) {
+            parametroRepo.delete(parametro);
+            parametroRepo.flush();
+            return;
+        }
         parametro.setAtivo(false);
         parametroRepo.save(parametro);
     }
@@ -247,6 +252,24 @@ public class SensorAdminService {
                 sensor.getCompartimento().getNome(),
                 sensor.isAtivo()
         );
+    }
+
+    private boolean hasParametroLinks(UUID parametroId) {
+        Number references = (Number) entityManager.createNativeQuery("""
+                        select count(*)
+                        from (
+                            select 1 from parametro_valor where parametro_def_id = :id
+                            union all
+                            select 1 from evento_condicao where parametro_def_id = :id
+                            union all
+                            select 1 from regra_parametro where parametro_def_id = :id
+                            union all
+                            select 1 from analytics_numeric_bucket where parametro_def_id = :id
+                        ) refs
+                        """)
+                .setParameter("id", parametroId)
+                .getSingleResult();
+        return references.longValue() > 0;
     }
 
     private ParametroDef findParametro(UUID parametroId) {
