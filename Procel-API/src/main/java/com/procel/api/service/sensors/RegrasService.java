@@ -4,6 +4,7 @@ import com.procel.api.dto.sensors.RegraDTOs;
 import com.procel.api.entity.sensors.*;
 import com.procel.api.exception.NotFoundException;
 import com.procel.api.repository.sensors.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,24 @@ public class RegrasService {
     private final ParametroDefRepository parametroDefRepo;
     private final SensorRepository sensorRepo;
     private final SensorGrupoRegraRepository sensorGrupoRepo;
+    private final AvaliacaoParametroValorRepository avaliacaoRepo;
+
+    @Autowired
+    public RegrasService(
+            GrupoRegraRepository grupoRepo,
+            RegraParametroRepository regraRepo,
+            ParametroDefRepository parametroDefRepo,
+            SensorRepository sensorRepo,
+            SensorGrupoRegraRepository sensorGrupoRepo,
+            AvaliacaoParametroValorRepository avaliacaoRepo
+    ) {
+        this.grupoRepo = grupoRepo;
+        this.regraRepo = regraRepo;
+        this.parametroDefRepo = parametroDefRepo;
+        this.sensorRepo = sensorRepo;
+        this.sensorGrupoRepo = sensorGrupoRepo;
+        this.avaliacaoRepo = avaliacaoRepo;
+    }
 
     public RegrasService(
             GrupoRegraRepository grupoRepo,
@@ -29,11 +48,7 @@ public class RegrasService {
             SensorRepository sensorRepo,
             SensorGrupoRegraRepository sensorGrupoRepo
     ) {
-        this.grupoRepo = grupoRepo;
-        this.regraRepo = regraRepo;
-        this.parametroDefRepo = parametroDefRepo;
-        this.sensorRepo = sensorRepo;
-        this.sensorGrupoRepo = sensorGrupoRepo;
+        this(grupoRepo, regraRepo, parametroDefRepo, sensorRepo, sensorGrupoRepo, null);
     }
 
     @Transactional
@@ -124,8 +139,19 @@ public class RegrasService {
     @Transactional
     public void removerRegra(UUID grupoId, UUID regraId) {
         RegraParametro regra = findRegraDoGrupo(grupoId, regraId);
-        regra.setAtivo(false);
-        regraRepo.save(regra);
+        if (avaliacaoRepo != null) avaliacaoRepo.deleteByRegraParametro_Id(regra.getId());
+        regraRepo.delete(regra);
+    }
+
+    @Transactional
+    public void removerGrupo(UUID grupoId) {
+        if (grupoId == null) throw new IllegalArgumentException("grupoId is required");
+        GrupoRegra grupo = grupoRepo.findById(grupoId)
+                .orElseThrow(() -> new NotFoundException("GrupoRegra not found id=" + grupoId));
+        avaliacaoRepo.deleteByRegraParametro_GrupoRegra_Id(grupoId);
+        sensorGrupoRepo.deleteByGrupoRegra_Id(grupoId);
+        regraRepo.deleteByGrupoRegra_Id(grupoId);
+        grupoRepo.delete(grupo);
     }
 
     @Transactional

@@ -16,6 +16,8 @@ public interface SensorGrupoRegraRepository extends JpaRepository<SensorGrupoReg
 
     List<SensorGrupoRegra> findAllBySensor_ExternalIdAndStatus(String sensorExternalId, SensorGrupoRegraStatus status);
 
+    long deleteByGrupoRegra_Id(UUID grupoRegraId);
+
     @Query("""
             select sgr
             from SensorGrupoRegra sgr

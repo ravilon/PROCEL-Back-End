@@ -34,6 +34,12 @@ public class RegrasController {
         return service.listarGrupos();
     }
 
+    @DeleteMapping("/groups/{grupoId}")
+    @Operation(summary = "Exclui grupo de regras e todos os seus vinculos, regras e avaliacoes")
+    public void removerGrupo(@PathVariable UUID grupoId) {
+        service.removerGrupo(grupoId);
+    }
+
     @GetMapping("/parameter-defs")
     @Operation(summary = "Lista parametros definidos por tipo de sensor", description = "Requer ADMIN ou OPERADOR.")
     public List<RegraDTOs.ParametroDefResponse> listarParametros(@RequestParam String tipoNome) {
@@ -66,7 +72,7 @@ public class RegrasController {
     }
 
     @DeleteMapping("/groups/{grupoId}/rules/{regraId}")
-    @Operation(summary = "Desativa regra preservando avaliacoes historicas")
+    @Operation(summary = "Exclui regra e suas avaliacoes")
     public void removerRegra(@PathVariable UUID grupoId, @PathVariable UUID regraId) {
         service.removerRegra(grupoId, regraId);
     }

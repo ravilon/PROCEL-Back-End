@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
@@ -592,6 +593,15 @@ function RuleGroupsPanel() {
       await queryClient.invalidateQueries({ queryKey: ["rules", "groups"] });
     },
   });
+  const deleteGroup = useMutation({
+    mutationFn: (groupId: string) =>
+      apiRequest<void>(`/api/rules/groups/${groupId}`, { method: "DELETE" }, session),
+    onSuccess: async () => {
+      setSelectedGroupId("");
+      setEditingRuleId(null);
+      await queryClient.invalidateQueries({ queryKey: ["rules", "groups"] });
+    },
+  });
   const saveRule = useMutation({
     mutationFn: () => {
       const numeric = selectedParameter?.dataType === "NUMERIC";
@@ -709,15 +719,29 @@ function RuleGroupsPanel() {
         </Paper>
         <Paper variant="outlined" sx={{ p: 1 }}>
           {groups.data?.map((item) => (
-            <Button
-              key={item.id}
-              fullWidth
-              onClick={() => setSelectedGroupId(item.id)}
-              variant={selectedGroupId === item.id ? "contained" : "text"}
-              sx={{ justifyContent: "flex-start", mb: 0.5 }}
-            >
-              {item.nome}
-            </Button>
+            <Stack key={item.id} direction="row" spacing={0.5} sx={{ mb: 0.5 }}>
+              <Button
+                fullWidth
+                onClick={() => setSelectedGroupId(item.id)}
+                variant={selectedGroupId === item.id ? "contained" : "text"}
+                sx={{ justifyContent: "flex-start" }}
+              >
+                {item.nome}
+              </Button>
+              <IconButton
+                color="error"
+                aria-label={`Excluir grupo ${item.nome}`}
+                title="Excluir grupo"
+                onClick={() => {
+                  if (window.confirm(`Excluir o grupo "${item.nome}" e todas as regras, vinculos e avaliacoes?`)) {
+                    deleteGroup.mutate(item.id);
+                  }
+                }}
+                disabled={deleteGroup.isPending}
+              >
+                <DeleteOutlined />
+              </IconButton>
+            </Stack>
           ))}
           <ErrorMessage error={groups.error} />
         </Paper>
@@ -762,8 +786,7 @@ function RuleGroupsPanel() {
                       >
                         Editar
                       </Button>
-                      {item.ativo && (
-                        <Button
+                      <Button
                           size="small"
                           color="error"
                           startIcon={<DeleteOutlined />}
@@ -772,7 +795,6 @@ function RuleGroupsPanel() {
                         >
                           Remover
                         </Button>
-                      )}
                     </Stack>
                   </Stack>
                 </Box>

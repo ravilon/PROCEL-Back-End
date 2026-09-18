@@ -177,7 +177,7 @@ class RegrasServiceTest {
     }
 
     @Test
-    void removingRuleOnlyDeactivatesIt() {
+    void removingRuleDeletesItAndItsEvaluations() {
         RegraParametroRepository regraRepo = mock(RegraParametroRepository.class);
         RegrasService service = service(regraRepo, mock(ParametroDefRepository.class));
         UUID grupoId = UUID.randomUUID();
@@ -190,9 +190,7 @@ class RegrasServiceTest {
         when(regraRepo.findById(regraId)).thenReturn(Optional.of(regra));
 
         service.removerRegra(grupoId, regraId);
-
-        assertThat(regra.isAtivo()).isFalse();
-        verify(regraRepo).save(regra);
+        verify(regraRepo).delete(regra);
     }
 
     @Test

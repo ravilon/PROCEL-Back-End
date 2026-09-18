@@ -10,4 +10,8 @@ import java.util.UUID;
 public interface AvaliacaoParametroValorRepository extends JpaRepository<AvaliacaoParametroValor, UUID> {
 
     List<AvaliacaoParametroValor> findAllByParametroValor_IdIn(Collection<UUID> parametroValorIds);
+
+    long deleteByRegraParametro_Id(UUID regraParametroId);
+
+    long deleteByRegraParametro_GrupoRegra_Id(UUID grupoRegraId);
 }

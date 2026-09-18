@@ -15,4 +15,6 @@ public interface RegraParametroRepository extends JpaRepository<RegraParametro, 
     List<RegraParametro> findAllByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(UUID grupoRegraId, UUID parametroDefId);
 
     boolean existsByGrupoRegra_IdAndParametroDef_IdAndAtivoTrue(UUID grupoRegraId, UUID parametroDefId);
+
+    long deleteByGrupoRegra_Id(UUID grupoRegraId);
 }
