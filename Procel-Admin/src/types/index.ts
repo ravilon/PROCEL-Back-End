@@ -20,7 +20,7 @@ export type {
   DroolsState,
   EvaluationRequest,
   EventDefinitionSummary,
-  EventoAgregacao,
+  EventoAgregacao, EventoPapel, EventoCondicaoFonte,
   EventoAvaliacaoRequestStatus,
   EventoCondicao,
   EventoCondicaoRequest,

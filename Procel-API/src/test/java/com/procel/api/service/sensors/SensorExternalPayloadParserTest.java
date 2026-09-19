@@ -148,6 +148,34 @@ class SensorExternalPayloadParserTest {
         )).isInstanceOf(ApiStatusException.class);
     }
 
+    @Test
+    void parsesMqttInternalPayloadAndAcceptsMillisecondInstant() throws Exception {
+        var payload = objectMapper.readTree("""
+                {"meta":{"id":"mqtt-20260918-220647"},"device":{"id":"SII-001"},
+                 "timestamp":"2026-09-18T22:06:47.318Z","readings":{"temperature":23.7}}
+                """);
+        var result = parser.parse(payload, versionWithTimestamp("/timestamp"),
+                MedicaoIngestaoSource.MQTT, null);
+
+        assertThat(result.timestamp()).isEqualTo(Instant.parse("2026-09-18T22:06:47.318Z"));
+    }
+
+    @Test
+    void distinguishesMissingNonTextualAndMalformedTimestamp() throws Exception {
+        var version = versionWithTimestamp("/timestamp");
+        assertThatThrownBy(() -> parser.parse(objectMapper.readTree("""
+                {"meta":{"id":"m"},"device":{"id":"SII-001"},"readings":{"temperature":1}}
+                """), version, MedicaoIngestaoSource.MQTT, null))
+                .extracting("error").isEqualTo("TIMESTAMP_POINTER_MISSING");
+        assertThatThrownBy(() -> parser.parse(objectMapper.readTree("""
+                {"meta":{"id":"m"},"device":{"id":"SII-001"},"timestamp":1730000000,"readings":{"temperature":1}}
+                """), version, MedicaoIngestaoSource.MQTT, null))
+                .extracting("error").isEqualTo("TIMESTAMP_NOT_TEXTUAL");
+        assertThatThrownBy(() -> parser.parse(objectMapper.readTree("""
+                {"meta":{"id":"m"},"device":{"id":"SII-001"},"timestamp":"not-an-instant","readings":{"temperature":1}}
+                """), version, MedicaoIngestaoSource.MQTT, null))
+                .extracting("error").isEqualTo("TIMESTAMP_INVALID");
+    }
     private SensorIntegrationParserVersion version(SensorResolutionMode mode, boolean includeNull) {
         var profile = new SensorIntegrationProfile("P", null, MedicaoIngestaoSource.API);
         var version = new SensorIntegrationParserVersion(
@@ -167,4 +195,9 @@ class SensorExternalPayloadParserTest {
         version.replaceMappings(mappings);
         return version;
     }
-}
+    private SensorIntegrationParserVersion versionWithTimestamp(String timestampPointer) {
+        var version = version(SensorResolutionMode.PAYLOAD_POINTER, false);
+        version.updateDraft(version.getSensorResolutionMode(), version.getMessageIdPointer(),
+                version.getSensorExternalIdPointer(), timestampPointer, version.getSourceReceivedAtPointer());
+        return version;
+    }}

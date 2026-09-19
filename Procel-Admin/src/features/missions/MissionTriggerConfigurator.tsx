@@ -40,10 +40,15 @@ import {
   updateMissionEvent,
 } from "../../api/missions";
 import { listSensorTypes } from "../../api/sensors";
+import { listRuleGroups, listRulesForGroup } from "../../api/rules";
 import { useAuth } from "../../auth/AuthContext";
 import { ApiError } from "../../lib/api";
 import type {
   EventoAgregacao,
+  EventoPapel,
+  EventoCondicaoFonte,
+  AvaliacaoResultado,
+  RegraParametro,
   EventoCondicao,
   EventoCondicaoRequest,
   EventoDefinicao,
@@ -58,6 +63,9 @@ import type {
   TipoSensor,
 } from "../../types";
 
+const eventRoles: EventoPapel[] = ["ATRIBUICAO", "PROGRESSO", "CONCLUSAO"];
+const conditionSources: EventoCondicaoFonte[] = ["PARAMETRO_VALOR", "AVALIACAO_REGRA"];
+const ruleResults: AvaliacaoResultado[] = ["IDEAL", "NORMAL", "ALERTA", "CRITICO", "INVALIDO"];
 const eventTypes: EventoTipoDisparo[] = ["MEDICAO_RECEBIDA", "CHECKIN_CONFIRMADO"];
 const eventModes: EventoModoAvaliacao[] = ["INSTANTANEO", "DURACAO", "TRANSICAO", "JANELA_ENCERRADA"];
 const logicOperators: EventoOperadorLogico[] = ["ALL", "ANY"];
@@ -67,19 +75,23 @@ const policies: EventoPoliticaAtribuicao[] = [
   "ALUNOS_VINCULADOS",
   "ALUNOS_VINCULADOS_COM_OCUPACAO",
 ];
-const aggregations: EventoAgregacao[] = ["ULTIMO_VALOR", "MEDIA", "MINIMO", "MAXIMO", "CONTAGEM"];
+const aggregations: EventoAgregacao[] = ["ULTIMO", "PRIMEIRO", "MIN", "MAX", "MEDIA", "SOMA", "CONTAGEM", "TEMPO_VERDADEIRO", "DELTA"];
 const operators: EventoRegraOperador[] = ["EQ", "NEQ", "GT", "GTE", "LT", "LTE", "BETWEEN", "OUTSIDE", "CONTAINS"];
 
-type EventForm = Omit<EventoDefinicaoRequest, "janelaSegundos" | "duracaoMinimaSegundos" | "quantidadeNecessaria" | "cooldownSegundos" | "ordem"> & {
+type EventForm = Omit<EventoDefinicaoRequest, "janelaSegundos" | "duracaoMinimaSegundos" | "quantidadeNecessaria" | "cooldownSegundos" | "ordem" | "lacunaMaximaSegundos"> & {
   janelaSegundos: string;
   duracaoMinimaSegundos: string;
   quantidadeNecessaria: string;
   cooldownSegundos: string;
+  lacunaMaximaSegundos: string;
   ordem: string;
 };
 
 type ConditionForm = {
   id?: string;
+  fonte: EventoCondicaoFonte;
+  regraParametroId: string;
+  resultadoEsperado: AvaliacaoResultado;
   tipoNome: string;
   parametroDefId: string;
   operador: EventoRegraOperador;
@@ -95,6 +107,7 @@ type ConditionForm = {
 const emptyEvent = (): EventForm => ({
   nome: "",
   descricao: "",
+  papel: "PROGRESSO",
   tipoDisparo: "MEDICAO_RECEBIDA",
   modoAvaliacao: "INSTANTANEO",
   operadorLogico: "ALL",
@@ -103,11 +116,15 @@ const emptyEvent = (): EventForm => ({
   duracaoMinimaSegundos: "",
   quantidadeNecessaria: "1",
   cooldownSegundos: "",
+  lacunaMaximaSegundos: "300",
   ordem: "0",
   ativo: true,
 });
 
 const emptyCondition = (order: number): ConditionForm => ({
+  fonte: "PARAMETRO_VALOR",
+  regraParametroId: "",
+  resultadoEsperado: "ALERTA",
   tipoNome: "",
   parametroDefId: "",
   operador: "EQ",
@@ -115,7 +132,7 @@ const emptyCondition = (order: number): ConditionForm => ({
   valorNumeric2: "",
   valorBoolean: "",
   valorText: "",
-  agregacao: "ULTIMO_VALOR",
+  agregacao: "ULTIMO",
   obrigatoria: true,
   ordem: String(order),
 });
@@ -154,6 +171,16 @@ export function MissionTriggerConfigurator({
     enabled: open,
   });
 
+  const rules = useQuery({
+    queryKey: ["sensor-rules", "mission-triggers"],
+    queryFn: async () => {
+      const groups = await listRuleGroups(session);
+      const byGroup = await Promise.all(groups.filter((group) => group.ativo).map((group) => listRulesForGroup(group.id, session)));
+      return byGroup.flat().filter((rule) => rule.ativo);
+    },
+    enabled: open,
+  });
+
   const selected = detail.data;
   const saveEvent = useMutation({
     mutationFn: () => {
@@ -186,7 +213,7 @@ export function MissionTriggerConfigurator({
   const saveCondition = useMutation({
     mutationFn: () => {
       if (!selectedId || !conditionForm) throw new Error("Selecione um evento antes de salvar a condicao.");
-      const validation = validateCondition(conditionForm, sensorTypes.data ?? []);
+      const validation = validateCondition(conditionForm, sensorTypes.data ?? [], rules.data ?? []);
       if (validation) throw new Error(validation);
       const payload = toConditionRequest(conditionForm);
       return conditionForm.id
@@ -229,6 +256,9 @@ export function MissionTriggerConfigurator({
   function editCondition(condition: EventoCondicao) {
     setConditionForm({
       id: condition.id,
+      fonte: condition.fonte ?? "PARAMETRO_VALOR",
+      regraParametroId: condition.regraParametroId ?? "",
+      resultadoEsperado: (condition.resultadoEsperado as AvaliacaoResultado | null) ?? "ALERTA",
       tipoNome: condition.parametroTipoSensor,
       parametroDefId: condition.parametroDefId,
       operador: condition.operador,
@@ -295,6 +325,7 @@ export function MissionTriggerConfigurator({
               <ConditionSection
                 event={selected}
                 sensorTypes={sensorTypes.data ?? []}
+                rules={rules.data ?? []}
                 readOnly={readOnly}
                 conditionForm={conditionForm}
                 onStart={() => setConditionForm(emptyCondition((selected.condicoes.length ?? 0) + 1))}
@@ -322,6 +353,7 @@ function EventFormFields({ form, disabled, onChange }: { form: EventForm; disabl
       <TextField label="Nome" value={form.nome} onChange={(e) => set("nome", e.target.value)} required disabled={disabled} />
       <TextField label="Descricao" value={form.descricao ?? ""} onChange={(e) => set("descricao", e.target.value)} multiline minRows={2} disabled={disabled} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" }, gap: 2 }}>
+        <EnumField label="Papel" value={form.papel ?? "PROGRESSO"} options={eventRoles} disabled={disabled} onChange={(v) => set("papel", v as EventoPapel)} />
         <EnumField label="Tipo de disparo" value={form.tipoDisparo} options={eventTypes} disabled={disabled} onChange={(v) => set("tipoDisparo", v as EventoTipoDisparo)} />
         <EnumField label="Modo de avaliacao" value={form.modoAvaliacao} options={eventModes} disabled={disabled} onChange={(v) => set("modoAvaliacao", v as EventoModoAvaliacao)} />
         <EnumField label="Operador logico" value={form.operadorLogico} options={logicOperators} disabled={disabled} onChange={(v) => set("operadorLogico", v as EventoOperadorLogico)} />
@@ -330,6 +362,7 @@ function EventFormFields({ form, disabled, onChange }: { form: EventForm; disabl
         <TextField label="Ordem" type="number" value={form.ordem} onChange={(e) => set("ordem", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />
         {temporal && <TextField label="Janela (segundos)" type="number" value={form.janelaSegundos} onChange={(e) => set("janelaSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />}
         {form.modoAvaliacao === "DURACAO" && <TextField label="Duracao minima (segundos)" type="number" value={form.duracaoMinimaSegundos} onChange={(e) => set("duracaoMinimaSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />}
+        <TextField label="Lacuna maxima (segundos)" type="number" value={form.lacunaMaximaSegundos} onChange={(e) => set("lacunaMaximaSegundos", e.target.value)} inputProps={{ min: 1 }} disabled={disabled} />
         <TextField label="Cooldown (segundos)" type="number" value={form.cooldownSegundos} onChange={(e) => set("cooldownSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />
       </Box>
       <FormControlLabel control={<Switch checked={form.ativo} onChange={(e) => set("ativo", e.target.checked)} disabled={disabled} />} label="Gatilho ativo" />
@@ -340,6 +373,7 @@ function EventFormFields({ form, disabled, onChange }: { form: EventForm; disabl
 function ConditionSection({
   event,
   sensorTypes,
+  rules,
   readOnly,
   conditionForm,
   onStart,
@@ -352,6 +386,7 @@ function ConditionSection({
 }: {
   event: EventoDefinicao;
   sensorTypes: TipoSensor[];
+  rules: RegraParametro[];
   readOnly: boolean;
   conditionForm: ConditionForm | null;
   onStart: () => void;
@@ -385,24 +420,25 @@ function ConditionSection({
       ))}
       {(event.condicoes ?? []).length === 0 && <Typography color="text.secondary">Nenhuma condicao ativa.</Typography>}
       {conditionForm && !readOnly && (
-        <ConditionEditor form={conditionForm} sensorTypes={sensorTypes} pending={pending} onChange={onChange} onSave={onSave} onCancel={onCancel} />
+        <ConditionEditor form={conditionForm} sensorTypes={sensorTypes} rules={rules} pending={pending} onChange={onChange} onSave={onSave} onCancel={onCancel} />
       )}
     </Stack>
   );
 }
 
-function ConditionEditor({ form, sensorTypes, pending, onChange, onSave, onCancel }: { form: ConditionForm; sensorTypes: TipoSensor[]; pending: boolean; onChange: (form: ConditionForm) => void; onSave: () => void; onCancel: () => void }) {
+function ConditionEditor({ form, sensorTypes, rules, pending, onChange, onSave, onCancel }: { form: ConditionForm; sensorTypes: TipoSensor[]; rules: RegraParametro[]; pending: boolean; onChange: (form: ConditionForm) => void; onSave: () => void; onCancel: () => void }) {
   const selectedParameter = useMemo(
     () => sensorTypes.flatMap((type) => type.parametros).find((parameter) => parameter.id === form.parametroDefId),
     [form.parametroDefId, sensorTypes],
   );
-  const availableOperators = operators.filter((operator) => supportedOperators(selectedParameter?.dataType).includes(operator));
+  const availableOperators = form.fonte === "AVALIACAO_REGRA" ? ["EQ", "NEQ"] : operators.filter((operator) => supportedOperators(selectedParameter?.dataType).includes(operator));
   const set = <K extends keyof ConditionForm>(key: K, value: ConditionForm[K]) => onChange({ ...form, [key]: value });
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack spacing={2}>
         <Typography fontWeight={700}>{form.id ? "Editar condicao" : "Nova condicao"}</Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2 }}>
+          <EnumField label="Fonte" value={form.fonte} options={conditionSources} onChange={(value) => onChange({ ...form, fonte: value as EventoCondicaoFonte, operador: "EQ", regraParametroId: "" })} />
           <EnumField label="Tipo de sensor" value={form.tipoNome} options={sensorTypes.map((type) => type.nome)} onChange={(value) => onChange({ ...form, tipoNome: value, parametroDefId: "" })} />
           <FormControl required>
             <InputLabel>Parametro</InputLabel>
@@ -415,14 +451,16 @@ function ConditionEditor({ form, sensorTypes, pending, onChange, onSave, onCance
               ))}
             </Select>
           </FormControl>
+          {form.fonte === "AVALIACAO_REGRA" && <FormControl required><InputLabel>Regra de sensor</InputLabel><Select label="Regra de sensor" value={form.regraParametroId} onChange={(e) => set("regraParametroId", e.target.value)}>{rules.filter((rule) => rule.parametroDefId === form.parametroDefId).map((rule) => <MenuItem key={rule.id} value={rule.id}>{rule.nome} ({rule.resultado})</MenuItem>)}</Select></FormControl>}
+          {form.fonte === "AVALIACAO_REGRA" && <EnumField label="Resultado esperado" value={form.resultadoEsperado} options={ruleResults} onChange={(value) => set("resultadoEsperado", value as AvaliacaoResultado)} />}
           <EnumField label="Operador" value={form.operador} options={availableOperators} onChange={(value) => set("operador", value as EventoRegraOperador)} />
           <EnumField label="Agregacao" value={form.agregacao} options={aggregations} onChange={(value) => set("agregacao", value as EventoAgregacao)} />
-          {selectedParameter?.dataType === "NUMERIC" && <>
+          {form.fonte === "PARAMETRO_VALOR" && selectedParameter?.dataType === "NUMERIC" && <>
             <TextField label="Valor 1" type="number" value={form.valorNumeric1} onChange={(e) => set("valorNumeric1", e.target.value)} required />
             {(form.operador === "BETWEEN" || form.operador === "OUTSIDE") && <TextField label="Valor 2 / limite" type="number" value={form.valorNumeric2} onChange={(e) => set("valorNumeric2", e.target.value)} required />}
           </>}
-          {selectedParameter?.dataType === "BOOLEAN" && <FormControl required><InputLabel>Valor</InputLabel><Select label="Valor" value={form.valorBoolean} onChange={(e) => set("valorBoolean", e.target.value)}><MenuItem value="true">true</MenuItem><MenuItem value="false">false</MenuItem></Select></FormControl>}
-          {selectedParameter?.dataType === "TEXT" && <TextField label="Texto" value={form.valorText} onChange={(e) => set("valorText", e.target.value)} required />}
+          {form.fonte === "PARAMETRO_VALOR" && selectedParameter?.dataType === "BOOLEAN" && <FormControl required><InputLabel>Valor</InputLabel><Select label="Valor" value={form.valorBoolean} onChange={(e) => set("valorBoolean", e.target.value)}><MenuItem value="true">true</MenuItem><MenuItem value="false">false</MenuItem></Select></FormControl>}
+          {form.fonte === "PARAMETRO_VALOR" && selectedParameter?.dataType === "TEXT" && <TextField label="Texto" value={form.valorText} onChange={(e) => set("valorText", e.target.value)} required />}
           <TextField label="Ordem" type="number" value={form.ordem} onChange={(e) => set("ordem", e.target.value)} inputProps={{ min: 1 }} required />
         </Box>
         <FormControlLabel control={<Checkbox checked={form.obrigatoria} onChange={(e) => set("obrigatoria", e.target.checked)} />} label="Condicao obrigatoria" />
@@ -449,6 +487,8 @@ function fromEvent(event: EventoDefinicao): EventForm {
     operadorLogico: event.operadorLogico,
     politicaAtribuicao: event.politicaAtribuicao,
     janelaSegundos: numberText(event.janelaSegundos),
+    papel: event.papel ?? "PROGRESSO",
+    lacunaMaximaSegundos: numberText(event.lacunaMaximaSegundos ?? 300),
     duracaoMinimaSegundos: numberText(event.duracaoMinimaSegundos),
     quantidadeNecessaria: numberText(event.quantidadeNecessaria ?? 1),
     cooldownSegundos: numberText(event.cooldownSegundos),
@@ -462,6 +502,8 @@ function toEventRequest(form: EventForm): EventoDefinicaoRequest {
     nome: form.nome.trim(),
     descricao: form.descricao?.trim() || null,
     tipoDisparo: form.tipoDisparo,
+    papel: form.papel,
+    lacunaMaximaSegundos: optionalNumber(form.lacunaMaximaSegundos),
     modoAvaliacao: form.modoAvaliacao,
     operadorLogico: form.operadorLogico,
     politicaAtribuicao: form.politicaAtribuicao,
@@ -478,10 +520,10 @@ function toConditionRequest(form: ConditionForm): EventoCondicaoRequest {
   return {
     parametroDefId: form.parametroDefId,
     operador: form.operador,
-    valorNumeric1: form.valorNumeric1 === "" ? null : Number(form.valorNumeric1),
-    valorNumeric2: form.valorNumeric2 === "" ? null : Number(form.valorNumeric2),
-    valorBoolean: form.valorBoolean === "" ? null : form.valorBoolean === "true",
-    valorText: form.valorText.trim() || null,
+    valorNumeric1: form.fonte === "AVALIACAO_REGRA" || form.valorNumeric1 === "" ? null : Number(form.valorNumeric1),
+    valorNumeric2: form.fonte === "AVALIACAO_REGRA" || form.valorNumeric2 === "" ? null : Number(form.valorNumeric2),
+    valorBoolean: form.fonte === "AVALIACAO_REGRA" || form.valorBoolean === "" ? null : form.valorBoolean === "true",
+    valorText: form.fonte === "AVALIACAO_REGRA" ? null : form.valorText.trim() || null,
     agregacao: form.agregacao,
     obrigatoria: form.obrigatoria,
     ordem: Number(form.ordem),
@@ -490,18 +532,24 @@ function toConditionRequest(form: ConditionForm): EventoCondicaoRequest {
 
 function validateEvent(form: EventForm): string | null {
   if (!form.nome.trim()) return "Nome do gatilho e obrigatorio.";
-  for (const [label, value] of [["Janela", form.janelaSegundos], ["Duracao minima", form.duracaoMinimaSegundos], ["Cooldown", form.cooldownSegundos], ["Quantidade", form.quantidadeNecessaria], ["Ordem", form.ordem]] as const) {
+  for (const [label, value] of [["Janela", form.janelaSegundos], ["Duracao minima", form.duracaoMinimaSegundos], ["Cooldown", form.cooldownSegundos], ["Quantidade", form.quantidadeNecessaria], ["Ordem", form.ordem], ["Lacuna maxima", form.lacunaMaximaSegundos]] as const) {
     if (value !== "" && (!Number.isInteger(Number(value)) || Number(value) < 0)) return `${label} deve ser um inteiro nao negativo.`;
   }
+  if (form.lacunaMaximaSegundos !== "" && Number(form.lacunaMaximaSegundos) < 1) return "Lacuna maxima deve ser maior que zero.";
   if (Number(form.quantidadeNecessaria || 1) < 1) return "Quantidade necessaria deve ser maior que zero.";
   if (form.modoAvaliacao === "DURACAO" && (!form.janelaSegundos || !form.duracaoMinimaSegundos)) return "DURACAO exige janela e duracao minima.";
   return null;
 }
 
-function validateCondition(form: ConditionForm, sensorTypes: TipoSensor[]): string | null {
+function validateCondition(form: ConditionForm, sensorTypes: TipoSensor[], rules: RegraParametro[]): string | null {
   const parameter = sensorTypes.flatMap((type) => type.parametros).find((item) => item.id === form.parametroDefId);
   if (!parameter) return "Selecione um parametro ativo.";
   if (!form.ordem || !Number.isInteger(Number(form.ordem)) || Number(form.ordem) < 1) return "Ordem deve ser um inteiro maior ou igual a 1.";
+  if (form.fonte === "AVALIACAO_REGRA") {
+    if (!rules.some((rule) => rule.id === form.regraParametroId && rule.parametroDefId === form.parametroDefId)) return "Selecione uma regra ativa deste parametro.";
+    if (!["EQ", "NEQ"].includes(form.operador)) return "Resultado de regra aceita apenas EQ ou NEQ.";
+    return null;
+  }
   if (!supportedOperators(parameter.dataType).includes(form.operador)) return "Operador incompatível com o tipo do parametro.";
   if (parameter.dataType === "NUMERIC" && (form.valorNumeric1 === "" || ((form.operador === "BETWEEN" || form.operador === "OUTSIDE") && form.valorNumeric2 === ""))) return "Informe os valores numericos exigidos.";
   if (parameter.dataType === "NUMERIC" && ["BETWEEN", "OUTSIDE"].includes(form.operador) && Number(form.valorNumeric2) < Number(form.valorNumeric1)) return "O limite final deve ser maior ou igual ao inicial.";
@@ -518,6 +566,7 @@ function supportedOperators(dataType?: SensorDataType): EventoRegraOperador[] {
 }
 
 function conditionValue(condition: EventoCondicao) {
+  if (condition.fonte === "AVALIACAO_REGRA") return condition.resultadoEsperado ?? "-";
   if (condition.valorBoolean != null) return String(condition.valorBoolean);
   if (condition.valorText != null) return condition.valorText;
   if (condition.valorNumeric2 != null) return `${condition.valorNumeric1} .. ${condition.valorNumeric2}`;
@@ -530,12 +579,12 @@ function ruleSummary(form: EventForm, conditions: EventoCondicao[]) {
     : conditions
       .slice()
       .sort((left, right) => (left.ordem ?? 0) - (right.ordem ?? 0))
-      .map((condition) => `${condition.parametroNome} ${condition.operador} ${conditionValue(condition)}`)
+      .map((condition) => `${condition.fonte === "AVALIACAO_REGRA" ? condition.regraNome ?? condition.parametroNome : condition.parametroNome} ${condition.operador} ${conditionValue(condition)}`)
       .join(` ${form.operadorLogico} `);
   const temporal = form.modoAvaliacao === "INSTANTANEO"
     ? "avaliacao instantanea"
     : `${form.modoAvaliacao.toLowerCase()} em janela de ${form.janelaSegundos || "-"}s`;
-  return `${form.nome.trim() || "Gatilho sem nome"}: ${form.tipoDisparo}, ${temporal}, ${conditionSummary}.`;
+  return `${form.nome.trim() || "Gatilho sem nome"}: ${form.papel ?? "PROGRESSO"}, ${form.tipoDisparo}, ${temporal}, ${conditionSummary}.`;
 }
 
 function optionalNumber(value: string | number | null | undefined) {

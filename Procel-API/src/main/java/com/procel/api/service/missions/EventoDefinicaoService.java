@@ -3,8 +3,11 @@ package com.procel.api.service.missions;
 import com.procel.api.dto.missions.EventoDTOs;
 import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoDefinicao;
+import com.procel.api.entity.missions.EventoPapel;
+import com.procel.api.entity.missions.EventoCondicaoFonte;
 import com.procel.api.entity.missions.Missao;
 import com.procel.api.entity.sensors.ParametroDef;
+import com.procel.api.entity.sensors.RegraParametro;
 import com.procel.api.entity.sensors.RegraOperador;
 import com.procel.api.exception.ConflictException;
 import com.procel.api.exception.NotFoundException;
@@ -12,6 +15,8 @@ import com.procel.api.repository.missions.EventoCondicaoRepository;
 import com.procel.api.repository.missions.EventoDefinicaoRepository;
 import com.procel.api.repository.missions.MissaoRepository;
 import com.procel.api.repository.sensors.ParametroDefRepository;
+import com.procel.api.repository.sensors.RegraParametroRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,17 +30,26 @@ public class EventoDefinicaoService {
     private final EventoCondicaoRepository condicaoRepo;
     private final MissaoRepository missaoRepo;
     private final ParametroDefRepository parametroDefRepo;
+    private final RegraParametroRepository regraRepo;
 
+    @Autowired
     public EventoDefinicaoService(
             EventoDefinicaoRepository eventoRepo,
             EventoCondicaoRepository condicaoRepo,
             MissaoRepository missaoRepo,
-            ParametroDefRepository parametroDefRepo
+            ParametroDefRepository parametroDefRepo,
+            RegraParametroRepository regraRepo
     ) {
         this.eventoRepo = eventoRepo;
         this.condicaoRepo = condicaoRepo;
         this.missaoRepo = missaoRepo;
         this.parametroDefRepo = parametroDefRepo;
+        this.regraRepo = regraRepo;
+    }
+    public EventoDefinicaoService(EventoDefinicaoRepository eventoRepo,
+            EventoCondicaoRepository condicaoRepo, MissaoRepository missaoRepo,
+            ParametroDefRepository parametroDefRepo) {
+        this(eventoRepo, condicaoRepo, missaoRepo, parametroDefRepo, null);
     }
 
     @Transactional
@@ -94,7 +108,7 @@ public class EventoDefinicaoService {
         EventoDefinicao evento = findEvento(eventoId);
         validateCondicaoRequest(req, null, eventoId);
         ParametroDef parametroDef = findParametro(req.parametroDefId());
-        validateCondicaoValues(parametroDef, req);
+        validateCondicaoSource(parametroDef, req);
 
         EventoCondicao condicao = new EventoCondicao();
         condicao.setEventoDefinicao(evento);
@@ -111,7 +125,7 @@ public class EventoDefinicaoService {
         EventoCondicao condicao = findCondicaoDoEvento(eventoId, condicaoId);
         validateCondicaoRequest(req, condicaoId, eventoId);
         ParametroDef parametroDef = findParametro(req.parametroDefId());
-        validateCondicaoValues(parametroDef, req);
+        validateCondicaoSource(parametroDef, req);
         applyCondicao(condicao, parametroDef, req);
         return toCondicaoResponse(condicao);
     }
@@ -152,7 +166,7 @@ public class EventoDefinicaoService {
         return condicao;
     }
 
-    private static void validateEventoRequest(
+    private void validateEventoRequest(
             EventoDTOs.EventoDefinicaoRequest req,
             Missao missao
     ) {
@@ -162,12 +176,16 @@ public class EventoDefinicaoService {
         require(req.modoAvaliacao(), "modoAvaliacao");
         require(req.operadorLogico(), "operadorLogico");
         require(req.politicaAtribuicao(), "politicaAtribuicao");
+        EventoPapel role = req.papel() == null ? EventoPapel.PROGRESSO : req.papel();
+        if (role == EventoPapel.ATRIBUICAO && missao.getParent() != null) throw new ConflictException("Assignment belongs to the parent mission");
+        if (role != EventoPapel.ATRIBUICAO && missaoRepo.existsByParent_Id(missao.getId())) throw new ConflictException("Parent mission cannot progress or complete directly");
         if (req.quantidadeNecessaria() != null && req.quantidadeNecessaria() < 1) {
             throw new IllegalArgumentException("quantidadeNecessaria must be greater than or equal to 1");
         }
         validateNonNegative(req.janelaSegundos(), "janelaSegundos");
         validateNonNegative(req.duracaoMinimaSegundos(), "duracaoMinimaSegundos");
         validateNonNegative(req.cooldownSegundos(), "cooldownSegundos");
+        if (req.lacunaMaximaSegundos() != null && req.lacunaMaximaSegundos() <= 0) throw new IllegalArgumentException("lacunaMaximaSegundos must be positive");
         boolean ativo = req.ativo() == null || req.ativo();
         if (ativo && !missao.isAtivo()) {
             throw new ConflictException("Cannot activate event definition for inactive mission id=" + missao.getId());
@@ -196,6 +214,27 @@ public class EventoDefinicaoService {
         }
     }
 
+    private void validateCondicaoSource(ParametroDef parametroDef, EventoDTOs.EventoCondicaoRequest req) {
+        EventoCondicaoFonte fonte = req.fonte() == null ? EventoCondicaoFonte.PARAMETRO_VALOR : req.fonte();
+        if (fonte == EventoCondicaoFonte.AVALIACAO_REGRA) {
+            if (req.regraParametroId() == null || req.resultadoEsperado() == null) {
+                throw new IllegalArgumentException("regraParametroId and resultadoEsperado are required");
+            }
+            RegraParametro regra = regraRepo.findById(req.regraParametroId())
+                    .orElseThrow(() -> new NotFoundException("RegraParametro not found id=" + req.regraParametroId()));
+            if (!regra.isAtivo() || !regra.getParametroDef().getId().equals(parametroDef.getId())) {
+                throw new ConflictException("Rule is inactive or belongs to another parameter");
+            }
+            if (req.operador() != RegraOperador.EQ && req.operador() != RegraOperador.NEQ) {
+                throw new IllegalArgumentException("Rule result supports only EQ and NEQ");
+            }
+            return;
+        }
+        if (req.regraParametroId() != null || req.resultadoEsperado() != null) {
+            throw new IllegalArgumentException("Raw value condition cannot reference a rule");
+        }
+        validateCondicaoValues(parametroDef, req);
+    }
     private static void validateCondicaoValues(
             ParametroDef parametroDef,
             EventoDTOs.EventoCondicaoRequest req
@@ -262,6 +301,7 @@ public class EventoDefinicaoService {
         evento.setNome(req.nome().trim());
         evento.setDescricao(blankToNull(req.descricao()));
         evento.setTipoDisparo(req.tipoDisparo());
+        evento.setPapel(req.papel());
         evento.setModoAvaliacao(req.modoAvaliacao());
         evento.setOperadorLogico(req.operadorLogico());
         evento.setPoliticaAtribuicao(req.politicaAtribuicao());
@@ -269,16 +309,20 @@ public class EventoDefinicaoService {
         evento.setDuracaoMinimaSegundos(req.duracaoMinimaSegundos());
         evento.setQuantidadeNecessaria(req.quantidadeNecessaria() == null ? 1 : req.quantidadeNecessaria());
         evento.setCooldownSegundos(req.cooldownSegundos());
+        evento.setLacunaMaximaSegundos(req.lacunaMaximaSegundos());
         evento.setOrdem(req.ordem() == null ? 0 : req.ordem());
         evento.setAtivo(req.ativo() == null || req.ativo());
     }
 
-    private static void applyCondicao(
+    private void applyCondicao(
             EventoCondicao condicao,
             ParametroDef parametroDef,
             EventoDTOs.EventoCondicaoRequest req
     ) {
         condicao.setParametroDef(parametroDef);
+        condicao.setFonte(req.fonte());
+        condicao.setRegraParametro(req.regraParametroId() == null ? null : regraRepo.getReferenceById(req.regraParametroId()));
+        condicao.setResultadoEsperado(req.resultadoEsperado());
         condicao.setOperador(req.operador());
         condicao.setValorNumeric1(req.valorNumeric1());
         condicao.setValorNumeric2(req.valorNumeric2());
@@ -314,7 +358,9 @@ public class EventoDefinicaoService {
                 evento.isAtivo(),
                 evento.getCreatedAt(),
                 evento.getUpdatedAt(),
-                condicoes
+                condicoes,
+                evento.getPapel(),
+                evento.getLacunaMaximaSegundos()
         );
     }
 
@@ -336,7 +382,11 @@ public class EventoDefinicaoService {
                 condicao.isObrigatoria(),
                 condicao.getOrdem(),
                 condicao.isAtivo(),
-                condicao.getCreatedAt()
+                condicao.getCreatedAt(),
+                condicao.getFonte(),
+                condicao.getRegraParametro() == null ? null : condicao.getRegraParametro().getId(),
+                condicao.getRegraParametro() == null ? null : condicao.getRegraParametro().getNome(),
+                condicao.getResultadoEsperado()
         );
     }
 

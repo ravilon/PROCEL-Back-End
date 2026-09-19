@@ -55,6 +55,10 @@ public class EventoDefinicao {
     private EventoTipoDisparo tipoDisparo;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "papel", nullable = false, length = 20)
+    private EventoPapel papel = EventoPapel.PROGRESSO;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "modo_avaliacao", nullable = false, length = 40)
     private EventoModoAvaliacao modoAvaliacao;
 
@@ -78,6 +82,9 @@ public class EventoDefinicao {
     @Column(name = "cooldown_segundos")
     private Integer cooldownSegundos;
 
+    @Column(name = "lacuna_maxima_segundos")
+    private Integer lacunaMaximaSegundos;
+
     @Column(name = "ordem", nullable = false)
     private Integer ordem = 0;
 
@@ -100,6 +107,7 @@ public class EventoDefinicao {
     public String getNome() { return nome; }
     public String getDescricao() { return descricao; }
     public EventoTipoDisparo getTipoDisparo() { return tipoDisparo; }
+    public EventoPapel getPapel() { return papel; }
     public EventoModoAvaliacao getModoAvaliacao() { return modoAvaliacao; }
     public EventoOperadorLogico getOperadorLogico() { return operadorLogico; }
     public EventoPoliticaAtribuicao getPoliticaAtribuicao() { return politicaAtribuicao; }
@@ -107,6 +115,7 @@ public class EventoDefinicao {
     public Integer getDuracaoMinimaSegundos() { return duracaoMinimaSegundos; }
     public Integer getQuantidadeNecessaria() { return quantidadeNecessaria; }
     public Integer getCooldownSegundos() { return cooldownSegundos; }
+    public Integer getLacunaMaximaSegundos() { return lacunaMaximaSegundos; }
     public Integer getOrdem() { return ordem; }
     public boolean isAtivo() { return ativo; }
     public Instant getCreatedAt() { return createdAt; }
@@ -124,6 +133,7 @@ public class EventoDefinicao {
     public void setNome(String nome) { this.nome = nome; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public void setTipoDisparo(EventoTipoDisparo tipoDisparo) { this.tipoDisparo = tipoDisparo; }
+    public void setPapel(EventoPapel papel) { this.papel = papel == null ? EventoPapel.PROGRESSO : papel; }
     public void setModoAvaliacao(EventoModoAvaliacao modoAvaliacao) { this.modoAvaliacao = modoAvaliacao; }
     public void setOperadorLogico(EventoOperadorLogico operadorLogico) { this.operadorLogico = operadorLogico; }
     public void setPoliticaAtribuicao(EventoPoliticaAtribuicao politicaAtribuicao) { this.politicaAtribuicao = politicaAtribuicao; }
@@ -131,6 +141,7 @@ public class EventoDefinicao {
     public void setDuracaoMinimaSegundos(Integer duracaoMinimaSegundos) { this.duracaoMinimaSegundos = duracaoMinimaSegundos; }
     public void setQuantidadeNecessaria(Integer quantidadeNecessaria) { this.quantidadeNecessaria = quantidadeNecessaria; }
     public void setCooldownSegundos(Integer cooldownSegundos) { this.cooldownSegundos = cooldownSegundos; }
+    public void setLacunaMaximaSegundos(Integer lacunaMaximaSegundos) { this.lacunaMaximaSegundos = lacunaMaximaSegundos; }
     public void setOrdem(Integer ordem) { this.ordem = ordem; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public void setCondicoes(List<EventoCondicao> condicoes) {

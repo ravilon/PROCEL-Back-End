@@ -9,9 +9,16 @@ public record ConditionEvaluationResult(
         String reason,
         Optional<UUID> parametroValorId,
         String observedValue,
-        String expectedValue
+        String expectedValue,
+        Optional<UUID> avaliacaoParametroValorId
 ) {
     public ConditionEvaluationResult {
         parametroValorId = parametroValorId == null ? Optional.empty() : parametroValorId;
+        avaliacaoParametroValorId = avaliacaoParametroValorId == null ? Optional.empty() : avaliacaoParametroValorId;
+    }
+
+    public ConditionEvaluationResult(UUID eventoCondicaoId, boolean matched, String reason,
+            Optional<UUID> parametroValorId, String observedValue, String expectedValue) {
+        this(eventoCondicaoId, matched, reason, parametroValorId, observedValue, expectedValue, Optional.empty());
     }
 }

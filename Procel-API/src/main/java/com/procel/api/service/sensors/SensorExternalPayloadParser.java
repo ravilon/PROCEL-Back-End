@@ -35,7 +35,7 @@ public class SensorExternalPayloadParser {
         validateDepth(payload, 0);
         String messageId = requiredText(payload, version.getMessageIdPointer(), "MESSAGE_ID_INVALID", "messageId");
         String sensorExternalId = resolveSensor(payload, version, routeSensorExternalId);
-        Instant timestamp = parseInstant(requiredText(payload, version.getTimestampPointer(), "TIMESTAMP_INVALID", "timestamp"), "TIMESTAMP_INVALID");
+        Instant timestamp = parseTimestamp(payload, version.getTimestampPointer());
         Instant sourceReceivedAt = null;
         if (version.getSourceReceivedAtPointer() != null && !version.getSourceReceivedAtPointer().isBlank()) {
             JsonNode sourceReceivedNode = payload.at(version.getSourceReceivedAtPointer());
@@ -91,11 +91,28 @@ public class SensorExternalPayloadParser {
     }
 
     private String requiredText(JsonNode payload, String pointer, String error, String field) {
+        if (pointer == null || pointer.isBlank()) {
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "POINTER_MISSING", field + " pointer is not configured.");
+        }
         JsonNode node = payload.at(pointer);
         if (node == null || node.isMissingNode() || node.isNull()) {
             throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, error, field + " is required.");
         }
         return textNode(node, error, field);
+    }
+
+    private Instant parseTimestamp(JsonNode payload, String pointer) {
+        if (pointer == null || pointer.isBlank()) {
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "TIMESTAMP_POINTER_MISSING", "timestampPointer is not configured.");
+        }
+        JsonNode node = payload.at(pointer);
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "TIMESTAMP_POINTER_MISSING", "timestampPointer was not found in the internal payload: " + pointer);
+        }
+        if (!node.isTextual()) {
+            throw new ApiStatusException(HttpStatus.UNPROCESSABLE_CONTENT, "TIMESTAMP_NOT_TEXTUAL", "timestampPointer must resolve to a text value: " + pointer);
+        }
+        return parseInstant(node.textValue().trim(), "TIMESTAMP_INVALID");
     }
 
     private String textNode(JsonNode node, String error, String field) {

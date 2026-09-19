@@ -123,6 +123,19 @@ public class EventoOcorrenciaService {
     }
 
     @Transactional
+    public void vincularAvaliacao(UUID evidenciaId, UUID parametroValorId, UUID avaliacaoId) {
+        int updated = jdbcTemplate.update("""
+                update evento_ocorrencia_evidencia e
+                set avaliacao_parametro_valor_id = ?
+                where e.id = ? and e.parametro_valor_id = ?
+                  and (e.avaliacao_parametro_valor_id is null or e.avaliacao_parametro_valor_id = ?)
+                  and exists (select 1 from avaliacao_parametro_valor a
+                              where a.id = ? and a.parametro_valor_id = ?)
+                """, avaliacaoId, evidenciaId, parametroValorId, avaliacaoId, avaliacaoId, parametroValorId);
+        if (updated != 1) throw new ConflictException("Rule evaluation does not match evidence");
+    }
+
+    @Transactional
     public EventoOcorrencia atualizarStatus(UUID ocorrenciaId, EventoOcorrenciaStatus novoStatus) {
         EventoOcorrencia occurrence = ocorrenciaRepo.findById(ocorrenciaId)
                 .orElseThrow(() -> new NotFoundException("EventoOcorrencia not found id=" + ocorrenciaId));

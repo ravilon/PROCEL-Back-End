@@ -1,9 +1,13 @@
 import { apiRequest } from "../lib/api";
 import type { Session } from "../types/auth";
-import type { GrupoRegra } from "../types/sensors";
+import type { GrupoRegra, RegraParametro } from "../types/sensors";
 
 export function listRuleGroups(session?: Session | null) {
   return apiRequest<GrupoRegra[]>("/api/rules/groups", {}, session);
+}
+
+export function listRulesForGroup(groupId: string, session?: Session | null) {
+  return apiRequest<RegraParametro[]>("/api/rules/groups/" + groupId + "/rules", {}, session);
 }
 
 export function assignRuleGroupToRooms(

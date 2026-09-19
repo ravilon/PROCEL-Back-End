@@ -36,6 +36,8 @@ export interface Atividade {
   completedAt?: string | null;
 }
 
+export type EventoPapel = "ATRIBUICAO" | "PROGRESSO" | "CONCLUSAO";
+export type EventoCondicaoFonte = "PARAMETRO_VALOR" | "AVALIACAO_REGRA";
 export type EventoTipoDisparo = "MEDICAO_RECEBIDA" | "CHECKIN_CONFIRMADO";
 export type EventoModoAvaliacao = "INSTANTANEO" | "DURACAO" | "TRANSICAO" | "JANELA_ENCERRADA";
 export type EventoOperadorLogico = "ALL" | "ANY";
@@ -44,7 +46,7 @@ export type EventoPoliticaAtribuicao =
   | "ATIVADOR_DA_MISSAO"
   | "ALUNOS_VINCULADOS"
   | "ALUNOS_VINCULADOS_COM_OCUPACAO";
-export type EventoAgregacao = "ULTIMO_VALOR" | "MEDIA" | "MINIMO" | "MAXIMO" | "CONTAGEM";
+export type EventoAgregacao = "ULTIMO" | "PRIMEIRO" | "MIN" | "MAX" | "MEDIA" | "SOMA" | "CONTAGEM" | "TEMPO_VERDADEIRO" | "DELTA";
 export type EventoRegraOperador =
   | "EQ"
   | "NEQ"
@@ -76,6 +78,10 @@ export interface PageResponse<T> {
 }
 
 export interface EventoCondicao {
+  fonte?: EventoCondicaoFonte;
+  regraParametroId?: string | null;
+  regraNome?: string | null;
+  resultadoEsperado?: string | null;
   id: string;
   eventoDefinicaoId: string;
   parametroDefId: string;
@@ -113,9 +119,13 @@ export interface EventoDefinicao {
   createdAt: string;
   updatedAt?: string | null;
   condicoes: EventoCondicao[];
+  papel?: EventoPapel;
+  lacunaMaximaSegundos?: number | null;
 }
 
 export interface EventoDefinicaoRequest {
+  papel?: EventoPapel;
+  lacunaMaximaSegundos?: number | null;
   nome: string;
   descricao?: string | null;
   tipoDisparo: EventoTipoDisparo;
@@ -131,6 +141,9 @@ export interface EventoDefinicaoRequest {
 }
 
 export interface EventoCondicaoRequest {
+  fonte?: EventoCondicaoFonte;
+  regraParametroId?: string | null;
+  resultadoEsperado?: string | null;
   parametroDefId: string;
   operador: EventoRegraOperador;
   valorNumeric1?: number | null;

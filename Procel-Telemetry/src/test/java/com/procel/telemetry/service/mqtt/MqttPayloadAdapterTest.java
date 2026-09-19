@@ -34,6 +34,19 @@ class MqttPayloadAdapterTest {
     }
 
     @Test
+    void keepsTimestampInsideInternalPayloadForCanonicalParser() {
+        var request = adapter.toTelemetryRequest("""
+                {"messageId":"6aadb5f794e6e9e287ddc117","sensorId":"sensor-1",
+                 "sourceTimestamp":"2026-09-18T22:06:47.318Z",
+                 "payload":{"timestamp":"2026-09-18T22:06:47.318Z","value":1}}
+                """.getBytes(StandardCharsets.UTF_8), new MqttTopicParser.TopicContext("producer-a", "sensor-1"));
+
+        assertThat(request.get("sourceTimestamp").asText()).isEqualTo("2026-09-18T22:06:47.318Z");
+        assertThat(request.get("payload").get("timestamp").asText())
+                .isEqualTo("2026-09-18T22:06:47.318Z");
+        assertThat(request.get("timestamp")).isNull();
+    }
+    @Test
     void requiresMessageId() {
         assertThatThrownBy(() -> adapter.toTelemetryRequest("""
                 {"payload":{"value":1}}

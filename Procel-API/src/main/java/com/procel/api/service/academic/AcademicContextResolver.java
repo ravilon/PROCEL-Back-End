@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.Duration;
+import java.util.Comparator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -83,6 +85,30 @@ public class AcademicContextResolver {
                         .map(AcademicContextResolver::pessoaId)
                         .toList()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public AcademicContext resolveMostRecent(String compartimentoId, Instant instant, Duration maxAge) {
+        AcademicContext active = resolve(compartimentoId, instant);
+        if (!active.empty()) return active;
+        if (maxAge == null || maxAge.isNegative() || maxAge.isZero()) return active;
+        var latest = periodoAulaRepository.findTop200ByCompartimentoIdOrderByDataDescTurnoAscPeriodoAulaAsc(compartimentoId)
+                .stream()
+                .filter(period -> period.getData() != null && period.getHoraFim() != null)
+                .filter(period -> {
+                    Instant end = LocalDateTime.of(period.getData(), period.getHoraFim()).atZone(ACADEMIC_ZONE).toInstant();
+                    return !end.isAfter(instant) && !end.isBefore(instant.minus(maxAge));
+                })
+                .max(Comparator.comparing(period -> LocalDateTime.of(period.getData(), period.getHoraFim())));
+        if (latest.isEmpty()) return active;
+        PeriodoAula period = latest.get();
+        List<AlunoDisciplina> eligible = eligibleStudents(period);
+        Disciplina discipline = period.getDisciplina();
+        return new AcademicContext(period.getId(), discipline == null ? null : discipline.getId(),
+                period.getTurma(), resolvePeriodoLetivo(period, eligible), compartimentoId,
+                LocalDateTime.of(period.getData(), period.getHoraInicio()),
+                LocalDateTime.of(period.getData(), period.getHoraFim()),
+                eligible.stream().map(AcademicContextResolver::pessoaId).toList());
     }
 
     private List<AlunoDisciplina> eligibleStudents(PeriodoAula periodoAula) {

@@ -27,10 +27,16 @@ async function telemetryRequest<T>(
     headers.set("Authorization", `Bearer ${session.accessToken}`);
   }
 
-  const response = await fetch(`${telemetryApiBaseUrl}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${telemetryApiBaseUrl}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : "erro de rede";
+    throw new ApiError(`Telemetry indisponivel em ${telemetryApiBaseUrl}. Verifique o servico e a configuracao TELEMETRY_API_URL. (${detail})`, 0, "TELEMETRY_UNAVAILABLE");
+  }
 
   if (!response.ok) {
     let body: { message?: string; error?: string } = {};

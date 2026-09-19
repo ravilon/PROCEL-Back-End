@@ -133,7 +133,7 @@ const eventDetail: EventoDefinicao = {
     parametroDataType: "BOOLEAN",
     operador: "EQ",
     valorBoolean: true,
-    agregacao: "ULTIMO_VALOR",
+    agregacao: "ULTIMO",
     obrigatoria: true,
     ordem: 1,
     ativo: true,

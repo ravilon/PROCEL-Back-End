@@ -3,6 +3,7 @@ package com.procel.api.service.missions;
 import com.procel.api.config.MissionEvaluationProperties;
 import com.procel.api.entity.missions.Atividade;
 import com.procel.api.entity.missions.EventoOcorrencia;
+import com.procel.api.entity.missions.EventoPapel;
 import com.procel.api.entity.missions.EventoOcorrenciaStatus;
 import com.procel.api.entity.missions.Missao;
 import com.procel.api.entity.missions.MissaoCicloTipo;
@@ -16,6 +17,7 @@ import com.procel.api.service.academic.AcademicContext;
 import com.procel.api.service.missions.beneficiaries.MissionBeneficiaryContext;
 import com.procel.api.service.missions.beneficiaries.MissionBeneficiaryResolver;
 import com.procel.api.service.missions.cycles.MissionCycleKeyFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -40,6 +42,8 @@ public class MissionEventActivityProcessor {
     private final MissionEvaluationProperties properties;
     private final ApiObservabilityMetrics metrics;
     private final JdbcTemplate jdbcTemplate;
+    @Autowired(required = false)
+    private MissionAssignedCycleProcessor assignedCycles;
 
     public MissionEventActivityProcessor(
             EventoOcorrenciaRepository ocorrenciaRepository,
@@ -87,6 +91,22 @@ public class MissionEventActivityProcessor {
                     .orElseThrow(() -> new NotFoundException("EventoOcorrencia not found id=" + ocorrenciaId));
             var event = occurrence.getEventoDefinicao();
             Missao missao = event.getMissao();
+            if (event.getPapel() == EventoPapel.ATRIBUICAO) {
+                assignedCycles.assign(occurrence, academicContext, pessoaAtivadoraId, processedAt, properties.getAcademicZone());
+                ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.PROCESSADO);
+                return;
+            }
+            if (event.getPapel() == EventoPapel.CONCLUSAO) {
+                assignedCycles.complete(occurrence, processedAt);
+                ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.PROCESSADO);
+                return;
+            }
+            if (missao.getParent() != null) {
+                assignedCycles.progressAssigned(occurrence, processedAt);
+                ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.PROCESSADO);
+                return;
+            }
+            if (missaoRepository.existsByParent_Id(missao.getId())) throw permanent("Parent mission cannot progress from a sensor event");
             validateHierarchy(missao);
 
             var resolution = beneficiaryResolver.resolve(new MissionBeneficiaryContext(

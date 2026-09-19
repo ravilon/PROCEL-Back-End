@@ -1,6 +1,9 @@
 package com.procel.api.dto.missions;
 
 import com.procel.api.entity.missions.EventoAgregacao;
+import com.procel.api.entity.missions.EventoPapel;
+import com.procel.api.entity.missions.EventoCondicaoFonte;
+import com.procel.api.entity.sensors.AvaliacaoResultado;
 import com.procel.api.entity.missions.EventoModoAvaliacao;
 import com.procel.api.entity.missions.EventoOperadorLogico;
 import com.procel.api.entity.missions.EventoPoliticaAtribuicao;
@@ -35,8 +38,20 @@ public final class EventoDTOs {
             @Schema(description = "Cooldown em segundos. Nulo quando nao aplicavel.")
             Integer cooldownSegundos,
             Integer ordem,
-            Boolean ativo
-    ) {}
+            Boolean ativo,
+            EventoPapel papel,
+            Integer lacunaMaximaSegundos
+    ) {
+        public EventoDefinicaoRequest(String nome, String descricao, EventoTipoDisparo tipoDisparo,
+                EventoModoAvaliacao modoAvaliacao, EventoOperadorLogico operadorLogico,
+                EventoPoliticaAtribuicao politicaAtribuicao, Integer janelaSegundos,
+                Integer duracaoMinimaSegundos, Integer quantidadeNecessaria,
+                Integer cooldownSegundos, Integer ordem, Boolean ativo) {
+            this(nome, descricao, tipoDisparo, modoAvaliacao, operadorLogico, politicaAtribuicao,
+                    janelaSegundos, duracaoMinimaSegundos, quantidadeNecessaria,
+                    cooldownSegundos, ordem, ativo, EventoPapel.PROGRESSO, null);
+        }
+    }
 
     @Schema(description = "Dados para criar ou atualizar uma condicao de evento.")
     public record EventoCondicaoRequest(
@@ -49,8 +64,18 @@ public final class EventoDTOs {
             String valorText,
             EventoAgregacao agregacao,
             Boolean obrigatoria,
-            Integer ordem
-    ) {}
+            Integer ordem,
+            EventoCondicaoFonte fonte,
+            UUID regraParametroId,
+            AvaliacaoResultado resultadoEsperado
+    ) {
+        public EventoCondicaoRequest(UUID parametroDefId, RegraOperador operador,
+                BigDecimal valorNumeric1, BigDecimal valorNumeric2, Boolean valorBoolean,
+                String valorText, EventoAgregacao agregacao, Boolean obrigatoria, Integer ordem) {
+            this(parametroDefId, operador, valorNumeric1, valorNumeric2, valorBoolean,
+                    valorText, agregacao, obrigatoria, ordem, EventoCondicaoFonte.PARAMETRO_VALOR, null, null);
+        }
+    }
 
     @Schema(description = "Definicao de evento de missao com condicoes ordenadas.")
     public record EventoDefinicaoResponse(
@@ -71,7 +96,9 @@ public final class EventoDTOs {
             boolean ativo,
             Instant createdAt,
             Instant updatedAt,
-            List<EventoCondicaoResponse> condicoes
+            List<EventoCondicaoResponse> condicoes,
+            EventoPapel papel,
+            Integer lacunaMaximaSegundos
     ) {}
 
     @Schema(description = "Condicao de evento vinculada a ParametroDef.")
@@ -91,6 +118,10 @@ public final class EventoDTOs {
             boolean obrigatoria,
             Integer ordem,
             boolean ativo,
-            Instant createdAt
+            Instant createdAt,
+            EventoCondicaoFonte fonte,
+            UUID regraParametroId,
+            String regraNome,
+            AvaliacaoResultado resultadoEsperado
     ) {}
 }

@@ -1,6 +1,8 @@
 package com.procel.api.entity.missions;
 
 import com.procel.api.entity.sensors.ParametroDef;
+import com.procel.api.entity.sensors.RegraParametro;
+import com.procel.api.entity.sensors.AvaliacaoResultado;
 import com.procel.api.entity.sensors.RegraOperador;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -51,6 +53,18 @@ public class EventoCondicao {
     private ParametroDef parametroDef;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "fonte", nullable = false, length = 20)
+    private EventoCondicaoFonte fonte = EventoCondicaoFonte.PARAMETRO_VALOR;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "regra_parametro_id")
+    private RegraParametro regraParametro;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resultado_esperado", length = 30)
+    private AvaliacaoResultado resultadoEsperado;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "operador", nullable = false, length = 30)
     private RegraOperador operador;
 
@@ -87,6 +101,9 @@ public class EventoCondicao {
     public UUID getId() { return id; }
     public EventoDefinicao getEventoDefinicao() { return eventoDefinicao; }
     public ParametroDef getParametroDef() { return parametroDef; }
+    public EventoCondicaoFonte getFonte() { return fonte; }
+    public RegraParametro getRegraParametro() { return regraParametro; }
+    public AvaliacaoResultado getResultadoEsperado() { return resultadoEsperado; }
     public RegraOperador getOperador() { return operador; }
     public BigDecimal getValorNumeric1() { return valorNumeric1; }
     public BigDecimal getValorNumeric2() { return valorNumeric2; }
@@ -100,6 +117,9 @@ public class EventoCondicao {
 
     public void setEventoDefinicao(EventoDefinicao eventoDefinicao) { this.eventoDefinicao = eventoDefinicao; }
     public void setParametroDef(ParametroDef parametroDef) { this.parametroDef = parametroDef; }
+    public void setFonte(EventoCondicaoFonte fonte) { this.fonte = fonte == null ? EventoCondicaoFonte.PARAMETRO_VALOR : fonte; }
+    public void setRegraParametro(RegraParametro regraParametro) { this.regraParametro = regraParametro; }
+    public void setResultadoEsperado(AvaliacaoResultado resultadoEsperado) { this.resultadoEsperado = resultadoEsperado; }
     public void setOperador(RegraOperador operador) { this.operador = operador; }
     public void setValorNumeric1(BigDecimal valorNumeric1) { this.valorNumeric1 = valorNumeric1; }
     public void setValorNumeric2(BigDecimal valorNumeric2) { this.valorNumeric2 = valorNumeric2; }

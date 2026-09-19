@@ -28,11 +28,14 @@ import com.procel.api.service.missions.rules.MeasurementFactFactory;
 import com.procel.api.service.missions.rules.MissionEvaluationContext;
 import com.procel.api.service.missions.rules.MissionRuleEngine;
 import com.procel.api.service.missions.rules.MissionRuleEvaluationResult;
+import com.procel.api.service.missions.rules.RoomStateFactLoader;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -55,6 +58,8 @@ public class MissionEventEvaluationProcessor {
     private final EventoAvaliacaoRequestService requestService;
     private final ApiObservabilityMetrics metrics;
     private final ObjectMapper objectMapper;
+    @Autowired(required = false)
+    private RoomStateFactLoader roomStateFactLoader;
 
     public MissionEventEvaluationProcessor(
             MedicaoRepository medicaoRepository,
@@ -111,7 +116,7 @@ public class MissionEventEvaluationProcessor {
 
             if (!events.isEmpty()) {
                 for (EventoDefinicao event : events) {
-                    MissionRuleEvaluationResult result = evaluate(event, optionalAcademic, facts, evaluationTime);
+                    MissionRuleEvaluationResult result = evaluate(event, optionalAcademic, facts, compartimentoId, medicao.getTimestamp(), evaluationTime);
                     if (!result.matched()) {
                         continue;
                     }
@@ -162,7 +167,7 @@ public class MissionEventEvaluationProcessor {
 
     private AcademicContext resolveAcademicContext(String compartimentoId, Instant timestamp) {
         try {
-            return academicContextResolver.resolve(compartimentoId, timestamp);
+            return academicContextResolver.resolveMostRecent(compartimentoId, timestamp, Duration.ofHours(2));
         } catch (ConflictException ex) {
             throw MissionEventEvaluationFailure.permanent(rootMessage(ex), ex);
         }
@@ -172,14 +177,16 @@ public class MissionEventEvaluationProcessor {
             EventoDefinicao event,
             Optional<AcademicContext> academicContext,
             List<com.procel.api.service.missions.rules.MeasurementFact> facts,
+            String roomId,
+            Instant measuredAt,
             Instant evaluationTime
     ) {
         try {
+            var state = roomStateFactLoader == null ? null : roomStateFactLoader.load(event, roomId, measuredAt, academicContext.orElse(null));
             return missionRuleEngine.evaluate(new MissionEvaluationContext(
-                    evaluationTime,
-                    event,
-                    academicContext,
-                    facts
+                    evaluationTime, event, academicContext,
+                    state == null ? facts : state.measurements(),
+                    state == null ? List.of() : state.ruleEvaluations()
             ));
         } catch (IllegalArgumentException ex) {
             throw MissionEventEvaluationFailure.permanent(rootMessage(ex), ex);
@@ -214,19 +221,18 @@ public class MissionEventEvaluationProcessor {
         metrics.missionEventDetected();
         UUID occurrenceId = occurrence.getId();
 
-        result.conditionResults().stream()
-                .filter(conditionResult -> conditionResult != null && conditionResult.matched())
-                .map(conditionResult -> conditionResult.parametroValorId())
-                .flatMap(optionalParametroValorId -> optionalParametroValorId.stream())
-                .distinct()
-                .forEach(parametroValorId -> ocorrenciaService.anexarEvidencia(
-                        new EventoOcorrenciaService.AnexarEvidenciaCommand(
-                                occurrenceId,
-                                medicao.getId(),
-                                parametroValorId,
-                                EventoOcorrenciaEvidenciaPapel.CONDICAO
-                        )
-                ));
+        for (var conditionResult : result.conditionResults()) {
+            if (conditionResult == null || !conditionResult.matched() || conditionResult.parametroValorId().isEmpty()) continue;
+            UUID valueId = conditionResult.parametroValorId().get();
+            var fact = result.evidences().stream()
+                    .filter(item -> valueId.equals(item.parametroValorId()))
+                    .findFirst().orElseThrow(() -> new IllegalStateException("Matched condition has no measurement evidence"));
+            var evidence = ocorrenciaService.anexarEvidencia(
+                    new EventoOcorrenciaService.AnexarEvidenciaCommand(
+                            occurrenceId, fact.medicaoId(), valueId, EventoOcorrenciaEvidenciaPapel.CONDICAO));
+            conditionResult.avaliacaoParametroValorId().ifPresent(id ->
+                    ocorrenciaService.vincularAvaliacao(evidence.getId(), valueId, id));
+        }
         return occurrence;
     }
 
@@ -244,6 +250,7 @@ public class MissionEventEvaluationProcessor {
         root.put("modoAvaliacao", event.getModoAvaliacao().name());
         root.put("operadorLogico", event.getOperadorLogico().name());
         root.put("politicaAtribuicao", event.getPoliticaAtribuicao().name());
+        root.put("papel", event.getPapel().name());
         root.set("conditions", conditions(event));
         root.set("conditionResults", conditionResults(result));
         root.put("medicaoId", medicao.getId().toString());
@@ -277,6 +284,13 @@ public class MissionEventEvaluationProcessor {
                     node.put("id", condition.getId().toString());
                     node.put("parametroDefId", condition.getParametroDef().getId().toString());
                     node.put("operador", condition.getOperador().name());
+                    node.put("fonte", condition.getFonte().name());
+                    if (condition.getRegraParametro() != null) node.put("regraParametroId", condition.getRegraParametro().getId().toString());
+                    if (condition.getResultadoEsperado() != null) node.put("resultadoEsperado", condition.getResultadoEsperado().name());
+                    if (condition.getValorNumeric1() != null) node.put("valorNumeric1", condition.getValorNumeric1());
+                    if (condition.getValorNumeric2() != null) node.put("valorNumeric2", condition.getValorNumeric2());
+                    if (condition.getValorText() != null) node.put("valorText", condition.getValorText());
+                    if (condition.getValorBoolean() != null) node.put("valorBoolean", condition.getValorBoolean());
                     node.put("obrigatoria", condition.isObrigatoria());
                     node.put("ordem", condition.getOrdem());
                     node.put("ativo", condition.isAtivo());
@@ -297,6 +311,7 @@ public class MissionEventEvaluationProcessor {
             );
             if (conditionResult.observedValue() == null) node.putNull("observedValue"); else node.put("observedValue", conditionResult.observedValue());
             if (conditionResult.expectedValue() == null) node.putNull("expectedValue"); else node.put("expectedValue", conditionResult.expectedValue());
+            conditionResult.avaliacaoParametroValorId().ifPresent(id -> node.put("avaliacaoParametroValorId", id.toString()));
         });
         return array;
     }

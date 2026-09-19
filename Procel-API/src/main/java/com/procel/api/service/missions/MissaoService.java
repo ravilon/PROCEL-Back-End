@@ -44,7 +44,9 @@ public class MissaoService {
         missao.setProgressoNecessario(req.progressoNecessario());
         missao.setConclusaoAutomatica(req.conclusaoAutomatica());
         if (req.parentId() != null) {
-            missao.setParent(findMissao(req.parentId()));
+            Missao parent = findMissao(req.parentId());
+            validateParent(missao, parent);
+            missao.setParent(parent);
         }
         return toMissaoResponse(missaoRepo.save(missao));
     }
@@ -76,20 +78,20 @@ public class MissaoService {
             missao.setTipo(req.tipo());
         if (req.value() != null)
             missao.setValue(req.value());
-        if (req.ativo() != null)
+        if (req.ativo() != null) {
+            if (!req.ativo()) validateDeactivation(missao);
+            if (req.ativo()) validateActivation(missao);
             missao.setAtivo(req.ativo());
-        if (req.cicloTipo() != null)
-            missao.setCicloTipo(req.cicloTipo());
-        if (req.progressoNecessario() != null)
-            missao.setProgressoNecessario(req.progressoNecessario());
-        if (req.conclusaoAutomatica() != null)
-            missao.setConclusaoAutomatica(req.conclusaoAutomatica());
-        if (req.parentId() != null) {
+        }
+        if (req.cicloTipo() != null) missao.setCicloTipo(req.cicloTipo());
+        if (req.progressoNecessario() != null) missao.setProgressoNecessario(req.progressoNecessario());
+        if (req.conclusaoAutomatica() != null) missao.setConclusaoAutomatica(req.conclusaoAutomatica());
+        if (req.parentId() != null && (missao.getParent() == null || !req.parentId().equals(missao.getParent().getId()))) {
+            if (atividadeRepo.existsByMissaoId(missaoId)) throw new ConflictException("Cannot reparent mission with activities");
+            validateDeactivation(missao);
             Missao parent = findMissao(req.parentId());
             validateParent(missao, parent);
             missao.setParent(parent);
-        } else {
-            missao.setParent(null);
         }
 
         return toMissaoResponse(missao);
@@ -98,6 +100,7 @@ public class MissaoService {
     @Transactional
     public void deleteMissao(UUID missaoId) {
         Missao missao = findMissao(missaoId);
+        validateDeactivation(missao);
         missao.setAtivo(false);
 
         List<Atividade> atividadesAbertas = atividadeRepo.findByMissaoIdAndStatusIn(
@@ -210,13 +213,28 @@ public class MissaoService {
                 .orElseThrow(() -> new NotFoundException("Missao not found id=" + missaoId));
     }
 
+    private void validateDeactivation(Missao missao) {
+        if (missao.getParent() == null || !missao.isAtivo() || !missao.getParent().isAtivo()) return;
+        long activeSiblings = missaoRepo.findByParent_IdOrderByCreatedAtAsc(missao.getParent().getId())
+                .stream().filter(Missao::isAtivo).count();
+        if (activeSiblings <= 1) throw new ConflictException("Cannot deactivate the last active child of an active parent");
+    }
+
+    private void validateActivation(Missao missao) {
+        var children = missaoRepo.findByParent_IdOrderByCreatedAtAsc(missao.getId());
+        if (!children.isEmpty() && children.stream().noneMatch(Missao::isAtivo)) {
+            throw new ConflictException("Active parent requires an active child");
+        }
+    }
+
     private static void validateParent(Missao missao, Missao parent) {
-        if (missao.getId().equals(parent.getId())) {
+        if (parent.getParent() != null) throw new ConflictException("Mission hierarchy supports only parent and child levels");
+        if (missao.getId() != null && missao.getId().equals(parent.getId())) {
             throw new IllegalArgumentException("Missao cannot be its own parent");
         }
         Missao current = parent;
         while (current != null) {
-            if (missao.getId().equals(current.getId())) {
+            if (missao.getId() != null && missao.getId().equals(current.getId())) {
                 throw new IllegalArgumentException("Mission hierarchy cannot contain cycles");
             }
             current = current.getParent();

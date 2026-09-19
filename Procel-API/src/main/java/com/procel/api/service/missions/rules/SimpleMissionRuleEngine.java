@@ -1,6 +1,7 @@
 package com.procel.api.service.missions.rules;
 
 import com.procel.api.entity.missions.EventoCondicao;
+import com.procel.api.entity.missions.EventoCondicaoFonte;
 import com.procel.api.entity.missions.EventoDefinicao;
 import com.procel.api.entity.missions.EventoModoAvaliacao;
 import com.procel.api.entity.missions.EventoTipoDisparo;
@@ -38,12 +39,14 @@ public class SimpleMissionRuleEngine implements MissionRuleEngine {
         }
 
         Map<UUID, MeasurementFact> factsByParameter = factsByParameter(context.measurements());
+        Map<UUID, RuleEvaluationFact> rulesById = new LinkedHashMap<>();
+        context.ruleEvaluations().forEach(fact -> rulesById.put(fact.regraId(), fact));
         List<EventoCondicao> activeConditions = activeConditions(event);
         List<ConditionEvaluationResult> conditionResults = new ArrayList<>();
         List<MeasurementFact> evidences = new ArrayList<>();
 
         for (EventoCondicao condition : activeConditions) {
-            ConditionEvaluation evaluation = evaluateCondition(condition, factsByParameter);
+            ConditionEvaluation evaluation = evaluateCondition(condition, factsByParameter, rulesById);
             conditionResults.add(evaluation.result());
             evaluation.evidence().ifPresent(evidences::add);
         }
@@ -110,9 +113,29 @@ public class SimpleMissionRuleEngine implements MissionRuleEngine {
 
     private static ConditionEvaluation evaluateCondition(
             EventoCondicao condition,
-            Map<UUID, MeasurementFact> factsByParameter
+            Map<UUID, MeasurementFact> factsByParameter,
+            Map<UUID, RuleEvaluationFact> rulesById
     ) {
         UUID parametroDefId = condition.getParametroDef().getId();
+        if (condition.getFonte() == EventoCondicaoFonte.AVALIACAO_REGRA) {
+            if (condition.getRegraParametro() == null || condition.getResultadoEsperado() == null) {
+                return noEvidence(condition, "Rule condition is incomplete");
+            }
+            RuleEvaluationFact evaluation = rulesById.get(condition.getRegraParametro().getId());
+            MeasurementFact observed = factsByParameter.get(parametroDefId);
+            if (evaluation == null || observed == null
+                    || !Objects.equals(evaluation.parametroValorId(), observed.parametroValorId())) {
+                return noEvidence(condition, "Missing persisted rule evaluation");
+            }
+            boolean equal = evaluation.resultado() == condition.getResultadoEsperado();
+            boolean matched = condition.getOperador() == RegraOperador.EQ ? equal
+                    : condition.getOperador() == RegraOperador.NEQ && !equal;
+            return new ConditionEvaluation(new ConditionEvaluationResult(
+                    condition.getId(), matched, matched ? "Rule result matched" : "Rule result did not match",
+                    Optional.ofNullable(observed.parametroValorId()),
+                    evaluation.resultado().name(), condition.getResultadoEsperado().name(),
+                    Optional.of(evaluation.avaliacaoId())), Optional.of(observed));
+        }
         MeasurementFact fact = factsByParameter.get(parametroDefId);
         if (fact == null) {
             return noEvidence(condition, "Missing parameter fact for parametroDefId=" + parametroDefId);
@@ -208,6 +231,9 @@ public class SimpleMissionRuleEngine implements MissionRuleEngine {
     }
 
     private static String expectedValue(EventoCondicao condition) {
+        if (condition.getFonte() == EventoCondicaoFonte.AVALIACAO_REGRA) {
+            return condition.getResultadoEsperado() == null ? null : condition.getResultadoEsperado().name();
+        }
         RegraOperador operator = condition.getOperador();
         DataType type = condition.getParametroDef().getDataType();
         return switch (type) {
