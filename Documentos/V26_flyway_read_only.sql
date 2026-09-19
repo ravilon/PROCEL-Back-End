@@ -2,14 +2,13 @@
 -- Executar separadamente, com uma conexao somente leitura, em local, staging
 -- e producao. Este arquivo nao contem DDL, DML, flyway repair ou credenciais.
 --
--- Decisao pre-deploy registrada em 2026-09-18:
--- nao foi encontrada evidencia local de V26 aplicada (o banco persistente
--- local nao possui flyway_schema_history). Nao houve acesso a staging ou
--- producao. A V26 corrigida deve permanecer antes do deploy.
+-- Auditoria posterior confirmou V26 aplicada no banco remoto com checksum
+-- 1712556571. O arquivo exato foi recuperado da imagem aplicada e
+-- restaurado localmente. Nenhum repair ou alteracao de banco foi executado.
 --
 -- O checksum e calculado pelo Flyway sobre o conteudo normalizado da migration.
--- V26 original no commit 0ab2393: -2046449006
--- V26 corrigida no working tree:  1732619328
+-- V26 do artefato aplicado: 1712556571
+-- V26 original do commit 0ab2393: -2046449006
 
 -- 1. Historico e checksum da V26 por ambiente
 select
