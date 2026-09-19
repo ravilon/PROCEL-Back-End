@@ -58,8 +58,7 @@ public class MissionEventEvaluationProcessor {
     private final EventoAvaliacaoRequestService requestService;
     private final ApiObservabilityMetrics metrics;
     private final ObjectMapper objectMapper;
-    @Autowired(required = false)
-    private RoomStateFactLoader roomStateFactLoader;
+    private final RoomStateFactLoader roomStateFactLoader;
 
     public MissionEventEvaluationProcessor(
             MedicaoRepository medicaoRepository,
@@ -74,7 +73,8 @@ public class MissionEventEvaluationProcessor {
             MissionEventActivityProcessor activityProcessor,
             EventoAvaliacaoRequestService requestService,
             ApiObservabilityMetrics metrics,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            @Autowired(required = false) RoomStateFactLoader roomStateFactLoader
     ) {
         this.medicaoRepository = medicaoRepository;
         this.parametroValorRepository = parametroValorRepository;
@@ -89,6 +89,7 @@ public class MissionEventEvaluationProcessor {
         this.requestService = requestService;
         this.metrics = metrics;
         this.objectMapper = objectMapper;
+        this.roomStateFactLoader = roomStateFactLoader;
     }
 
     @Transactional

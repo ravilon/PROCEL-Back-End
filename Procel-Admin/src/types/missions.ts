@@ -153,6 +153,7 @@ export interface EventoCondicaoRequest {
   agregacao: EventoAgregacao;
   obrigatoria: boolean;
   ordem: number;
+  ativo?: boolean;
 }
 
 export interface EventDefinitionSummary {

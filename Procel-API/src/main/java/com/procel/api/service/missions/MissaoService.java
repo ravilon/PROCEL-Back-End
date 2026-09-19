@@ -216,13 +216,13 @@ public class MissaoService {
     private void validateDeactivation(Missao missao) {
         if (missao.getParent() == null || !missao.isAtivo() || !missao.getParent().isAtivo()) return;
         long activeSiblings = missaoRepo.findByParent_IdOrderByCreatedAtAsc(missao.getParent().getId())
-                .stream().filter(Missao::isAtivo).count();
+                .stream().filter(m -> Boolean.TRUE.equals(m.isAtivo())).count();
         if (activeSiblings <= 1) throw new ConflictException("Cannot deactivate the last active child of an active parent");
     }
 
     private void validateActivation(Missao missao) {
         var children = missaoRepo.findByParent_IdOrderByCreatedAtAsc(missao.getId());
-        if (!children.isEmpty() && children.stream().noneMatch(Missao::isAtivo)) {
+        if (!children.isEmpty() && children.stream().noneMatch(m -> Boolean.TRUE.equals(m.isAtivo()))) {
             throw new ConflictException("Active parent requires an active child");
         }
     }

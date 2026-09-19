@@ -21,6 +21,24 @@ public class SensorIntegrationAdminService {
     private final SensorIntegrationBindingRepository bindingRepo;
     private final SensorRepository sensorRepo;
     private final SensorIntegrationConfigValidator validator;
+    private final SensorIntegrationValueMappingRepository mappingRepo;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public SensorIntegrationAdminService(
+            SensorIntegrationProfileRepository profileRepo,
+            SensorIntegrationParserVersionRepository versionRepo,
+            SensorIntegrationBindingRepository bindingRepo,
+            SensorRepository sensorRepo,
+            SensorIntegrationConfigValidator validator,
+            SensorIntegrationValueMappingRepository mappingRepo
+    ) {
+        this.profileRepo = profileRepo;
+        this.versionRepo = versionRepo;
+        this.bindingRepo = bindingRepo;
+        this.sensorRepo = sensorRepo;
+        this.validator = validator;
+        this.mappingRepo = mappingRepo;
+    }
 
     public SensorIntegrationAdminService(
             SensorIntegrationProfileRepository profileRepo,
@@ -29,11 +47,7 @@ public class SensorIntegrationAdminService {
             SensorRepository sensorRepo,
             SensorIntegrationConfigValidator validator
     ) {
-        this.profileRepo = profileRepo;
-        this.versionRepo = versionRepo;
-        this.bindingRepo = bindingRepo;
-        this.sensorRepo = sensorRepo;
-        this.validator = validator;
+        this(profileRepo, versionRepo, bindingRepo, sensorRepo, validator, null);
     }
 
     @Transactional(readOnly = true)
@@ -119,6 +133,10 @@ public class SensorIntegrationAdminService {
                 request.timestampPointer().trim(),
                 blankToNull(request.sourceReceivedAtPointer())
         );
+        if (mappingRepo != null) {
+            mappingRepo.deleteAllByParserVersion_Id(version.getId());
+            mappingRepo.flush();
+        }
         version.replaceMappings(toMappings(request));
         return toVersion(versionRepo.save(version));
     }
@@ -137,6 +155,10 @@ public class SensorIntegrationAdminService {
                 request.timestampPointer().trim(),
                 blankToNull(request.sourceReceivedAtPointer())
         );
+        if (mappingRepo != null) {
+            mappingRepo.deleteAllByParserVersion_Id(version.getId());
+            mappingRepo.flush();
+        }
         version.replaceMappings(toMappings(request));
         return toVersion(versionRepo.save(version));
     }

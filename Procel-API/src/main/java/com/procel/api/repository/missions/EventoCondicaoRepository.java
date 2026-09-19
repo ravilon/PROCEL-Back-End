@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public interface EventoCondicaoRepository extends JpaRepository<EventoCondicao, UUID> {
     List<EventoCondicao> findByEventoDefinicaoIdAndAtivoTrueOrderByOrdemAscCreatedAtAsc(UUID eventoDefinicaoId);
+    List<EventoCondicao> findByEventoDefinicaoIdOrderByOrdemAscCreatedAtAsc(UUID eventoDefinicaoId);
     boolean existsByEventoDefinicaoIdAndAtivoTrueAndOrdem(UUID eventoDefinicaoId, Integer ordem);
     boolean existsByEventoDefinicaoIdAndAtivoTrueAndOrdemAndIdNot(UUID eventoDefinicaoId, Integer ordem, UUID id);
 }

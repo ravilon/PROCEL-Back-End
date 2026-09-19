@@ -8,4 +8,5 @@ import java.util.UUID;
 
 public interface SensorIntegrationValueMappingRepository extends JpaRepository<SensorIntegrationValueMapping, UUID> {
     List<SensorIntegrationValueMapping> findAllByParserVersion_IdOrderByParameterNameAsc(UUID parserVersionId);
+    void deleteAllByParserVersion_Id(UUID parserVersionId);
 }

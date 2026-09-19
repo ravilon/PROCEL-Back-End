@@ -61,7 +61,8 @@ public class MissionAssignedCycleProcessor {
         if (!existing.isEmpty()) return;
 
         List<Missao> children = missions.findByParent_IdOrderByCreatedAtAsc(rootId).stream()
-                .filter(Missao::isAtivo).toList();
+                .filter(missao -> missao != null && missao.isAtivo())
+                .toList();
         if (mission.getParent() == null && missions.existsByParent_Id(rootId) && children.isEmpty()) {
             throw new ConflictException("Active parent mission requires an active child");
         }
@@ -166,7 +167,11 @@ public class MissionAssignedCycleProcessor {
                         rs.getObject("periodo_aula_id", UUID.class)),
                 occurrence.getEventoDefinicao().getMissao().getId(), room,
                 Timestamp.from(occurrence.getDetectadoEm()), classId, classId);
-        if (classId == null && rows.stream().map(AssignedActivity::classId).distinct().count() > 1) {
+        if (classId == null && rows.stream()
+                .map(activity -> activity.classId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .count() > 1) {
             throw new ConflictException("Ambiguous class context for assigned mission");
         }
         return rows;

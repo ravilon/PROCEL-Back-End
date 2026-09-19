@@ -331,12 +331,12 @@ public class EventoDefinicaoService {
         condicao.setAgregacao(req.agregacao());
         condicao.setObrigatoria(req.obrigatoria() == null || req.obrigatoria());
         condicao.setOrdem(req.ordem());
-        condicao.setAtivo(true);
+        condicao.setAtivo(req.ativo() == null || req.ativo());
     }
 
     private EventoDTOs.EventoDefinicaoResponse toEventoResponse(EventoDefinicao evento) {
         List<EventoDTOs.EventoCondicaoResponse> condicoes = condicaoRepo
-                .findByEventoDefinicaoIdAndAtivoTrueOrderByOrdemAscCreatedAtAsc(evento.getId())
+                .findByEventoDefinicaoIdOrderByOrdemAscCreatedAtAsc(evento.getId())
                 .stream()
                 .map(EventoDefinicaoService::toCondicaoResponse)
                 .toList();

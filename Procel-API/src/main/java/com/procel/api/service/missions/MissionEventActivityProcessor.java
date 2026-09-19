@@ -42,8 +42,7 @@ public class MissionEventActivityProcessor {
     private final MissionEvaluationProperties properties;
     private final ApiObservabilityMetrics metrics;
     private final JdbcTemplate jdbcTemplate;
-    @Autowired(required = false)
-    private MissionAssignedCycleProcessor assignedCycles;
+    private final MissionAssignedCycleProcessor assignedCycles;
 
     public MissionEventActivityProcessor(
             EventoOcorrenciaRepository ocorrenciaRepository,
@@ -56,7 +55,8 @@ public class MissionEventActivityProcessor {
             EventoOcorrenciaService ocorrenciaService,
             MissionEvaluationProperties properties,
             ApiObservabilityMetrics metrics,
-            JdbcTemplate jdbcTemplate
+            JdbcTemplate jdbcTemplate,
+            @Autowired(required = false) MissionAssignedCycleProcessor assignedCycles
     ) {
         this.ocorrenciaRepository = ocorrenciaRepository;
         this.missaoRepository = missaoRepository;
@@ -69,6 +69,7 @@ public class MissionEventActivityProcessor {
         this.properties = properties;
         this.metrics = metrics;
         this.jdbcTemplate = jdbcTemplate;
+        this.assignedCycles = assignedCycles;
     }
 
     @Transactional

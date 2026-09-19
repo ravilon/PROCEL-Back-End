@@ -102,6 +102,7 @@ type ConditionForm = {
   agregacao: EventoAgregacao;
   obrigatoria: boolean;
   ordem: string;
+  ativo: boolean;
 };
 
 const emptyEvent = (): EventForm => ({
@@ -135,6 +136,7 @@ const emptyCondition = (order: number): ConditionForm => ({
   agregacao: "ULTIMO",
   obrigatoria: true,
   ordem: String(order),
+  ativo: true,
 });
 
 export function MissionTriggerConfigurator({
@@ -269,6 +271,7 @@ export function MissionTriggerConfigurator({
       agregacao: condition.agregacao,
       obrigatoria: condition.obrigatoria,
       ordem: String(condition.ordem ?? 1),
+      ativo: condition.ativo,
     });
   }
 
@@ -411,14 +414,15 @@ function ConditionSection({
               <Typography variant="body2">{condition.operador} {conditionValue(condition)} · ordem {condition.ordem ?? 0}</Typography>
             </Box>
             <Stack direction="row" spacing={1} alignItems="center">
+              <Chip size="small" color={condition.ativo ? "success" : "default"} label={condition.ativo ? "ativa" : "inativa"} />
               <Chip size="small" label={condition.obrigatoria ? "obrigatoria" : "opcional"} />
               {!readOnly && <Button size="small" startIcon={<EditOutlined />} onClick={() => onEdit(condition)}>Editar</Button>}
-              {!readOnly && <Button size="small" color="error" onClick={() => onDelete(condition.id)}>Excluir</Button>}
+              {!readOnly && condition.ativo && <Button size="small" color="error" onClick={() => onDelete(condition.id)}>Excluir</Button>}
             </Stack>
           </Stack>
         </Box>
       ))}
-      {(event.condicoes ?? []).length === 0 && <Typography color="text.secondary">Nenhuma condicao ativa.</Typography>}
+      {(event.condicoes ?? []).filter((condition) => condition.ativo).length === 0 && <Typography color="text.secondary">Nenhuma condicao ativa.</Typography>}
       {conditionForm && !readOnly && (
         <ConditionEditor form={conditionForm} sensorTypes={sensorTypes} rules={rules} pending={pending} onChange={onChange} onSave={onSave} onCancel={onCancel} />
       )}
@@ -464,6 +468,7 @@ function ConditionEditor({ form, sensorTypes, rules, pending, onChange, onSave, 
           <TextField label="Ordem" type="number" value={form.ordem} onChange={(e) => set("ordem", e.target.value)} inputProps={{ min: 1 }} required />
         </Box>
         <FormControlLabel control={<Checkbox checked={form.obrigatoria} onChange={(e) => set("obrigatoria", e.target.checked)} />} label="Condicao obrigatoria" />
+        <FormControlLabel control={<Checkbox checked={form.ativo} onChange={(e) => set("ativo", e.target.checked)} />} label="Condicao ativa" />
         <FormHelperText>BETWEEN e OUTSIDE exigem dois limites numericos. O backend tambem valida o tipo e o operador.</FormHelperText>
         <Stack direction="row" spacing={1}>
           <Button variant="contained" onClick={onSave} disabled={pending}>Salvar condicao</Button>
@@ -527,6 +532,10 @@ function toConditionRequest(form: ConditionForm): EventoCondicaoRequest {
     agregacao: form.agregacao,
     obrigatoria: form.obrigatoria,
     ordem: Number(form.ordem),
+    fonte: form.fonte,
+    regraParametroId: form.fonte === "AVALIACAO_REGRA" ? form.regraParametroId : null,
+    resultadoEsperado: form.fonte === "AVALIACAO_REGRA" ? form.resultadoEsperado : null,
+    ativo: form.ativo,
   };
 }
 
@@ -574,7 +583,8 @@ function conditionValue(condition: EventoCondicao) {
 }
 
 function ruleSummary(form: EventForm, conditions: EventoCondicao[]) {
-  const conditionSummary = conditions.length === 0
+  const activeConditions = conditions.filter((condition) => condition.ativo);
+  const conditionSummary = activeConditions.length === 0
     ? "sem condicoes"
     : conditions
       .slice()

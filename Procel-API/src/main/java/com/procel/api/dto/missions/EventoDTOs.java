@@ -67,13 +67,14 @@ public final class EventoDTOs {
             Integer ordem,
             EventoCondicaoFonte fonte,
             UUID regraParametroId,
-            AvaliacaoResultado resultadoEsperado
+            AvaliacaoResultado resultadoEsperado,
+            Boolean ativo
     ) {
         public EventoCondicaoRequest(UUID parametroDefId, RegraOperador operador,
                 BigDecimal valorNumeric1, BigDecimal valorNumeric2, Boolean valorBoolean,
                 String valorText, EventoAgregacao agregacao, Boolean obrigatoria, Integer ordem) {
             this(parametroDefId, operador, valorNumeric1, valorNumeric2, valorBoolean,
-                    valorText, agregacao, obrigatoria, ordem, EventoCondicaoFonte.PARAMETRO_VALOR, null, null);
+                    valorText, agregacao, obrigatoria, ordem, EventoCondicaoFonte.PARAMETRO_VALOR, null, null, true);
         }
     }
 

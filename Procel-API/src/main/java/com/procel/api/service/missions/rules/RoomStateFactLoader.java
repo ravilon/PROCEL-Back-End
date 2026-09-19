@@ -75,7 +75,10 @@ public class RoomStateFactLoader {
                 """, params, (rs, row) -> rs.getObject(1, UUID.class));
 
         Map<UUID, ParametroValor> byId = valores.findAllById(ids).stream()
-                .collect(Collectors.toMap(ParametroValor::getId, Function.identity()));
+                .filter(value -> value != null)
+                .collect(Collectors.toMap(
+                        value -> value.getId(),
+                        Function.identity()));
         List<MeasurementFact> facts = ids.stream().map(byId::get)
                 .filter(value -> value != null)
                 .map(factory::from)
