@@ -50,7 +50,7 @@ public class AulasSyncController {
         return ResponseEntity.accepted().body(jobService.start(weekStart, roomId));
     }
 
-    @GetMapping("/sync/{jobId}")
+    @GetMapping("/{jobId}")
     @Operation(summary = "Consulta o estado de uma sincronizacao de aulas")
     @ApiResponse(responseCode = "200", description = "Estado atual do job.")
     @ApiResponse(responseCode = "400", description = "Job inexistente.")
@@ -64,7 +64,7 @@ public class AulasSyncController {
         return ResponseEntity.ok(jobService.get(jobId));
     }
 
-    @GetMapping("/sync/active")
+    @GetMapping("/active")
     @Operation(summary = "Consulta a sincronizacao de aulas atualmente em execucao")
     public ResponseEntity<AulasSyncJobResponse> getActiveJob() {
         return jobService.getLatestActive()
