@@ -133,7 +133,7 @@ public class EventoDefinicaoService {
     @Transactional
     public void removerCondicao(UUID eventoId, UUID condicaoId) {
         EventoCondicao condicao = findCondicaoDoEvento(eventoId, condicaoId);
-        condicao.setAtivo(false);
+        condicaoRepo.delete(condicao);
     }
 
     private Missao findMissao(UUID missaoId) {
@@ -331,12 +331,12 @@ public class EventoDefinicaoService {
         condicao.setAgregacao(req.agregacao());
         condicao.setObrigatoria(req.obrigatoria() == null || req.obrigatoria());
         condicao.setOrdem(req.ordem());
-        condicao.setAtivo(req.ativo() == null || req.ativo());
+        condicao.setAtivo(true);
     }
 
     private EventoDTOs.EventoDefinicaoResponse toEventoResponse(EventoDefinicao evento) {
         List<EventoDTOs.EventoCondicaoResponse> condicoes = condicaoRepo
-                .findByEventoDefinicaoIdOrderByOrdemAscCreatedAtAsc(evento.getId())
+                .findByEventoDefinicaoIdAndAtivoTrueOrderByOrdemAscCreatedAtAsc(evento.getId())
                 .stream()
                 .map(EventoDefinicaoService::toCondicaoResponse)
                 .toList();

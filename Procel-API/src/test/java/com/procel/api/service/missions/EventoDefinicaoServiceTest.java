@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 class EventoDefinicaoServiceTest {
 
@@ -202,7 +203,7 @@ class EventoDefinicaoServiceTest {
     }
 
     @Test
-    void logicalDeleteOnlyDeactivatesCondition() {
+    void deleteConditionRemovesIt() {
         UUID eventoId = UUID.randomUUID();
         UUID condicaoId = UUID.randomUUID();
         EventoCondicao condicao = new EventoCondicao();
@@ -212,7 +213,7 @@ class EventoDefinicaoServiceTest {
 
         service.removerCondicao(eventoId, condicaoId);
 
-        assertThat(condicao.isAtivo()).isFalse();
+        verify(condicaoRepo).delete(condicao);
     }
 
     private static EventoDTOs.EventoDefinicaoRequest eventRequest(

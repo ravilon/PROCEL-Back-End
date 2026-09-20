@@ -96,6 +96,7 @@ public class MissionEventsController {
     @ApiResponse(responseCode = "200", description = "Evento desativado.")
     @ApiResponse(responseCode = "403", description = "Sem permissao.")
     @ApiResponse(responseCode = "404", description = "Evento nao encontrado.")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removerEvento(
             @Parameter(description = "ID do evento.") @PathVariable UUID eventId
     ) {
@@ -140,6 +141,7 @@ public class MissionEventsController {
     @ApiResponse(responseCode = "200", description = "Condicao removida.")
     @ApiResponse(responseCode = "403", description = "Sem permissao.")
     @ApiResponse(responseCode = "404", description = "Evento ou condicao nao encontrado.")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removerCondicao(
             @Parameter(description = "ID do evento.") @PathVariable UUID eventId,
             @Parameter(description = "ID da condicao.") @PathVariable UUID conditionId
