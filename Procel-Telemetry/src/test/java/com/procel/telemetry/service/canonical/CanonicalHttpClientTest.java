@@ -1,6 +1,7 @@
 package com.procel.telemetry.service.canonical;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.procel.telemetry.config.TelemetryProperties;
 import com.procel.telemetry.entity.RawTelemetryEvent;
@@ -24,7 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class CanonicalHttpClientTest {
-    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().build();
+    private final ObjectMapper objectMapper = JsonMapper.builder().findAndAddModules().disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).build();
     private HttpServer server;
 
     @AfterEach
@@ -68,6 +69,10 @@ class CanonicalHttpClientTest {
         assertThat(request.get("rawTelemetryEventId").asText()).isEqualTo("raw-1");
         assertThat(request.get("originalProducerId").asText()).isEqualTo("original-producer");
         assertThat(request.get("rawMessageId").asText()).isEqualTo("raw-msg");
+        assertThat(request.get("rawReceivedAt").isTextual()).isTrue();
+        assertThat(request.get("rawReceivedAt").asText()).isEqualTo("2026-08-19T12:00:01Z");
+        assertThat(request.get("rawSourceTimestamp").isTextual()).isTrue();
+        assertThat(request.get("rawSourceTimestamp").asText()).isEqualTo("2026-08-19T12:00:00Z");
         assertThat(request.get("payload").get("value").asInt()).isEqualTo(1);
     }
 
