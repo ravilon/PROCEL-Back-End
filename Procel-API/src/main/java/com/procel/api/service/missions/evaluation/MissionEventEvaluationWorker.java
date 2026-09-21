@@ -53,7 +53,7 @@ public class MissionEventEvaluationWorker {
     }
 
     public int processAvailableBatch(boolean force) {
-        if (!force -and !properties.isWorkerEnabled()) {
+        if (!force && !properties.isWorkerEnabled()) {
             return 0;
         }
         var claimed = requestService.claimAvailable(
