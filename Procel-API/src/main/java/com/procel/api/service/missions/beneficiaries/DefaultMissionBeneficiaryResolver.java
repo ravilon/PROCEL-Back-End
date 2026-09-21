@@ -19,7 +19,8 @@ public class DefaultMissionBeneficiaryResolver implements MissionBeneficiaryReso
             case ALUNOS_VINCULADOS -> resolveAlunosVinculados(context);
             case SEM_ATRIBUICAO_AUTOMATICA -> empty(context.politicaAtribuicao(), "Automatic attribution disabled", true);
             case ATIVADOR_DA_MISSAO -> resolveAtivador(context);
-            case ALUNOS_VINCULADOS_COM_OCUPACAO, CHECKIN_CONFIRMADO ->
+            case ALUNOS_VINCULADOS_COM_OCUPACAO -> resolveAlunosVinculados(context);
+            case CHECKIN_CONFIRMADO ->
                     empty(context.politicaAtribuicao(), "Attribution policy not supported in this stage", false);
         };
     }

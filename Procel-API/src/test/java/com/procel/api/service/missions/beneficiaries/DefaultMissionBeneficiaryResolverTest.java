@@ -62,16 +62,27 @@ class DefaultMissionBeneficiaryResolverTest {
     }
 
     @Test
-    void unsupportedPoliciesAreExplicit() {
-        var occupancy = resolver.resolve(context(EventoPoliticaAtribuicao.ALUNOS_VINCULADOS_COM_OCUPACAO,
-                Optional.empty(), Optional.empty()));
-        var checkin = resolver.resolve(context(EventoPoliticaAtribuicao.CHECKIN_CONFIRMADO,
+    void occupancyPolicyReturnsEligiblePeople() {
+        AcademicContext academicContext = new AcademicContext(
+                UUID.randomUUID(), 10L, "A", "2026/1", "ROOM",
+                LocalDateTime.parse("2026-09-13T10:00:00"),
+                LocalDateTime.parse("2026-09-13T10:50:00"),
+                List.of("p1", "p2", "p1"));
+
+        var resolution = resolver.resolve(context(EventoPoliticaAtribuicao.ALUNOS_VINCULADOS_COM_OCUPACAO,
+                Optional.of(academicContext), Optional.empty()));
+
+        assertThat(resolution.supported()).isTrue();
+        assertThat(resolution.pessoaIds()).containsExactly("p1", "p2");
+    }
+
+    @Test
+    void checkinPolicyRemainsExplicitlyUnsupported() {
+        var resolution = resolver.resolve(context(EventoPoliticaAtribuicao.CHECKIN_CONFIRMADO,
                 Optional.empty(), Optional.empty()));
 
-        assertThat(occupancy.supported()).isFalse();
-        assertThat(checkin.supported()).isFalse();
-        assertThat(occupancy.reason()).contains("not supported");
-        assertThat(checkin.reason()).contains("not supported");
+        assertThat(resolution.supported()).isFalse();
+        assertThat(resolution.reason()).contains("not supported");
     }
 
     private static MissionBeneficiaryContext context(
