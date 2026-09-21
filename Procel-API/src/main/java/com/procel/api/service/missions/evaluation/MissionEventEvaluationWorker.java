@@ -49,7 +49,11 @@ public class MissionEventEvaluationWorker {
     }
 
     public int processAvailableBatch() {
-        if (!properties.isWorkerEnabled()) {
+        return processAvailableBatch(false);
+    }
+
+    public int processAvailableBatch(boolean force) {
+        if (!force -and !properties.isWorkerEnabled()) {
             return 0;
         }
         var claimed = requestService.claimAvailable(

@@ -232,7 +232,7 @@ public class MissionAdminService {
     }
 
     public MissionAdminDTOs.WorkerRunResponse runEvaluationWorker() {
-        return new MissionAdminDTOs.WorkerRunResponse("evaluation", evaluationWorker.processAvailableBatch());
+        return new MissionAdminDTOs.WorkerRunResponse("evaluation", evaluationWorker.processAvailableBatch(true));
     }
 
     public MissionAdminDTOs.WorkerRunResponse runTemporalWindowWorker() {
