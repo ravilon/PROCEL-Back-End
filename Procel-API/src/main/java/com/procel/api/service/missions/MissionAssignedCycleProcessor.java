@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -75,11 +76,12 @@ public class MissionAssignedCycleProcessor {
                     .orElseThrow(() -> new ConflictException("Beneficiary not found: " + personId));
             Missao root = mission.getParent() == null ? mission : mission.getParent();
             var base = cycles.create(root, person, occurrence, occurrence.getDetectadoEm(), zone);
+            Instant deadline = assignmentDeadline(occurrence, base.fim());
             String key = "assignment:" + occurrence.getId();
             Atividade parent = create(root, person, key, base.cicloTipo(), base.inicio(),
-                    base.fim(), occurrence, null, now);
+                    deadline, occurrence, null, now);
             for (Missao child : children) {
-                create(child, person, key, base.cicloTipo(), base.inicio(), base.fim(),
+                create(child, person, key, base.cicloTipo(), base.inicio(), deadline,
                         occurrence, parent.getId(), now);
             }
         }
@@ -98,6 +100,21 @@ public class MissionAssignedCycleProcessor {
             }
         }
     }
+    @Transactional
+    public void expire(EventoOcorrencia occurrence, Instant now) {
+        Missao mission = occurrence.getEventoDefinicao().getMissao();
+        UUID rootId = mission.getParent() == null ? mission.getId() : mission.getParent().getId();
+        jdbc.update("""
+                update atividade
+                   set status = 'EXPIRADA'
+                 where status in ('PENDENTE', 'EM_ANDAMENTO')
+                   and ciclo_fim is not null
+                   and ciclo_fim <= ?
+                   and compartimento_id = ?
+                   and (periodo_aula_id = ? or ? is null)
+                   and (missao_id = ? or missao_id in (select id from missao where parent_id = ?))
+                """, Timestamp.from(now), room(occurrence), classId(occurrence), classId(occurrence), rootId, rootId);
+    }
 
     @Transactional
     public void complete(EventoOcorrencia occurrence, Instant now) {
@@ -114,6 +131,12 @@ public class MissionAssignedCycleProcessor {
                 completeParentIfReady(activity.parentId(), occurrence.getId(), now);
             }
         }
+    }
+
+    private static Instant assignmentDeadline(EventoOcorrencia occurrence, Instant fallback) {
+        Integer seconds = occurrence.getEventoDefinicao().getJanelaSegundos();
+        if (seconds == null || seconds <= 0) return fallback;
+        return occurrence.getDetectadoEm().plus(Duration.ofSeconds(seconds));
     }
 
     private Atividade create(Missao mission, Pessoa person, String key,

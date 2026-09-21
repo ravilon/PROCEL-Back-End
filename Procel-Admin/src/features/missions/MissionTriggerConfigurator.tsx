@@ -63,7 +63,7 @@ import type {
   TipoSensor,
 } from "../../types";
 
-const eventRoles: EventoPapel[] = ["ATRIBUICAO", "PROGRESSO", "CONCLUSAO"];
+const eventRoles: EventoPapel[] = ["ATRIBUICAO", "PROGRESSO", "CONCLUSAO", "EXPIRACAO"];
 const conditionSources: EventoCondicaoFonte[] = ["PARAMETRO_VALOR", "AVALIACAO_REGRA"];
 const ruleResults: AvaliacaoResultado[] = ["IDEAL", "NORMAL", "ALERTA", "CRITICO", "INVALIDO"];
 const eventTypes: EventoTipoDisparo[] = ["MEDICAO_RECEBIDA", "CHECKIN_CONFIRMADO"];
@@ -360,7 +360,7 @@ function EventFormFields({ form, disabled, onChange }: { form: EventForm; disabl
         <EnumField label="Politica de atribuicao" value={form.politicaAtribuicao} options={policies} disabled={disabled} onChange={(v) => set("politicaAtribuicao", v as EventoPoliticaAtribuicao)} />
         <TextField label="Quantidade necessaria" type="number" value={form.quantidadeNecessaria} onChange={(e) => set("quantidadeNecessaria", e.target.value)} inputProps={{ min: 1 }} disabled={disabled} />
         <TextField label="Ordem" type="number" value={form.ordem} onChange={(e) => set("ordem", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />
-        {temporal && <TextField label="Janela (segundos)" type="number" value={form.janelaSegundos} onChange={(e) => set("janelaSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />}
+        {(temporal || form.papel === "ATRIBUICAO" || form.papel === "EXPIRACAO") && <TextField label={(form.papel === "ATRIBUICAO" || form.papel === "EXPIRACAO") ? "Prazo (segundos)" : "Janela (segundos)"} type="number" value={form.janelaSegundos} onChange={(e) => set("janelaSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />}
         {form.modoAvaliacao === "DURACAO" && <TextField label="Duracao minima (segundos)" type="number" value={form.duracaoMinimaSegundos} onChange={(e) => set("duracaoMinimaSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />}
         <TextField label="Lacuna maxima (segundos)" type="number" value={form.lacunaMaximaSegundos} onChange={(e) => set("lacunaMaximaSegundos", e.target.value)} inputProps={{ min: 1 }} disabled={disabled} />
         <TextField label="Cooldown (segundos)" type="number" value={form.cooldownSegundos} onChange={(e) => set("cooldownSegundos", e.target.value)} inputProps={{ min: 0 }} disabled={disabled} />

@@ -1,17 +1,21 @@
 package com.procel.api.service.missions.evaluation;
 
 import com.procel.api.config.MissionEvaluationProperties;
+import com.procel.api.entity.missions.AtividadeStatus;
+import com.procel.api.repository.missions.AtividadeRepository;
 import com.procel.api.observability.ApiObservabilityMetrics;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService.EventoJanelaWork;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.net.InetAddress;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -24,6 +28,25 @@ public class MissionTemporalWindowWorker {
     private final MissionTemporalActivityProcessor temporalActivityProcessor;
     private final MissionEvaluationProperties properties;
     private final String workerId;
+    private final AtividadeRepository atividadeRepository;
+
+    @Autowired
+    public MissionTemporalWindowWorker(
+            EventoJanelaAvaliacaoService janelaService,
+            MissionTemporalWindowEvaluationService evaluationService,
+            MissionTemporalActivityProcessor temporalActivityProcessor,
+            MissionEvaluationProperties properties,
+            ApiObservabilityMetrics metrics,
+            AtividadeRepository atividadeRepository
+    ) {
+        this.janelaService = janelaService;
+        this.evaluationService = evaluationService;
+        this.temporalActivityProcessor = temporalActivityProcessor;
+        this.properties = properties;
+        this.workerId = buildWorkerId();
+        this.atividadeRepository = atividadeRepository;
+        metrics.registerMissionTemporalWindowBacklogGauge(this, janelaService::countBacklog);
+    }
 
     public MissionTemporalWindowWorker(
             EventoJanelaAvaliacaoService janelaService,
@@ -32,12 +55,7 @@ public class MissionTemporalWindowWorker {
             MissionEvaluationProperties properties,
             ApiObservabilityMetrics metrics
     ) {
-        this.janelaService = janelaService;
-        this.evaluationService = evaluationService;
-        this.temporalActivityProcessor = temporalActivityProcessor;
-        this.properties = properties;
-        this.workerId = buildWorkerId();
-        metrics.registerMissionTemporalWindowBacklogGauge(this, janelaService::countBacklog);
+        this(janelaService, evaluationService, temporalActivityProcessor, properties, metrics, null);
     }
 
     @Scheduled(fixedDelayString = "${procel.missions.evaluation.temporal-windows.fixed-delay:5s}")
@@ -66,6 +84,14 @@ public class MissionTemporalWindowWorker {
         }
         processed += processPendingSatisfiedOccurrences(now);
         return processed;
+    }
+
+    private int expireActivities(Instant now) {
+        var open = atividadeRepository.findByStatusInAndCicloFimLessThanEqual(
+                List.of(AtividadeStatus.PENDENTE, AtividadeStatus.EM_ANDAMENTO), now);
+        open.forEach(activity -> activity.setStatus(AtividadeStatus.EXPIRADA));
+        if (!open.isEmpty()) atividadeRepository.saveAll(open);
+        return open.size();
     }
 
     public void processClaimed(EventoJanelaWork work, Instant now) {

@@ -97,6 +97,11 @@ public class MissionEventActivityProcessor {
                 ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.PROCESSADO);
                 return;
             }
+            if (event.getPapel() == EventoPapel.EXPIRACAO) {
+                assignedCycles.expire(occurrence, processedAt);
+                ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.PROCESSADO);
+                return;
+            }
             if (event.getPapel() == EventoPapel.CONCLUSAO) {
                 assignedCycles.complete(occurrence, processedAt);
                 ocorrenciaService.atualizarStatus(occurrence.getId(), EventoOcorrenciaStatus.PROCESSADO);

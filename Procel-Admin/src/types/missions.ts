@@ -36,7 +36,7 @@ export interface Atividade {
   completedAt?: string | null;
 }
 
-export type EventoPapel = "ATRIBUICAO" | "PROGRESSO" | "CONCLUSAO";
+export type EventoPapel = "ATRIBUICAO" | "PROGRESSO" | "CONCLUSAO" | "EXPIRACAO";
 export type EventoCondicaoFonte = "PARAMETRO_VALOR" | "AVALIACAO_REGRA";
 export type EventoTipoDisparo = "MEDICAO_RECEBIDA" | "CHECKIN_CONFIRMADO";
 export type EventoModoAvaliacao = "INSTANTANEO" | "DURACAO" | "TRANSICAO" | "JANELA_ENCERRADA";
