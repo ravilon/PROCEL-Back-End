@@ -5,7 +5,6 @@ import com.procel.api.entity.missions.AtividadeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import com.procel.api.entity.missions.AtividadeStatus;
 import java.util.Optional;
 import java.util.UUID;
 

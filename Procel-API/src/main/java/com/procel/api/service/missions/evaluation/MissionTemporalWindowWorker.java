@@ -72,6 +72,7 @@ public class MissionTemporalWindowWorker {
         }
         Instant now = Instant.now();
         janelaService.expirarJanelasVencidas(now);
+        expireActivities(now);
         var claimed = janelaService.claimAvailable(
                 settings().getBatchSize(),
                 settings().getLeaseDuration(),

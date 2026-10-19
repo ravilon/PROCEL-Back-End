@@ -1,7 +1,10 @@
 package com.procel.api.service.missions.evaluation;
 
 import com.procel.api.config.MissionEvaluationProperties;
+import com.procel.api.entity.missions.Atividade;
+import com.procel.api.entity.missions.AtividadeStatus;
 import com.procel.api.observability.ApiObservabilityMetrics;
+import com.procel.api.repository.missions.AtividadeRepository;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService;
 import com.procel.api.service.missions.EventoJanelaAvaliacaoService.EventoJanelaWork;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
@@ -26,6 +29,7 @@ class MissionTemporalWindowWorkerTest {
     EventoJanelaAvaliacaoService janelaService;
     MissionTemporalWindowEvaluationService evaluationService;
     MissionTemporalActivityProcessor temporalActivityProcessor;
+    AtividadeRepository atividadeRepository;
     MissionEvaluationProperties properties;
     MissionTemporalWindowWorker worker;
 
@@ -34,7 +38,10 @@ class MissionTemporalWindowWorkerTest {
         janelaService = mock(EventoJanelaAvaliacaoService.class);
         evaluationService = mock(MissionTemporalWindowEvaluationService.class);
         temporalActivityProcessor = mock(MissionTemporalActivityProcessor.class);
+        atividadeRepository = mock(AtividadeRepository.class);
         when(janelaService.countBacklog()).thenReturn(0L);
+        when(atividadeRepository.findByStatusInAndCicloFimLessThanEqual(any(), any(Instant.class)))
+                .thenReturn(List.of());
         properties = new MissionEvaluationProperties();
         properties.getTemporalWindows().setWorkerEnabled(true);
         properties.getTemporalWindows().setBatchSize(1);
@@ -47,7 +54,8 @@ class MissionTemporalWindowWorkerTest {
                 evaluationService,
                 temporalActivityProcessor,
                 properties,
-                new ApiObservabilityMetrics(new SimpleMeterRegistry())
+                new ApiObservabilityMetrics(new SimpleMeterRegistry()),
+                atividadeRepository
         );
     }
 
@@ -93,6 +101,29 @@ class MissionTemporalWindowWorkerTest {
         assertThat(worker.processAvailableBatch()).isEqualTo(1);
 
         verify(janelaService).marcarFailed(work.janelaId(), "Temporal window reached max attempts");
+    }
+
+    @Test
+    void atividadesAbertasComCicloVencidoSaoExpiradas() {
+        Atividade pendente = new Atividade(null, null, AtividadeStatus.PENDENTE);
+        Atividade emAndamento = new Atividade(null, null, AtividadeStatus.EM_ANDAMENTO);
+        when(atividadeRepository.findByStatusInAndCicloFimLessThanEqual(
+                eq(List.of(AtividadeStatus.PENDENTE, AtividadeStatus.EM_ANDAMENTO)),
+                any(Instant.class)
+        )).thenReturn(List.of(pendente, emAndamento));
+
+        worker.processAvailableBatch();
+
+        assertThat(pendente.getStatus()).isEqualTo(AtividadeStatus.EXPIRADA);
+        assertThat(emAndamento.getStatus()).isEqualTo(AtividadeStatus.EXPIRADA);
+        verify(atividadeRepository).saveAll(List.of(pendente, emAndamento));
+    }
+
+    @Test
+    void semAtividadesVencidasNaoExecutaPersistencia() {
+        worker.processAvailableBatch();
+
+        verify(atividadeRepository, never()).saveAll(any());
     }
 
     private EventoJanelaWork work(int attempts) {
