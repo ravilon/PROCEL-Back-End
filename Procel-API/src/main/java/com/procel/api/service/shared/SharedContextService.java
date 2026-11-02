@@ -1,6 +1,9 @@
 package com.procel.api.service.shared;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.procel.api.dto.shared.SharedContextDTOs.*;
+import com.procel.api.exception.ConflictException;
 import com.procel.api.exception.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,6 +21,7 @@ public class SharedContextService {
     private static final BigDecimal MIN_COVERED_HOURS = new BigDecimal("120");
     private final JdbcTemplate jdbc;
     private final CredentialEncryptionService credentials;
+    private final ObjectMapper json = new ObjectMapper();
 
     public SharedContextService(JdbcTemplate jdbc, CredentialEncryptionService credentials) { this.jdbc = jdbc; this.credentials = credentials; }
 
@@ -47,6 +51,33 @@ public class SharedContextService {
 
     public List<ContextResponse> list() {
         return jdbc.query("select id from contexto_compartilhado order by nome", (rs, n) -> get(rs.getObject(1, UUID.class)));
+    }
+
+    public ContextDeletePreview deletePreview(UUID id) {
+        ContextResponse context = get(id);
+        int rooms = count("select count(*) from contexto_compartilhado_compartimento where contexto_id=?", id);
+        int sensors = count("select count(*) from sensor where contexto_compartilhado_id=?", id);
+        int integrations = count("select count(*) from contexto_integracao_externa where contexto_id=?", id);
+        int sources = count("select count(*) from contexto_fonte_selecao fs join sensor s on s.external_id=fs.sensor_external_id where s.contexto_compartilhado_id=?", id);
+        int measurements = count("select count(*) from medicao m join sensor s on s.external_id=m.sensor_external_id where s.contexto_compartilhado_id=?", id);
+        int audits = count("select count(*) from contexto_coleta_execucao ce join contexto_integracao_externa i on i.id=ce.integracao_id where i.contexto_id=?", id);
+        List<String> dependencies = new ArrayList<>();
+        if (sensors > 0) dependencies.add("sensores: " + sensors);
+        if (integrations > 0) dependencies.add("integrações: " + integrations);
+        if (sources > 0) dependencies.add("fontes selecionadas: " + sources);
+        if (measurements > 0) dependencies.add("medições: " + measurements);
+        if (audits > 0) dependencies.add("auditorias: " + audits);
+        return new ContextDeletePreview(id, context.nome(), rooms, sensors, integrations, sources,
+                measurements, audits, dependencies.isEmpty(), List.copyOf(dependencies));
+    }
+
+    @Transactional
+    public void delete(UUID id) {
+        ContextDeletePreview preview = deletePreview(id);
+        if (!preview.deletable()) throw new ConflictException("Contexto possui dependências: " + String.join(", ", preview.dependencies()));
+        jdbc.update("delete from contexto_compartilhado_compartimento where contexto_id=?", id);
+        if (jdbc.update("delete from contexto_compartilhado where id=?", id) != 1)
+            throw new NotFoundException("Contexto compartilhado not found id=" + id);
     }
 
     public ContextResponse get(UUID id) {
@@ -117,24 +148,31 @@ public class SharedContextService {
         if (!"NONE".equals(auth) && r.credential() == null && !managedExists)
             throw new IllegalArgumentException("authentication requires a credential");
         jdbc.update("""
-            insert into contexto_integracao_externa(id,contexto_id,sensor_external_id,nome,ativo,endpoint_url,metodo,request_body,
+            insert into contexto_integracao_externa(id,contexto_id,sensor_external_id,nome,descricao,provider_name,attribution,ativo,endpoint_url,metodo,content_type,request_body,
               auth_mode,credential_header,credential_query_param,coordinate_query_param,query_params_json,
-              temperature_json_pointer,observed_at_json_pointer,observed_at_format,source_id_json_pointer,
-              interval_seconds,timeout_millis,max_attempts,next_run_at)
-            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())
-            on conflict(sensor_external_id) do update set nome=excluded.nome,ativo=excluded.ativo,endpoint_url=excluded.endpoint_url,
-              metodo=excluded.metodo,request_body=excluded.request_body,auth_mode=excluded.auth_mode,credential_env=null,
+              headers_json,mappings_json,temperature_json_pointer,observed_at_json_pointer,observed_at_format,timestamp_timezone,source_id_json_pointer,
+              interval_seconds,timeout_millis,max_attempts,retry_delay_millis,validity_seconds,automatic_collection,next_run_at)
+            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())
+            on conflict(sensor_external_id) do update set nome=excluded.nome,descricao=excluded.descricao,
+              provider_name=excluded.provider_name,attribution=excluded.attribution,ativo=excluded.ativo,endpoint_url=excluded.endpoint_url,
+              metodo=excluded.metodo,content_type=excluded.content_type,request_body=excluded.request_body,auth_mode=excluded.auth_mode,
               credential_header=excluded.credential_header,credential_query_param=excluded.credential_query_param,
               coordinate_query_param=excluded.coordinate_query_param,query_params_json=excluded.query_params_json,
+              headers_json=excluded.headers_json,mappings_json=excluded.mappings_json,
               temperature_json_pointer=excluded.temperature_json_pointer,observed_at_json_pointer=excluded.observed_at_json_pointer,
-              observed_at_format=excluded.observed_at_format,source_id_json_pointer=excluded.source_id_json_pointer,
+              observed_at_format=excluded.observed_at_format,timestamp_timezone=excluded.timestamp_timezone,source_id_json_pointer=excluded.source_id_json_pointer,
               interval_seconds=excluded.interval_seconds,timeout_millis=excluded.timeout_millis,max_attempts=excluded.max_attempts,
+              retry_delay_millis=excluded.retry_delay_millis,validity_seconds=excluded.validity_seconds,
+              automatic_collection=excluded.automatic_collection,
               next_run_at=least(contexto_integracao_externa.next_run_at,now()),updated_at=now()
-            """, id, contextId, r.sensorExternalId().trim(), r.nome().trim(), r.ativo()==null||r.ativo(), r.endpointUrl().trim(),
-                method(r.metodo()), blank(r.requestBody()), auth, blank(r.credentialHeader()),
+            """, id, contextId, r.sensorExternalId().trim(), r.nome().trim(), blank(r.descricao()), blank(r.providerName()),
+                blank(r.attribution()), r.ativo()!=null&&r.ativo(), r.endpointUrl().trim(), method(r.metodo()),
+                blank(r.contentType())==null?"application/json":r.contentType().trim(), blank(r.requestBody()), auth, blank(r.credentialHeader()),
                 blank(r.credentialQueryParam()),blank(r.coordinateQueryParam()),blank(r.queryParamsJson()),
-                r.temperatureJsonPointer().trim(), r.observedAtJsonPointer().trim(), observedFormat(r.observedAtFormat()),blank(r.sourceIdJsonPointer()),
-                nvl(r.intervalSeconds(),900), nvl(r.timeoutMillis(),5000), nvl(r.maxAttempts(),2));
+                jsonText(r.headersJson(), "[]"), mappingsJson(r), blank(r.temperatureJsonPointer()),
+                blank(r.observedAtJsonPointer()), observedFormat(r.observedAtFormat()), blank(r.observedAtTimezone()), blank(r.sourceIdJsonPointer()),
+                nvl(r.intervalSeconds(),900), nvl(r.timeoutMillis(),5000), nvl(r.maxAttempts(),2),
+                nvl(r.retryDelayMillis(),500),nvl(r.validitySeconds(),3600),r.automaticCollection()!=null&&r.automaticCollection());
         if (r.credential() != null) {
             var encrypted = credentials.encrypt(id, r.credential());
             jdbc.update("update contexto_integracao_externa set credential_ciphertext=?,credential_iv=?,updated_at=now() where id=?",
@@ -217,30 +255,40 @@ public class SharedContextService {
     private IntegrationResponse integration(UUID id) {
         return jdbc.query("select * from contexto_integracao_externa where id=?",(rs,n)->new IntegrationResponse(
                 rs.getObject("id",UUID.class),rs.getObject("contexto_id",UUID.class),rs.getString("sensor_external_id"),
-                rs.getString("nome"),rs.getBoolean("ativo"),rs.getString("endpoint_url"),rs.getString("metodo"),rs.getString("auth_mode"),
+                rs.getString("nome"),rs.getBoolean("ativo"),rs.getString("descricao"),rs.getString("provider_name"),rs.getString("attribution"),
+                rs.getString("endpoint_url"),rs.getString("metodo"),rs.getString("content_type"),rs.getString("request_body"),rs.getString("auth_mode"),
                 rs.getBytes("credential_ciphertext")!=null,
                 rs.getString("credential_header"),rs.getString("credential_query_param"),
-                rs.getString("coordinate_query_param"),rs.getString("query_params_json"),rs.getString("temperature_json_pointer"),
-                rs.getString("observed_at_json_pointer"),rs.getString("observed_at_format"),rs.getString("source_id_json_pointer"),
-                rs.getInt("interval_seconds"),rs.getInt("timeout_millis"),rs.getInt("max_attempts"),
+                rs.getString("coordinate_query_param"),rs.getString("query_params_json"),
+                rs.getString("headers_json"),readMappings(rs.getString("mappings_json")),rs.getString("temperature_json_pointer"),
+                rs.getString("observed_at_json_pointer"),rs.getString("observed_at_format"),rs.getString("timestamp_timezone"),rs.getString("source_id_json_pointer"),
+                rs.getInt("interval_seconds"),rs.getInt("timeout_millis"),rs.getInt("max_attempts"),rs.getInt("retry_delay_millis"),
+                rs.getInt("validity_seconds"),rs.getBoolean("automatic_collection"),
                 instant(rs.getTimestamp("next_run_at")),instant(rs.getTimestamp("last_success_at")),rs.getString("last_outcome"),
                 instant(rs.getTimestamp("last_observation_at")),rs.getString("last_error")),id).stream()
                 .findFirst().orElseThrow(()->new NotFoundException("Integration not found id="+id));
     }
     private List<String> rooms(UUID id){return jdbc.query("select compartimento_id from contexto_compartilhado_compartimento where contexto_id=? and ativo order by compartimento_id",(rs,n)->rs.getString(1),id);}
     private void validateContext(ContextRequest r){if(r==null||r.nome()==null||r.nome().isBlank())throw new IllegalArgumentException("nome is required");zone(r.timezone());String mode=locationMode(r.locationMode());if("OWN".equals(mode)){if((r.latitude()==null)!=(r.longitude()==null))throw new IllegalArgumentException("latitude and longitude must be supplied together");range(r.latitude(),-90,90,"latitude");range(r.longitude(),-180,180,"longitude");if(r.campusNome()!=null&&!r.campusNome().isBlank())throw new IllegalArgumentException("campusNome is only allowed in CAMPUS mode");}else{if(r.campusNome()==null||r.campusNome().isBlank())throw new IllegalArgumentException("campusNome is required in CAMPUS mode");if(r.latitude()!=null||r.longitude()!=null)throw new IllegalArgumentException("coordinates must be absent in CAMPUS mode");Integer found=jdbc.queryForObject("select count(*) from campus where nome=?",Integer.class,r.campusNome().trim());if(found==null||found==0)throw new NotFoundException("Campus not found nome="+r.campusNome());}}
-    private static void validateIntegration(IntegrationRequest r){if(r==null||r.sensorExternalId()==null||r.nome()==null||r.endpointUrl()==null||r.temperatureJsonPointer()==null||r.observedAtJsonPointer()==null)throw new IllegalArgumentException("sensor, name, URL and JSON pointers are required");if(nvl(r.intervalSeconds(),900)<60||nvl(r.maxAttempts(),2)<1||nvl(r.maxAttempts(),2)>5)throw new IllegalArgumentException("invalid collection limits");String auth=authMode(r.authMode());if("QUERY".equals(auth)&&(r.credentialQueryParam()==null||r.credentialQueryParam().isBlank()))throw new IllegalArgumentException("credentialQueryParam is required for query authentication");if("QUERY".equals(auth)&&containsQueryParameter(r.endpointUrl(),r.credentialQueryParam()))throw new IllegalArgumentException("provider credential must not be included in endpointUrl");if("QUERY".equals(auth)&&r.queryParamsJson()!=null&&java.util.regex.Pattern.compile("\\\""+java.util.regex.Pattern.quote(r.credentialQueryParam())+"\\\"\\s*:").matcher(r.queryParamsJson()).find())throw new IllegalArgumentException("provider credential must not be included in queryParamsJson");}
+    private void validateIntegration(IntegrationRequest r){if(r==null||r.sensorExternalId()==null||r.nome()==null||r.endpointUrl()==null)throw new IllegalArgumentException("sensor, name and URL are required");if((r.mappings()==null||r.mappings().isEmpty())&&(r.temperatureJsonPointer()==null||r.temperatureJsonPointer().isBlank()))throw new IllegalArgumentException("at least one response mapping is required");if(nvl(r.intervalSeconds(),900)<60||nvl(r.maxAttempts(),2)<1||nvl(r.maxAttempts(),2)>5||nvl(r.retryDelayMillis(),500)<0||nvl(r.validitySeconds(),3600)<=0)throw new IllegalArgumentException("invalid collection limits");String auth=authMode(r.authMode());if("QUERY".equals(auth)&&(r.credentialQueryParam()==null||r.credentialQueryParam().isBlank()))throw new IllegalArgumentException("credentialQueryParam is required for query authentication");if("HEADER".equals(auth)&&(r.credentialHeader()==null||r.credentialHeader().isBlank()))throw new IllegalArgumentException("credentialHeader is required for header authentication");if("QUERY".equals(auth)&&containsQueryParameter(r.endpointUrl(),r.credentialQueryParam()))throw new IllegalArgumentException("provider credential must not be included in endpointUrl");if("QUERY".equals(auth)&&r.queryParamsJson()!=null&&java.util.regex.Pattern.compile("\\\""+java.util.regex.Pattern.quote(r.credentialQueryParam())+"\\\"\\s*:").matcher(r.queryParamsJson()).find())throw new IllegalArgumentException("provider credential must not be included in queryParamsJson");validateHeaders(r.headersJson());validateMappings(r);}
     private static boolean containsQueryParameter(String url,String name){try{String query=java.net.URI.create(url).getRawQuery();if(query==null)return false;for(String part:query.split("&")){String key=part.split("=",2)[0];if(java.net.URLDecoder.decode(key,java.nio.charset.StandardCharsets.UTF_8).equals(name))return true;}return false;}catch(RuntimeException ex){throw new IllegalArgumentException("endpointUrl is invalid");}}
     private static String locationMode(String v){String m=v==null||v.isBlank()?"OWN":v.trim().toUpperCase();if(!m.equals("OWN")&&!m.equals("CAMPUS"))throw new IllegalArgumentException("locationMode must be OWN or CAMPUS");return m;}
     private static String campus(ContextRequest r){return "CAMPUS".equals(locationMode(r.locationMode()))?r.campusNome().trim():null;}
     private static BigDecimal ownLatitude(ContextRequest r){return "OWN".equals(locationMode(r.locationMode()))?r.latitude():null;}
     private static BigDecimal ownLongitude(ContextRequest r){return "OWN".equals(locationMode(r.locationMode()))?r.longitude():null;}
-    private static String authMode(String v){String m=v==null||v.isBlank()?"NONE":v.trim().toUpperCase();if(!Set.of("NONE","HEADER","QUERY").contains(m))throw new IllegalArgumentException("invalid authMode");return m;}
-    private static String observedFormat(String v){String f=v==null||v.isBlank()?"ISO_INSTANT":v.trim().toUpperCase();if(!Set.of("ISO_INSTANT","UNIX_SECONDS").contains(f))throw new IllegalArgumentException("invalid observedAtFormat");return f;}
+    private static String authMode(String v){String m=v==null||v.isBlank()?"NONE":v.trim().toUpperCase();if(!Set.of("NONE","HEADER","QUERY","BEARER").contains(m))throw new IllegalArgumentException("invalid authMode");return m;}
+    private static String observedFormat(String v){String f=v==null||v.isBlank()?"ISO_8601":v.trim().toUpperCase();if("ISO_INSTANT".equals(f))f="ISO_8601";if(!Set.of("ISO_8601","UNIX_SECONDS","UNIX_MILLISECONDS","COLLECTION_TIME").contains(f))throw new IllegalArgumentException("invalid observedAtFormat");return f;}
     private static void range(BigDecimal v,int min,int max,String field){if(v!=null&&(v.compareTo(BigDecimal.valueOf(min))<0||v.compareTo(BigDecimal.valueOf(max))>0))throw new IllegalArgumentException(field+" is out of range");}
     private static String zone(String z){String value=z==null||z.isBlank()?"America/Sao_Paulo":z.trim();ZoneId.of(value);return value;}
     private static String method(String m){String value=m==null?"GET":m.trim().toUpperCase();if(!value.equals("GET")&&!value.equals("POST"))throw new IllegalArgumentException("method must be GET or POST");return value;}
     private static int nvl(Integer v,int d){return v==null?d:v;} private static String blank(String v){return v==null||v.isBlank()?null:v.trim();}
     private static Instant instant(Timestamp t){return t==null?null:t.toInstant();}
+    private int count(String sql,Object... args){Integer value=jdbc.queryForObject(sql,Integer.class,args);return value==null?0:value;}
+    private String mappingsJson(IntegrationRequest r){try{return json.writeValueAsString(r.mappings()==null?List.of():r.mappings());}catch(Exception ex){throw new IllegalArgumentException("mappings are invalid");}}
+    private List<HttpMappingRequest> readMappings(String value){try{return value==null?List.of():json.readValue(value,new TypeReference<List<HttpMappingRequest>>(){});}catch(Exception ex){throw new IllegalStateException("stored mappings are invalid");}}
+    private String jsonText(String value,String fallback){if(value==null||value.isBlank())return fallback;try{json.readTree(value);return value;}catch(Exception ex){throw new IllegalArgumentException("invalid JSON configuration");}}
+    private void validateHeaders(String value){if(value==null||value.isBlank())return;JsonNodeWrapper.validateHeaders(json,value);}
+    private void validateMappings(IntegrationRequest r){if(r.mappings()==null)return;for(HttpMappingRequest m:r.mappings()){if(m.parametroDefId()==null||m.jsonPointer()==null||m.jsonPointer().isBlank())throw new IllegalArgumentException("mapping parameter and JSON Pointer are required");Integer ok=jdbc.queryForObject("select count(*) from parametro_def p join sensor s on s.tipo_nome=p.tipo_nome where p.id=? and s.external_id=? and p.ativo",Integer.class,m.parametroDefId(),r.sensorExternalId());if(ok==null||ok!=1)throw new IllegalArgumentException("mapping parameter is incompatible with sensor");}}
+    private static final class JsonNodeWrapper {private static final Set<String> FORBIDDEN=Set.of("host","content-length","connection","transfer-encoding");static void validateHeaders(ObjectMapper json,String value){try{var root=json.readTree(value);if(!root.isArray())throw new IllegalArgumentException("headersJson must be an array");for(var row:root){String key=row.path("key").asText().trim().toLowerCase();if(FORBIDDEN.contains(key))throw new IllegalArgumentException("forbidden HTTP header: "+key);}}catch(IllegalArgumentException ex){throw ex;}catch(Exception ex){throw new IllegalArgumentException("headersJson is invalid");}}}
     private record Point(Instant at,BigDecimal value){}
 }

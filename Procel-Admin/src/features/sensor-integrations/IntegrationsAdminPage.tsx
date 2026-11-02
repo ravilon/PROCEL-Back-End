@@ -100,6 +100,9 @@ export function IntegrationsAdminPage() {
           <Button component={RouterLink} to="/integracoes/coletas-http" variant="outlined">
             Coletas HTTP
           </Button>
+          <Button component={RouterLink} to="/integracoes/coordenadas-campi" variant="outlined">
+            Coordenadas dos campi
+          </Button>
           <Button component={RouterLink} to="/integracoes/snapshot" variant="outlined">
             Snapshot
           </Button>

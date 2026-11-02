@@ -13,19 +13,48 @@ public final class SharedContextDTOs {
                                   BigDecimal longitude, String timezone, String locationMode, String campusNome,
                                   BigDecimal resolvedLatitude, BigDecimal resolvedLongitude, List<String> compartimentoIds) {}
     public record RoomsRequest(List<String> compartimentoIds) {}
+    public record ContextDeletePreview(UUID id, String nome, int compartimentos, int sensores,
+                                       int integracoes, int fontesSelecionadas, int medicoes,
+                                       int auditorias, boolean deletable, List<String> dependencies) {}
     public record SourceSelectionRequest(UUID parametroDefId, String sensorExternalId, Integer validadeSegundos) {}
-    public record IntegrationRequest(String sensorExternalId, String nome, Boolean ativo, String endpointUrl,
-                                     String metodo, String requestBody, String authMode, String credential, String credentialHeader,
-                                     String credentialQueryParam, String coordinateQueryParam, String queryParamsJson,
-                                     String temperatureJsonPointer, String observedAtJsonPointer,
-                                     String observedAtFormat, String sourceIdJsonPointer, Integer intervalSeconds, Integer timeoutMillis,
-                                     Integer maxAttempts) {}
+    public record HttpMappingRequest(UUID parametroDefId, String parameterName, String jsonPointer,
+                                     String expectedType, String sourceUnit, String targetUnit,
+                                     Boolean required, String conversion) {}
+    public record IntegrationRequest(String sensorExternalId, String nome, String descricao, Boolean ativo,
+                                     String providerName, String attribution, String endpointUrl,
+                                     String metodo, String contentType, String requestBody, String authMode,
+                                     String credential, String credentialHeader, String credentialQueryParam,
+                                     String coordinateQueryParam, String queryParamsJson, String headersJson,
+                                     List<HttpMappingRequest> mappings, String temperatureJsonPointer,
+                                     String observedAtJsonPointer, String observedAtFormat,
+                                     String observedAtTimezone, String sourceIdJsonPointer,
+                                     Integer intervalSeconds, Integer timeoutMillis, Integer maxAttempts,
+                                     Integer retryDelayMillis, Integer validitySeconds, Boolean automaticCollection) {
+        public IntegrationRequest(String sensorExternalId, String nome, Boolean ativo, String endpointUrl,
+                                  String metodo, String requestBody, String authMode, String credential,
+                                  String credentialHeader, String credentialQueryParam, String coordinateQueryParam,
+                                  String queryParamsJson, String temperatureJsonPointer,
+                                  String observedAtJsonPointer, String observedAtFormat,
+                                  String sourceIdJsonPointer, Integer intervalSeconds,
+                                  Integer timeoutMillis, Integer maxAttempts) {
+            this(sensorExternalId, nome, null, ativo, null, null, endpointUrl, metodo,
+                    "application/json", requestBody, authMode, credential, credentialHeader,
+                    credentialQueryParam, coordinateQueryParam, queryParamsJson, "[]", List.of(),
+                    temperatureJsonPointer, observedAtJsonPointer, observedAtFormat, null,
+                    sourceIdJsonPointer, intervalSeconds, timeoutMillis, maxAttempts, 500, 3600, false);
+        }
+    }
     public record IntegrationResponse(UUID id, UUID contextoId, String sensorExternalId, String nome, boolean ativo,
-                                      String endpointUrl, String metodo, String authMode, boolean credentialConfigured,
+                                      String descricao, String providerName, String attribution,
+                                      String endpointUrl, String metodo, String contentType, String requestBody,
+                                      String authMode, boolean credentialConfigured,
                                       String credentialHeader, String credentialQueryParam, String coordinateQueryParam, String queryParamsJson,
+                                      String headersJson, List<HttpMappingRequest> mappings,
                                       String temperatureJsonPointer, String observedAtJsonPointer,
-                                      String observedAtFormat, String sourceIdJsonPointer, int intervalSeconds, int timeoutMillis,
-                                      int maxAttempts, Instant nextRunAt, Instant lastSuccessAt, String lastOutcome,
+                                      String observedAtFormat, String observedAtTimezone, String sourceIdJsonPointer,
+                                      int intervalSeconds, int timeoutMillis, int maxAttempts, int retryDelayMillis,
+                                      int validitySeconds, boolean automaticCollection,
+                                      Instant nextRunAt, Instant lastSuccessAt, String lastOutcome,
                                       Instant lastObservationAt, String lastError) {}
     public record BatchSourceSelectionRequest(List<String> compartimentoIds, UUID parametroDefId,
                                               String sensorExternalId, Integer validadeSegundos) {}

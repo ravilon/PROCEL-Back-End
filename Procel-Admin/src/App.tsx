@@ -14,8 +14,8 @@ import { ProfileDetailsPage } from "./features/sensor-integrations/ProfileDetail
 import { SnapshotPage } from "./features/sensor-integrations/SnapshotPage";
 import { SyncAdminPage } from "./pages/SyncAdminPage";
 import { TelemetryOperationsPage } from "./pages/TelemetryOperationsPage";
-import { SharedContextsManagementPage } from "./pages/SharedContextsManagementPage";
-import { SharedCollectionOperations } from "./features/sensor-integrations/SharedCollectionOperations";
+import { GenericHttpCollectionsPage } from "./features/sensor-integrations/GenericHttpCollectionsPage";
+import { CampusCoordinatesPage } from "./pages/CampusCoordinatesPage";
 
 export default function App() {
   return (
@@ -38,9 +38,11 @@ export default function App() {
             <Route path="integracoes" element={<IntegrationsAdminPage />} />
             <Route path="integracoes/perfis/:profileId" element={<ProfileDetailsPage />} />
             <Route path="integracoes/snapshot" element={<SnapshotPage />} />
-            <Route path="integracoes/coletas-http" element={<SharedCollectionOperations />} />
+            <Route path="integracoes/coletas-http" element={<GenericHttpCollectionsPage />} />
+            <Route path="integracoes/coordenadas-campi" element={<CampusCoordinatesPage />} />
+            <Route path="sensores/contextos-compartilhados" element={<SensorsAdminPage />} />
             <Route path="telemetria" element={<TelemetryOperationsPage />} />
-            <Route path="contextos-compartilhados" element={<SharedContextsManagementPage />} />
+            <Route path="contextos-compartilhados" element={<Navigate to="/sensores/contextos-compartilhados" replace />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute allowedRoles={["ADMIN", "OPERADOR", "ANALISTA"]} />}>

@@ -3,6 +3,7 @@ package com.procel.api.service.shared;
 import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoDefinicao;
 import com.procel.api.dto.shared.SharedContextDTOs.IntegrationRequest;
+import com.procel.api.dto.shared.SharedContextDTOs.HttpMappingRequest;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.service.missions.rules.RoomStateFactLoader;
 import com.sun.net.httpserver.HttpServer;
@@ -36,9 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Testcontainers(disabledWithoutDocker=true)
 class SharedContextCollectorIntegrationTest {
     @Container static PostgreSQLContainer<?> postgres=new PostgreSQLContainer<>("postgres:16");
-    static HttpServer server; static final AtomicReference<String> query=new AtomicReference<>(); static final AtomicInteger requests=new AtomicInteger();
+    static HttpServer server; static final AtomicReference<String> query=new AtomicReference<>();
+    static final AtomicReference<String> authorization=new AtomicReference<>(), apiKeyHeader=new AtomicReference<>(), requestBody=new AtomicReference<>();
+    static final AtomicInteger requests=new AtomicInteger();
     @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",postgres::getJdbcUrl);r.add("spring.datasource.username",postgres::getUsername);r.add("spring.datasource.password",postgres::getPassword);r.add("PROCEL_CREDENTIAL_ENCRYPTION_KEY",()->"MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=");}
-    @BeforeAll static void server() throws Exception {server=HttpServer.create(new InetSocketAddress(0),0);server.createContext("/current",exchange->{requests.incrementAndGet();query.set(exchange.getRequestURI().getRawQuery());byte[] body="{\"current\":{\"temp_c\":18.75,\"last_updated_epoch\":1793577600}}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().add("Content-Type","application/json");exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);exchange.close();});server.start();}
+    @BeforeAll static void server() throws Exception {server=HttpServer.create(new InetSocketAddress(0),0);server.createContext("/current",exchange->{requests.incrementAndGet();query.set(exchange.getRequestURI().getRawQuery());authorization.set(exchange.getRequestHeaders().getFirst("Authorization"));apiKeyHeader.set(exchange.getRequestHeaders().getFirst("X-API-Key"));requestBody.set(new String(exchange.getRequestBody().readAllBytes(),StandardCharsets.UTF_8));byte[] body="{\"current\":{\"temp_c\":18.75,\"humidity\":64,\"last_updated_epoch\":1793577600}}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().add("Content-Type","application/json");exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);exchange.close();});server.start();}
     @AfterAll static void stop(){if(server!=null)server.stop(0);}
     @Autowired JdbcTemplate jdbc; @Autowired SharedContextCollector collector;
     @Autowired SharedContextService contexts; @Autowired RoomStateFactLoader factLoader;
@@ -115,5 +118,72 @@ class SharedContextCollectorIntegrationTest {
         assertThat(contexts.integrations(context).getFirst().credentialConfigured()).isFalse();int beforeMissing=requests.get();org.assertj.core.api.Assertions.assertThatThrownBy(()->collector.testNow(integration)).hasMessageContaining("credential is absent");assertThat(requests.get()).isEqualTo(beforeMissing);
     }
 
+    @Test void genericPostSupportsTemplatesHeaderBearerAndMultipleMappings() {
+        String suffix=UUID.randomUUID().toString();UUID context=UUID.randomUUID(),temperature=UUID.randomUUID(),humidity=UUID.randomUUID();
+        String type="generic-"+suffix,sensor="sensor-"+suffix;
+        jdbc.update("insert into tipo_de_sensor(nome) values (?)",type);
+        jdbc.update("insert into parametro_def(id,data_type,numeric_unit,tipo_nome,nome,descricao,ativo) values (?,'NUMERIC','C',?,'temperature','Temperature',true)",temperature,type);
+        jdbc.update("insert into parametro_def(id,data_type,numeric_unit,tipo_nome,nome,descricao,ativo) values (?,'NUMERIC','%',?,'humidity','Humidity',true)",humidity,type);
+        jdbc.update("insert into contexto_compartilhado(id,nome,location_mode,latitude,longitude) values (?,?,'OWN',?,?)",context,"Generic "+suffix,-31.77,-52.34);
+        jdbc.update("insert into sensor(external_id,nome,tipo_nome,contexto_compartilhado_id,ativo) values (?,?,?,?,true)",sensor,"Generic",type,context);
+        var mappings=java.util.List.of(
+                new HttpMappingRequest(temperature,"temperature","/current/temp_c","NUMERIC","C","C",true,"NONE"),
+                new HttpMappingRequest(humidity,"humidity","/current/humidity","NUMERIC","%","%",true,"NONE"));
+        IntegrationRequest headerRequest=genericRequest(sensor,"HEADER","header-secret","X-API-Key",null,mappings);
+        var preview=collector.testConfiguration(context,headerRequest);
+        assertThat(preview.persisted()).isFalse();assertThat(apiKeyHeader.get()).isEqualTo("header-secret");
+        assertThat(query.get()).contains("coordinates=-31.770000%2C-52.340000");
+        assertThat(requestBody.get()).contains("\"at\":").contains("-31.770000,-52.340000");
+
+        IntegrationRequest bearerRequest=genericRequest(sensor,"BEARER","bearer-secret",null,null,mappings);
+        var configured=contexts.configureIntegration(context,bearerRequest);
+        assertThat(configured.requestBody()).contains("context.coordinates");
+        var collected=collector.collectNow(configured.id());
+        assertThat(collected.outcome()).isEqualTo("NEW_MEASUREMENT");
+        assertThat(authorization.get()).isEqualTo("Bearer bearer-secret");
+        assertThat(jdbc.queryForObject("select count(*) from parametro_valor pv join medicao m on m.id=pv.medicao_id where m.sensor_external_id=?",Integer.class,sensor)).isEqualTo(2);
+    }
+
+    @Test void contextDeletionRemovesOnlySimpleLinksAndRejectsHistoricalDependencies() throws Exception {
+        String suffix=UUID.randomUUID().toString();String type="delete-"+suffix,sensor="delete-sensor-"+suffix;
+        String campus="Delete campus "+suffix,unit="Delete unit "+suffix,building="Delete building "+suffix,room="Delete room "+suffix;
+        UUID empty=UUID.randomUUID(),used=UUID.randomUUID(),parameter=UUID.randomUUID(),integration=UUID.randomUUID(),measurement=UUID.randomUUID();
+        jdbc.update("insert into tipo_de_sensor(nome) values (?)",type);
+        jdbc.update("insert into parametro_def(id,data_type,numeric_unit,tipo_nome,nome,descricao,ativo) values (?,'NUMERIC','C',?,'temperature','Temperature',true)",parameter,type);
+        jdbc.update("insert into campus(nome) values (?)",campus);
+        jdbc.update("insert into unidade(nome) values (?)",unit);
+        jdbc.update("insert into predio(id,campus_id,nome) values (?,?,?)",building,campus,building);
+        jdbc.update("insert into compartimento(id,predio_id,unidade_id,nome,tipo) values (?,?,?,?,?)",room,building,unit,room,"sala");
+        jdbc.update("insert into contexto_compartilhado(id,nome,location_mode,latitude,longitude) values (?,?,'OWN',?,?)",empty,"Empty "+suffix,-31.77,-52.34);
+        jdbc.update("insert into contexto_compartilhado_compartimento(contexto_id,compartimento_id) values (?,?)",empty,room);
+        mvc.perform(delete("/api/shared-contexts/"+empty).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("select count(*) from contexto_compartilhado where id=?",Integer.class,empty)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from contexto_compartilhado_compartimento where contexto_id=?",Integer.class,empty)).isZero();
+
+        jdbc.update("insert into contexto_compartilhado(id,nome,location_mode,latitude,longitude) values (?,?,'OWN',?,?)",used,"Used "+suffix,-31.77,-52.34);
+        jdbc.update("insert into contexto_compartilhado_compartimento(contexto_id,compartimento_id) values (?,?)",used,room);
+        jdbc.update("insert into sensor(external_id,nome,tipo_nome,contexto_compartilhado_id,ativo) values (?,?,?,?,true)",sensor,"Delete sensor",type,used);
+        jdbc.update("insert into contexto_fonte_selecao(compartimento_id,parametro_def_id,sensor_external_id,validade_segundos) values (?,?,?,3600)",room,parameter,sensor);
+        jdbc.update("insert into contexto_integracao_externa(id,contexto_id,sensor_external_id,nome,endpoint_url,temperature_json_pointer) values (?,?,?,?,?,?)",integration,used,sensor,"Delete integration","https://example.com/weather","/temperature");
+        jdbc.update("insert into medicao(id,sensor_external_id,timestamp,recebido_em,source) values (?,?,now(),now(),'API')",measurement,sensor);
+        jdbc.update("insert into parametro_valor(id,medicao_id,parametro_def_id,numeric_value) values (?,?,?,?)",UUID.randomUUID(),measurement,parameter,20);
+        jdbc.update("insert into contexto_coleta_execucao(id,integracao_id,started_at,finished_at,outcome,observation_at,medicao_id,latitude,longitude,location_source,location_hash) values (?,?,now(),now(),'NEW_MEASUREMENT',now(),?,?,?,'OWN',?)",UUID.randomUUID(),integration,measurement,-31.77,-52.34,"location-hash");
+        var preview=contexts.deletePreview(used);
+        assertThat(preview.sensores()).isEqualTo(1);assertThat(preview.integracoes()).isEqualTo(1);
+        assertThat(preview.fontesSelecionadas()).isEqualTo(1);assertThat(preview.medicoes()).isEqualTo(1);assertThat(preview.auditorias()).isEqualTo(1);
+        assertThat(preview.deletable()).isFalse();
+        mvc.perform(delete("/api/shared-contexts/"+used).with(user("operator").roles("OPERADOR")).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/shared-contexts/"+used).with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isConflict());
+        assertThat(jdbc.queryForObject("select count(*) from contexto_compartilhado where id=?",Integer.class,used)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from contexto_compartilhado_compartimento where contexto_id=?",Integer.class,used)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from medicao where id=?",Integer.class,measurement)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from contexto_coleta_execucao where integracao_id=?",Integer.class,integration)).isEqualTo(1);
+    }
+
     private IntegrationRequest request(String credential){return new IntegrationRequest("weather-e2e","WeatherAPI E2E",true,"http://localhost:"+server.getAddress().getPort()+"/current","GET",null,"QUERY",credential,null,"key","q","{}","/current/temp_c","/current/last_updated_epoch","UNIX_SECONDS",null,60,3000,1);}
+    private IntegrationRequest genericRequest(String sensor,String auth,String credential,String header,String queryName,java.util.List<HttpMappingRequest> mappings){return new IntegrationRequest(
+            sensor,"Generic HTTP","Description",true,"Generic Provider","Provider attribution","http://localhost:"+server.getAddress().getPort()+"/current",
+            "POST","application/json","{\"at\":\"{{execution.timestamp}}\",\"where\":\"{{context.coordinates}}\"}",auth,credential,header,queryName,null,
+            "{\"coordinates\":\"{{context.coordinates}}\"}","[{\"key\":\"X-Latitude\",\"value\":\"{{context.latitude}}\"}]",mappings,null,
+            "/current/last_updated_epoch","UNIX_SECONDS",null,null,1800,5000,2,10,3600,true);}
 }

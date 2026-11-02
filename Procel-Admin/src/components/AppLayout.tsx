@@ -56,13 +56,6 @@ const navigation: NavigationItem[] = [
     roles: ["ADMIN", "OPERADOR"],
   },
   {
-    label: "Contextos compartilhados",
-    path: "/contextos-compartilhados",
-    icon: <HubOutlined />,
-    roles: ["ADMIN"],
-    nested: true,
-  },
-  {
     label: "Missoes",
     path: "/missoes",
     icon: <TaskAltOutlined />,

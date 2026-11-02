@@ -26,6 +26,10 @@ public class SharedContextController {
     public ContextResponse update(@PathVariable UUID id,@RequestBody ContextRequest request){return service.update(id,request);}
     @PutMapping("/{id}/rooms") @PreAuthorize("hasRole('ADMIN')")
     public ContextResponse rooms(@PathVariable UUID id,@RequestBody RoomsRequest request){return service.replaceRooms(id,request);}
+    @GetMapping("/{id}/delete-preview") @PreAuthorize("hasRole('ADMIN')")
+    public ContextDeletePreview deletePreview(@PathVariable UUID id){return service.deletePreview(id);}
+    @DeleteMapping("/{id}") @PreAuthorize("hasRole('ADMIN')")
+    public void delete(@PathVariable UUID id){service.delete(id);}
     @PutMapping("/rooms/{roomId}/source") @PreAuthorize("hasRole('ADMIN')")
     public void source(@PathVariable String roomId,@RequestBody SourceSelectionRequest request){service.selectSource(roomId,request);}
     @PutMapping("/rooms/source-batch") @PreAuthorize("hasRole('ADMIN')")

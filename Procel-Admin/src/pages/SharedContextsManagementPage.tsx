@@ -5,7 +5,7 @@ import { createSharedContext, listSharedContexts, listSharedIntegrations, replac
 import { useAuth } from "../auth/AuthContext";
 import type { Compartimento, CompartimentoFilterOptions } from "../types/catalog";
 
-export function SharedContextsManagementPage() {
+export function SharedContextsManagementPage({ embedded = false }: { embedded?: boolean }) {
   const { session } = useAuth();
   const [items, setItems] = useState<SharedContext[]>([]);
   const [filterOptions, setFilterOptions] = useState<CompartimentoFilterOptions>();
@@ -43,10 +43,10 @@ export function SharedContextsManagementPage() {
   };
 
   return <Stack spacing={2}>
-    <Box>
+    {!embedded && <Box>
       <Typography variant="h4">Contextos compartilhados</Typography>
       <Typography color="text.secondary">Agrupe salas que utilizam a mesma fonte externa. A localização de referência não vincula salas automaticamente.</Typography>
-    </Box>
+    </Box>}
     {error && <Alert severity="error" onClose={() => setError("")}>{error}</Alert>}
     <Card><CardContent><Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
       <TextField label="Nome do contexto" value={name} onChange={(event) => setName(event.target.value)} fullWidth />
@@ -72,15 +72,12 @@ function ContextRoomsCard({ context, filterOptions, integrations, onSaved, onErr
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [rooms, setRooms] = useState<Compartimento[]>([]);
-  const [loadingRooms, setLoadingRooms] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    setLoadingRooms(true);
     void listCompartimentos({ campus, predio: building, q: query }, session)
       .then((result) => { if (!cancelled) setRooms(result); })
       .catch((caught) => { if (!cancelled) onError(caught instanceof Error ? caught.message : "Falha ao carregar salas"); })
-      .finally(() => { if (!cancelled) setLoadingRooms(false); });
     return () => { cancelled = true; };
   }, [session, campus, building, query, onError]);
 
@@ -124,11 +121,10 @@ function ContextRoomsCard({ context, filterOptions, integrations, onSaved, onErr
       <Button size="small" disabled={!someFilteredSelected} onClick={() => setFilteredSelection(false)}>Remover filtradas</Button>
     </Stack>
     <Box sx={{ maxHeight: 360, overflowY: "auto", border: 1, borderColor: "divider", borderRadius: 1 }}>
-      {loadingRooms && <Typography color="text.secondary" sx={{ p: 2 }}>Carregando salas…</Typography>}
-      {!loadingRooms && rooms.map((room, index) => <Box key={room.id} sx={{ px: 1.5, py: 0.75, borderTop: index ? 1 : 0, borderColor: "divider" }}>
+      {rooms.map((room, index) => <Box key={room.id} sx={{ px: 1.5, py: 0.75, borderTop: index ? 1 : 0, borderColor: "divider" }}>
         <FormControlLabel sx={{ width: "100%", m: 0 }} control={<Checkbox checked={selected.has(room.id)} onChange={(_, checked) => setSelected((current) => { const next = new Set(current); if (checked) next.add(room.id); else next.delete(room.id); return next; })} />} label={<Stack direction={{ xs: "column", sm: "row" }} spacing={{ sm: 1 }} alignItems={{ sm: "center" }}><Typography fontWeight={500}>{room.nome}</Typography><Typography variant="body2" color="text.secondary">{room.predioNome} · {room.id}</Typography><Chip size="small" variant="outlined" label={room.campusNome} /></Stack>} />
       </Box>)}
-      {!loadingRooms && rooms.length === 0 && <Typography color="text.secondary" sx={{ p: 2 }}>Nenhuma sala encontrada para os filtros.</Typography>}
+      {rooms.length === 0 && <Typography color="text.secondary" sx={{ p: 2 }}>Nenhuma sala encontrada para os filtros.</Typography>}
     </Box>
     <Stack direction="row" spacing={1} justifyContent="flex-end">
       <Button onClick={() => setSelected(new Set(context.compartimentoIds))} disabled={saving}>Descartar alterações</Button>

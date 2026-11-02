@@ -5,6 +5,7 @@ import {
   AccountTreeOutlined,
   RuleOutlined,
   SensorsOutlined,
+  HubOutlined,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -30,9 +31,11 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { apiRequest } from "../lib/api";
 import { SensorRulesTreePanel } from "./SensorRulesTreePanel";
+import { SharedContextsPanel } from "../features/shared-contexts/SharedContextsPanel";
 import type {
   GrupoRegra,
   ParametroDef,
@@ -65,7 +68,14 @@ function ruleExpression(rule: RegraParametro) {
 }
 
 export function SensorsAdminPage() {
-  const [tab, setTab] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const tab = location.pathname.includes("contextos-compartilhados")
+    ? 3
+    : Number(new URLSearchParams(location.search).get("tab") ?? 0);
+  const selectTab = (value: number) => navigate(
+    value === 3 ? "/sensores/contextos-compartilhados" : `/sensores?tab=${value}`,
+  );
 
   return (
     <Stack spacing={3}>
@@ -76,15 +86,17 @@ export function SensorsAdminPage() {
         </Typography>
       </Box>
       <Paper>
-        <Tabs value={tab} onChange={(_, value) => setTab(value)}>
+        <Tabs value={tab} onChange={(_, value) => selectTab(value)} variant="scrollable" scrollButtons="auto">
           <Tab icon={<SensorsOutlined />} iconPosition="start" label="Tipos e parâmetros" />
           <Tab icon={<RuleOutlined />} iconPosition="start" label="Grupos de regras" />
           <Tab icon={<AccountTreeOutlined />} iconPosition="start" label="Árvore de sensores" />
+          <Tab icon={<HubOutlined />} iconPosition="start" label="Contextos compartilhados" />
         </Tabs>
       </Paper>
       {tab === 0 && <SensorTypesPanel />}
       {tab === 1 && <RuleGroupsPanel />}
       {tab === 2 && <SensorRulesTreePanel />}
+      {tab === 3 && <SharedContextsPanel />}
     </Stack>
   );
 }
