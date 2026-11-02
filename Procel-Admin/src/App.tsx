@@ -14,7 +14,7 @@ import { ProfileDetailsPage } from "./features/sensor-integrations/ProfileDetail
 import { SnapshotPage } from "./features/sensor-integrations/SnapshotPage";
 import { SyncAdminPage } from "./pages/SyncAdminPage";
 import { TelemetryOperationsPage } from "./pages/TelemetryOperationsPage";
-import { SharedContextsPage } from "./pages/SharedContextsPage";
+import { SharedContextsManagementPage } from "./pages/SharedContextsManagementPage";
 import { SharedCollectionOperations } from "./features/sensor-integrations/SharedCollectionOperations";
 
 export default function App() {
@@ -40,7 +40,7 @@ export default function App() {
             <Route path="integracoes/snapshot" element={<SnapshotPage />} />
             <Route path="integracoes/coletas-http" element={<SharedCollectionOperations />} />
             <Route path="telemetria" element={<TelemetryOperationsPage />} />
-            <Route path="contextos-compartilhados" element={<SharedContextsPage />} />
+            <Route path="contextos-compartilhados" element={<SharedContextsManagementPage />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute allowedRoles={["ADMIN", "OPERADOR", "ANALISTA"]} />}>

@@ -43,6 +43,7 @@ interface NavigationItem {
   path: string;
   icon: React.ReactNode;
   roles?: Role[];
+  nested?: boolean;
 }
 
 const navigation: NavigationItem[] = [
@@ -53,6 +54,13 @@ const navigation: NavigationItem[] = [
     path: "/sensores",
     icon: <SensorsOutlined />,
     roles: ["ADMIN", "OPERADOR"],
+  },
+  {
+    label: "Contextos compartilhados",
+    path: "/contextos-compartilhados",
+    icon: <HubOutlined />,
+    roles: ["ADMIN"],
+    nested: true,
   },
   {
     label: "Missoes",
@@ -69,12 +77,6 @@ const navigation: NavigationItem[] = [
   {
     label: "Integracoes",
     path: "/integracoes",
-    icon: <HubOutlined />,
-    roles: ["ADMIN"],
-  },
-  {
-    label: "Contextos compartilhados",
-    path: "/contextos-compartilhados",
     icon: <HubOutlined />,
     roles: ["ADMIN"],
   },
@@ -137,8 +139,9 @@ export function AppLayout() {
                 : location.pathname.startsWith(item.path)
             }
             onClick={() => setMobileOpen(false)}
+            sx={item.nested ? { pl: 4, py: 0.75 } : undefined}
           >
-            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemIcon sx={item.nested ? { minWidth: 40 } : undefined}>{item.icon}</ListItemIcon>
             <ListItemText primary={item.label} />
           </ListItemButton>
         ))}
