@@ -110,6 +110,12 @@ class SharedContextCollectorIntegrationTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(()->collector.testNow(integration)).hasMessageContaining("cannot be decrypted");assertThat(requests.get()).isEqualTo(beforeInvalidCredential);
         contexts.configureIntegration(context,request("replacement-secret"));collector.testNow(integration);assertThat(query.get()).contains("key=replacement-secret");
         var transientResult=collector.testConfiguration(context,request("transient-secret"));assertThat(transientResult.persisted()).isFalse();assertThat(query.get()).contains("key=transient-secret");
+        assertThat(transientResult.httpStatus()).isEqualTo(200);assertThat(transientResult.durationMillis()).isNotNegative();
+        assertThat(transientResult.method()).isEqualTo("GET");assertThat(transientResult.sanitizedUrl()).doesNotContain("transient-secret").doesNotContain("key=");
+        assertThat(transientResult.queryParameters()).containsEntry("key","[REDACTED]");assertThat(transientResult.rawJson()).contains("temp_c").doesNotContain("transient-secret");
+        assertThat(transientResult.mappings()).hasSize(1).allSatisfy(mapping->assertThat(mapping.success()).isTrue());
+        assertThat(transientResult.observedAtOriginal()).isEqualTo("1793577600");assertThat(transientResult.observedAtFormat()).isEqualTo("UNIX_SECONDS");
+        assertThat(transientResult.toString()).doesNotContain("transient-secret");
         assertThat(jdbc.queryForObject("select count(*) from contexto_coleta_execucao where integracao_id=? and error_message like '%secret%'",Integer.class,integration)).isZero();
         mvc.perform(get("/api/shared-contexts/"+context+"/integrations").with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk()).andExpect(result->assertThat(result.getResponse().getContentAsString()).doesNotContain("replacement-secret").doesNotContain("managed-provider-secret"));
@@ -134,6 +140,14 @@ class SharedContextCollectorIntegrationTest {
         assertThat(preview.persisted()).isFalse();assertThat(apiKeyHeader.get()).isEqualTo("header-secret");
         assertThat(query.get()).contains("coordinates=-31.770000%2C-52.340000");
         assertThat(requestBody.get()).contains("\"at\":").contains("-31.770000,-52.340000");
+        var invalidMappings=java.util.List.of(new HttpMappingRequest(temperature,"temperature","/missing/value","NUMERIC","C","C",true,"NONE"));
+        var invalidPreview=collector.testConfiguration(context,genericRequest(sensor,"HEADER","header-secret", "X-API-Key",null,invalidMappings));
+        assertThat(invalidPreview.outcome()).isEqualTo("TEST_FAILED");assertThat(invalidPreview.persisted()).isFalse();
+        assertThat(invalidPreview.errorType()).isEqualTo("POINTER_ERROR");assertThat(invalidPreview.mappings()).singleElement().satisfies(mapping->{assertThat(mapping.success()).isFalse();assertThat(mapping.error()).contains("JSON Pointer");});
+        assertThat(invalidPreview.toString()).doesNotContain("header-secret");
+        var invalidConversion=java.util.List.of(new HttpMappingRequest(temperature,"temperature","/current/temp_c","NUMERIC","C","C",true,"INVALID"));
+        var conversionPreview=collector.testConfiguration(context,genericRequest(sensor,"HEADER","header-secret","X-API-Key",null,invalidConversion));
+        assertThat(conversionPreview.errorType()).isEqualTo("CONVERSION_ERROR");assertThat(conversionPreview.mappings()).singleElement().satisfies(mapping->assertThat(mapping.error()).contains("unsupported conversion"));
 
         IntegrationRequest bearerRequest=genericRequest(sensor,"BEARER","bearer-secret",null,null,mappings);
         var configured=contexts.configureIntegration(context,bearerRequest);
