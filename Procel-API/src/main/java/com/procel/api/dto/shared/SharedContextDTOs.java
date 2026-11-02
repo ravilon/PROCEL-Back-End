@@ -3,6 +3,7 @@ package com.procel.api.dto.shared;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class SharedContextDTOs {
@@ -58,7 +59,20 @@ public final class SharedContextDTOs {
                                       Instant lastObservationAt, String lastError) {}
     public record BatchSourceSelectionRequest(List<String> compartimentoIds, UUID parametroDefId,
                                               String sensorExternalId, Integer validadeSegundos) {}
-    public record CollectionTestResponse(String outcome, Instant observationAt, BigDecimal value, boolean persisted) {}
+    public record MappingTestResult(UUID parametroDefId, String parameterName, String jsonPointer,
+                                    String foundValue, String detectedType, String convertedValue,
+                                    String unit, boolean success, String error) {}
+    public record CollectionTestResponse(String outcome, Instant observationAt, BigDecimal value, boolean persisted,
+                                         Integer httpStatus, Long durationMillis, String method, String sanitizedUrl,
+                                         Map<String,String> headers, Map<String,String> queryParameters,
+                                         String rawJson, List<MappingTestResult> mappings,
+                                         String observedAtOriginal, String observedAtFormat,
+                                         String errorType, String errorMessage) {
+        public CollectionTestResponse(String outcome, Instant observationAt, BigDecimal value, boolean persisted) {
+            this(outcome, observationAt, value, persisted, null, null, null, null,
+                    Map.of(), Map.of(), null, List.of(), null, null, null, null);
+        }
+    }
     public record ObservationResponse(String status, BigDecimal value, String unit, Instant observedAt,
                                       String sensorExternalId, String source, Instant validUntil) {}
     public record SevenDayAverageResponse(String status, BigDecimal average, String unit, Instant windowStart,

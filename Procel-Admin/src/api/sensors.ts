@@ -24,7 +24,13 @@ export function listSensorTypes(session?: Session | null, includeHidden?: boolea
 }
 
 export function createSensor(
-  payload: { externalId: string; nome: string; tipoNome: string; compartimentoId: string },
+  payload: {
+    externalId: string;
+    nome: string;
+    tipoNome: string;
+    compartimentoId?: string | null;
+    contextoCompartilhadoId?: string | null;
+  },
   session?: Session | null,
 ) {
   return apiRequest<Sensor>(
