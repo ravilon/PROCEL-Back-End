@@ -32,6 +32,8 @@ public class SharedContextController {
     public void sourceBatch(@RequestBody BatchSourceSelectionRequest request){service.selectSourceBatch(request);}
     @PutMapping("/{id}/integration") @PreAuthorize("hasRole('ADMIN')")
     public IntegrationResponse integration(@PathVariable UUID id,@RequestBody IntegrationRequest request){return service.configureIntegration(id,request);}
+    @PostMapping("/{id}/integration/test") @PreAuthorize("hasRole('ADMIN')")
+    public CollectionTestResponse testConfiguration(@PathVariable UUID id,@RequestBody IntegrationRequest request){return collector.testConfiguration(id,request);}
     @GetMapping("/{id}/integrations") @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     public List<IntegrationResponse> integrations(@PathVariable UUID id){return service.integrations(id);}
     @PostMapping("/integrations/{id}/collect") @PreAuthorize("hasRole('ADMIN')")
@@ -42,6 +44,8 @@ public class SharedContextController {
     public IntegrationResponse activate(@PathVariable UUID id){return service.setIntegrationActive(id,true);}
     @PostMapping("/integrations/{id}/deactivate") @PreAuthorize("hasRole('ADMIN')")
     public IntegrationResponse deactivate(@PathVariable UUID id){return service.setIntegrationActive(id,false);}
+    @DeleteMapping("/integrations/{id}/credential") @PreAuthorize("hasRole('ADMIN')")
+    public IntegrationResponse removeCredential(@PathVariable UUID id){return service.removeManagedCredential(id);}
     @GetMapping("/rooms/{roomId}/parameters/{parameterId}/latest") @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     public ObservationResponse latest(@PathVariable String roomId,@PathVariable UUID parameterId,@RequestParam(required=false) Instant at){return service.latest(roomId,parameterId,at);}
     @GetMapping("/rooms/{roomId}/parameters/{parameterId}/average-7d") @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")

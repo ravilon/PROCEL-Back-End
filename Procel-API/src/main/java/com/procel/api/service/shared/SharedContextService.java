@@ -17,8 +17,9 @@ public class SharedContextService {
     private static final String EXTERNAL_TEMPERATURE = "temperatura_externa";
     private static final BigDecimal MIN_COVERED_HOURS = new BigDecimal("120");
     private final JdbcTemplate jdbc;
+    private final CredentialEncryptionService credentials;
 
-    public SharedContextService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
+    public SharedContextService(JdbcTemplate jdbc, CredentialEncryptionService credentials) { this.jdbc = jdbc; this.credentials = credentials; }
 
     @Transactional
     public ContextResponse create(ContextRequest request) {
@@ -110,14 +111,19 @@ public class SharedContextService {
         if (sensorOk == null || sensorOk != 1) throw new IllegalArgumentException("sensor must belong to context");
         UUID id = jdbc.query("select id from contexto_integracao_externa where sensor_external_id=?", (rs,n)->rs.getObject(1,UUID.class), r.sensorExternalId().trim())
                 .stream().findFirst().orElse(UUID.randomUUID());
+        if (r.credential() != null && r.credential().isBlank()) throw new IllegalArgumentException("credential must be omitted to preserve it; use the remove action to remove it");
+        boolean managedExists = Boolean.TRUE.equals(jdbc.queryForObject("select exists(select 1 from contexto_integracao_externa where id=? and credential_ciphertext is not null)", Boolean.class, id));
+        String auth = authMode(r.authMode());
+        if (!"NONE".equals(auth) && r.credential() == null && !managedExists)
+            throw new IllegalArgumentException("authentication requires a credential");
         jdbc.update("""
             insert into contexto_integracao_externa(id,contexto_id,sensor_external_id,nome,ativo,endpoint_url,metodo,request_body,
-              auth_mode,credential_env,credential_header,credential_query_param,coordinate_query_param,query_params_json,
+              auth_mode,credential_header,credential_query_param,coordinate_query_param,query_params_json,
               temperature_json_pointer,observed_at_json_pointer,observed_at_format,source_id_json_pointer,
               interval_seconds,timeout_millis,max_attempts,next_run_at)
-            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())
+            values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,now())
             on conflict(sensor_external_id) do update set nome=excluded.nome,ativo=excluded.ativo,endpoint_url=excluded.endpoint_url,
-              metodo=excluded.metodo,request_body=excluded.request_body,auth_mode=excluded.auth_mode,credential_env=excluded.credential_env,
+              metodo=excluded.metodo,request_body=excluded.request_body,auth_mode=excluded.auth_mode,credential_env=null,
               credential_header=excluded.credential_header,credential_query_param=excluded.credential_query_param,
               coordinate_query_param=excluded.coordinate_query_param,query_params_json=excluded.query_params_json,
               temperature_json_pointer=excluded.temperature_json_pointer,observed_at_json_pointer=excluded.observed_at_json_pointer,
@@ -125,10 +131,22 @@ public class SharedContextService {
               interval_seconds=excluded.interval_seconds,timeout_millis=excluded.timeout_millis,max_attempts=excluded.max_attempts,
               next_run_at=least(contexto_integracao_externa.next_run_at,now()),updated_at=now()
             """, id, contextId, r.sensorExternalId().trim(), r.nome().trim(), r.ativo()==null||r.ativo(), r.endpointUrl().trim(),
-                method(r.metodo()), blank(r.requestBody()), authMode(r.authMode()), blank(r.credentialEnv()), blank(r.credentialHeader()),
+                method(r.metodo()), blank(r.requestBody()), auth, blank(r.credentialHeader()),
                 blank(r.credentialQueryParam()),blank(r.coordinateQueryParam()),blank(r.queryParamsJson()),
                 r.temperatureJsonPointer().trim(), r.observedAtJsonPointer().trim(), observedFormat(r.observedAtFormat()),blank(r.sourceIdJsonPointer()),
                 nvl(r.intervalSeconds(),900), nvl(r.timeoutMillis(),5000), nvl(r.maxAttempts(),2));
+        if (r.credential() != null) {
+            var encrypted = credentials.encrypt(id, r.credential());
+            jdbc.update("update contexto_integracao_externa set credential_ciphertext=?,credential_iv=?,updated_at=now() where id=?",
+                    encrypted.ciphertext(), encrypted.iv(), id);
+        }
+        return integration(id);
+    }
+
+    @Transactional
+    public IntegrationResponse removeManagedCredential(UUID id) {
+        if (jdbc.update("update contexto_integracao_externa set credential_ciphertext=null,credential_iv=null,updated_at=now() where id=?", id) == 0)
+            throw new NotFoundException("Integration not found id=" + id);
         return integration(id);
     }
 
@@ -200,7 +218,8 @@ public class SharedContextService {
         return jdbc.query("select * from contexto_integracao_externa where id=?",(rs,n)->new IntegrationResponse(
                 rs.getObject("id",UUID.class),rs.getObject("contexto_id",UUID.class),rs.getString("sensor_external_id"),
                 rs.getString("nome"),rs.getBoolean("ativo"),rs.getString("endpoint_url"),rs.getString("metodo"),rs.getString("auth_mode"),
-                rs.getString("credential_env")!=null,rs.getString("credential_header"),rs.getString("credential_query_param"),
+                rs.getBytes("credential_ciphertext")!=null,
+                rs.getString("credential_header"),rs.getString("credential_query_param"),
                 rs.getString("coordinate_query_param"),rs.getString("query_params_json"),rs.getString("temperature_json_pointer"),
                 rs.getString("observed_at_json_pointer"),rs.getString("observed_at_format"),rs.getString("source_id_json_pointer"),
                 rs.getInt("interval_seconds"),rs.getInt("timeout_millis"),rs.getInt("max_attempts"),
@@ -210,7 +229,8 @@ public class SharedContextService {
     }
     private List<String> rooms(UUID id){return jdbc.query("select compartimento_id from contexto_compartilhado_compartimento where contexto_id=? and ativo order by compartimento_id",(rs,n)->rs.getString(1),id);}
     private void validateContext(ContextRequest r){if(r==null||r.nome()==null||r.nome().isBlank())throw new IllegalArgumentException("nome is required");zone(r.timezone());String mode=locationMode(r.locationMode());if("OWN".equals(mode)){if((r.latitude()==null)!=(r.longitude()==null))throw new IllegalArgumentException("latitude and longitude must be supplied together");range(r.latitude(),-90,90,"latitude");range(r.longitude(),-180,180,"longitude");if(r.campusNome()!=null&&!r.campusNome().isBlank())throw new IllegalArgumentException("campusNome is only allowed in CAMPUS mode");}else{if(r.campusNome()==null||r.campusNome().isBlank())throw new IllegalArgumentException("campusNome is required in CAMPUS mode");if(r.latitude()!=null||r.longitude()!=null)throw new IllegalArgumentException("coordinates must be absent in CAMPUS mode");Integer found=jdbc.queryForObject("select count(*) from campus where nome=?",Integer.class,r.campusNome().trim());if(found==null||found==0)throw new NotFoundException("Campus not found nome="+r.campusNome());}}
-    private static void validateIntegration(IntegrationRequest r){if(r==null||r.sensorExternalId()==null||r.nome()==null||r.endpointUrl()==null||r.temperatureJsonPointer()==null||r.observedAtJsonPointer()==null)throw new IllegalArgumentException("sensor, name, URL and JSON pointers are required");if(nvl(r.intervalSeconds(),900)<60||nvl(r.maxAttempts(),2)<1||nvl(r.maxAttempts(),2)>5)throw new IllegalArgumentException("invalid collection limits");String auth=authMode(r.authMode());if(!"NONE".equals(auth)&&(r.credentialEnv()==null||r.credentialEnv().isBlank()))throw new IllegalArgumentException("credentialEnv is required for authentication");if("QUERY".equals(auth)&&(r.credentialQueryParam()==null||r.credentialQueryParam().isBlank()))throw new IllegalArgumentException("credentialQueryParam is required for query authentication");}
+    private static void validateIntegration(IntegrationRequest r){if(r==null||r.sensorExternalId()==null||r.nome()==null||r.endpointUrl()==null||r.temperatureJsonPointer()==null||r.observedAtJsonPointer()==null)throw new IllegalArgumentException("sensor, name, URL and JSON pointers are required");if(nvl(r.intervalSeconds(),900)<60||nvl(r.maxAttempts(),2)<1||nvl(r.maxAttempts(),2)>5)throw new IllegalArgumentException("invalid collection limits");String auth=authMode(r.authMode());if("QUERY".equals(auth)&&(r.credentialQueryParam()==null||r.credentialQueryParam().isBlank()))throw new IllegalArgumentException("credentialQueryParam is required for query authentication");if("QUERY".equals(auth)&&containsQueryParameter(r.endpointUrl(),r.credentialQueryParam()))throw new IllegalArgumentException("provider credential must not be included in endpointUrl");if("QUERY".equals(auth)&&r.queryParamsJson()!=null&&java.util.regex.Pattern.compile("\\\""+java.util.regex.Pattern.quote(r.credentialQueryParam())+"\\\"\\s*:").matcher(r.queryParamsJson()).find())throw new IllegalArgumentException("provider credential must not be included in queryParamsJson");}
+    private static boolean containsQueryParameter(String url,String name){try{String query=java.net.URI.create(url).getRawQuery();if(query==null)return false;for(String part:query.split("&")){String key=part.split("=",2)[0];if(java.net.URLDecoder.decode(key,java.nio.charset.StandardCharsets.UTF_8).equals(name))return true;}return false;}catch(RuntimeException ex){throw new IllegalArgumentException("endpointUrl is invalid");}}
     private static String locationMode(String v){String m=v==null||v.isBlank()?"OWN":v.trim().toUpperCase();if(!m.equals("OWN")&&!m.equals("CAMPUS"))throw new IllegalArgumentException("locationMode must be OWN or CAMPUS");return m;}
     private static String campus(ContextRequest r){return "CAMPUS".equals(locationMode(r.locationMode()))?r.campusNome().trim():null;}
     private static BigDecimal ownLatitude(ContextRequest r){return "OWN".equals(locationMode(r.locationMode()))?r.latitude():null;}

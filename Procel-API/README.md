@@ -204,15 +204,15 @@ POST /api/sensor-admin/sensors
 {"externalId":"weather-campus-norte","nome":"Estacao externa","tipoNome":"clima","contextoCompartilhadoId":"{contextId}"}
 
 PUT /api/shared-contexts/{contextId}/integration
-{"sensorExternalId":"weather-campus-norte","nome":"Provedor contratado","endpointUrl":"http://weather-mock/now","metodo":"GET","credentialEnv":"WEATHER_API_KEY","credentialHeader":"X-API-Key","temperatureJsonPointer":"/temperature","observedAtJsonPointer":"/observedAt","sourceIdJsonPointer":"/stationId","intervalSeconds":900,"timeoutMillis":5000,"maxAttempts":2}
+{"sensorExternalId":"weather-campus-norte","nome":"Provedor contratado","endpointUrl":"http://weather-mock/now","metodo":"GET","credential":"CHAVE_INFORMADA_PELA_INTERFACE","credentialHeader":"X-API-Key","temperatureJsonPointer":"/temperature","observedAtJsonPointer":"/observedAt","sourceIdJsonPointer":"/stationId","intervalSeconds":900,"timeoutMillis":5000,"maxAttempts":2}
 
 PUT /api/shared-contexts/rooms/SALA-101/source
 {"parametroDefId":"{temperaturaExternaParametroId}","sensorExternalId":"weather-campus-norte","validadeSegundos":3600}
 ```
 
 Repita apenas a ultima selecao para `SALA-102`. O tipo `clima` deve possuir o
-parametro numerico ativo `temperatura_externa` com unidade `°C`. Defina
-`WEATHER_API_KEY` no ambiente da API (o segredo nao e persistido) e habilite
+parametro numerico ativo `temperatura_externa` com unidade `°C`. Informe a
+credencial pela interface de Integracoes e habilite
 `PROCEL_SHARED_CONTEXT_COLLECTOR_ENABLED=true`. O provedor deve devolver um
 horario ISO-8601 de observacao; ele e parte da identidade idempotente.
 
@@ -238,7 +238,7 @@ Preset WeatherAPI usado pela interface de Integracoes:
   "endpointUrl": "https://api.weatherapi.com/v1/current.json",
   "metodo": "GET",
   "authMode": "QUERY",
-  "credentialEnv": "WEATHER_API_KEY",
+  "credential": "CHAVE_INFORMADA_PELA_INTERFACE",
   "credentialQueryParam": "key",
   "coordinateQueryParam": "q",
   "temperatureJsonPointer": "/current/temp_c",
@@ -420,3 +420,15 @@ http://localhost:8080/v3/api-docs
 ## Testes
 
 Os testes cobrem ingestao, idempotencia, seguranca, migrations, integracoes, rotas internas, jobs de agregacao, claim concorrente, lease, retry, buckets numericos, motor de missoes, Drools opt-in, janelas temporais, atividades, XP e administracao operacional com PostgreSQL via Testcontainers.
+
+### Credenciais gerenciadas das coletas HTTP
+
+Credenciais informadas em Integrações são cifradas com AES-256-GCM, usando IV aleatório por gravação. A API precisa receber exclusivamente pelo ambiente uma chave mestra Base64 de 32 bytes:
+
+```powershell
+$bytes = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+[Convert]::ToBase64String($bytes)
+```
+
+Defina o resultado em `PROCEL_CREDENTIAL_ENCRYPTION_KEY` no ambiente seguro da API. Não grave esse valor em arquivos do projeto, banco ou frontend. Uma variável ausente bloqueia a criação, substituição e uso de credenciais. Uma variável presente com Base64 inválido ou tamanho diferente de 32 bytes impede a inicialização da API. A chave do provedor é informada exclusivamente pelo campo de senha da interface de Integrações.

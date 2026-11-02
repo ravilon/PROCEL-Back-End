@@ -15,7 +15,7 @@ public final class SharedContextDTOs {
     public record RoomsRequest(List<String> compartimentoIds) {}
     public record SourceSelectionRequest(UUID parametroDefId, String sensorExternalId, Integer validadeSegundos) {}
     public record IntegrationRequest(String sensorExternalId, String nome, Boolean ativo, String endpointUrl,
-                                     String metodo, String requestBody, String authMode, String credentialEnv, String credentialHeader,
+                                     String metodo, String requestBody, String authMode, String credential, String credentialHeader,
                                      String credentialQueryParam, String coordinateQueryParam, String queryParamsJson,
                                      String temperatureJsonPointer, String observedAtJsonPointer,
                                      String observedAtFormat, String sourceIdJsonPointer, Integer intervalSeconds, Integer timeoutMillis,

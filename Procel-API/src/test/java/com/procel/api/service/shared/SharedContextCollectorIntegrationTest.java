@@ -2,13 +2,16 @@ package com.procel.api.service.shared;
 
 import com.procel.api.entity.missions.EventoCondicao;
 import com.procel.api.entity.missions.EventoDefinicao;
+import com.procel.api.dto.shared.SharedContextDTOs.IntegrationRequest;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.service.missions.rules.RoomStateFactLoader;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -20,21 +23,29 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties={"procel.sensors.seed-path=missing-test-sensors.json","procel.security.bootstrap-admin.enabled=false","procel.shared-context.collector.enabled=false","procel.shared-context.collector.allow-loopback=true"})
+@AutoConfigureMockMvc
 @Testcontainers(disabledWithoutDocker=true)
 class SharedContextCollectorIntegrationTest {
     @Container static PostgreSQLContainer<?> postgres=new PostgreSQLContainer<>("postgres:16");
-    static HttpServer server; static final AtomicReference<String> query=new AtomicReference<>();
-    @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",postgres::getJdbcUrl);r.add("spring.datasource.username",postgres::getUsername);r.add("spring.datasource.password",postgres::getPassword);r.add("WEATHER_TEST_KEY",()->"super-secret-test-key");}
-    @BeforeAll static void server() throws Exception {server=HttpServer.create(new InetSocketAddress(0),0);server.createContext("/current",exchange->{query.set(exchange.getRequestURI().getRawQuery());byte[] body="{\"current\":{\"temp_c\":18.75,\"last_updated_epoch\":1793577600}}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().add("Content-Type","application/json");exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);exchange.close();});server.start();}
+    static HttpServer server; static final AtomicReference<String> query=new AtomicReference<>(); static final AtomicInteger requests=new AtomicInteger();
+    @DynamicPropertySource static void properties(DynamicPropertyRegistry r){r.add("spring.datasource.url",postgres::getJdbcUrl);r.add("spring.datasource.username",postgres::getUsername);r.add("spring.datasource.password",postgres::getPassword);r.add("PROCEL_CREDENTIAL_ENCRYPTION_KEY",()->"MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=");}
+    @BeforeAll static void server() throws Exception {server=HttpServer.create(new InetSocketAddress(0),0);server.createContext("/current",exchange->{requests.incrementAndGet();query.set(exchange.getRequestURI().getRawQuery());byte[] body="{\"current\":{\"temp_c\":18.75,\"last_updated_epoch\":1793577600}}".getBytes(StandardCharsets.UTF_8);exchange.getResponseHeaders().add("Content-Type","application/json");exchange.sendResponseHeaders(200,body.length);exchange.getResponseBody().write(body);exchange.close();});server.start();}
     @AfterAll static void stop(){if(server!=null)server.stop(0);}
     @Autowired JdbcTemplate jdbc; @Autowired SharedContextCollector collector;
     @Autowired SharedContextService contexts; @Autowired RoomStateFactLoader factLoader;
     @Autowired ParametroDefRepository parameters;
+    @Autowired MockMvc mvc;
 
-    @Test void weatherApiQueryUsesBackendSecretCoordinatesEpochAndDeduplicates() {
+    @Test void weatherApiQueryUsesBackendSecretCoordinatesEpochAndDeduplicates() throws Exception {
         UUID context=UUID.randomUUID(),integration=UUID.randomUUID(),parameter=UUID.randomUUID();
         jdbc.update("insert into tipo_de_sensor(nome) values (?)","weather-e2e");
         jdbc.update("insert into parametro_def(id,data_type,numeric_unit,tipo_nome,nome,descricao,ativo) values (?,'NUMERIC','°C',?,'temperatura_externa','External',true)",parameter,"weather-e2e");
@@ -48,16 +59,17 @@ class SharedContextCollectorIntegrationTest {
         jdbc.update("insert into contexto_fonte_selecao(compartimento_id,parametro_def_id,sensor_external_id,validade_segundos) values (?,?,?,3600)","Room E2E",parameter,"weather-e2e");
         jdbc.update("""
             insert into contexto_integracao_externa(id,contexto_id,sensor_external_id,nome,endpoint_url,metodo,auth_mode,
-              credential_env,credential_query_param,coordinate_query_param,temperature_json_pointer,observed_at_json_pointer,
+              credential_query_param,coordinate_query_param,temperature_json_pointer,observed_at_json_pointer,
               observed_at_format,interval_seconds,timeout_millis,max_attempts)
-            values (?,?,?,?,?,'GET','QUERY','WEATHER_TEST_KEY','key','q','/current/temp_c','/current/last_updated_epoch','UNIX_SECONDS',60,3000,1)
+            values (?,?,?,?,?,'GET','QUERY','key','q','/current/temp_c','/current/last_updated_epoch','UNIX_SECONDS',60,3000,1)
             """,integration,context,"weather-e2e","WeatherAPI E2E","http://localhost:"+server.getAddress().getPort()+"/current");
+        contexts.configureIntegration(context,request("initial-managed-secret"));
 
         var tested=collector.testNow(integration);var first=collector.collectNow(integration);var repeated=collector.collectNow(integration);
         assertThat(tested.outcome()).isEqualTo("TEST_SUCCESS");assertThat(tested.persisted()).isFalse();
         assertThat(first.outcome()).isEqualTo("NEW_MEASUREMENT");assertThat(repeated.outcome()).isEqualTo("REPEATED_OBSERVATION");
         assertThat(first.observationAt()).isEqualTo(Instant.ofEpochSecond(1793577600));
-        assertThat(query.get()).contains("key=super-secret-test-key").contains("q=-31.770000%2C-52.340000");
+        assertThat(query.get()).contains("key=initial-managed-secret").contains("q=-31.770000%2C-52.340000");
         Instant reference=first.observationAt().plusSeconds(60);
         assertThat(contexts.latest("Room E2E",parameter,reference).status()).isEqualTo("AVAILABLE");
         assertThat(contexts.latest("Room E2E",parameter,first.observationAt().minusSeconds(1)).status()).isEqualTo("MISSING");
@@ -83,5 +95,25 @@ class SharedContextCollectorIntegrationTest {
         for(int i=121;i>=1;i--){if(i==61)continue;UUID measurement=UUID.randomUUID();Instant at=first.observationAt().minus(i,ChronoUnit.HOURS);jdbc.update("insert into medicao(id,sensor_external_id,timestamp,recebido_em,source) values (?,?,?,?,?)",measurement,"weather-e2e",java.sql.Timestamp.from(at),java.sql.Timestamp.from(at),"API");jdbc.update("insert into parametro_valor(id,medicao_id,parametro_def_id,numeric_value) values (?,?,?,?)",UUID.randomUUID(),measurement,parameter,i>61?10:20);jdbc.update("insert into contexto_coleta_execucao(id,integracao_id,started_at,finished_at,outcome,observation_at,medicao_id,latitude,longitude,location_source,campus_nome,location_hash) values (?,?,now(),now(),'NEW_MEASUREMENT',?,?,?,?,'CAMPUS','Campus E2E',?)",UUID.randomUUID(),integration,java.sql.Timestamp.from(at),measurement,-30.000000,-51.000000,hash);}
         var average=contexts.average7d("Room E2E",parameter,first.observationAt());
         assertThat(average.status()).isEqualTo("AVAILABLE");assertThat(average.coveredHours()).isEqualByComparingTo("120.00");assertThat(average.average()).isEqualByComparingTo("15.00");assertThat(average.distinctObservations()).isEqualTo(121);
+
+        var managed=contexts.configureIntegration(context,request("managed-provider-secret"));
+        assertThat(managed.credentialConfigured()).isTrue();
+        assertThat(managed.toString()).doesNotContain("managed-provider-secret");
+        byte[] encrypted=jdbc.queryForObject("select credential_ciphertext from contexto_integracao_externa where id=?",byte[].class,integration);
+        assertThat(new String(encrypted,StandardCharsets.UTF_8)).doesNotContain("managed-provider-secret");
+        collector.testNow(integration);assertThat(query.get()).contains("key=managed-provider-secret");
+        contexts.configureIntegration(context,request(null));collector.testNow(integration);assertThat(query.get()).contains("key=managed-provider-secret");
+        int beforeInvalidCredential=requests.get();jdbc.update("update contexto_integracao_externa set credential_ciphertext=set_byte(credential_ciphertext,0,(get_byte(credential_ciphertext,0)+1)%256) where id=?",integration);
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->collector.testNow(integration)).hasMessageContaining("cannot be decrypted");assertThat(requests.get()).isEqualTo(beforeInvalidCredential);
+        contexts.configureIntegration(context,request("replacement-secret"));collector.testNow(integration);assertThat(query.get()).contains("key=replacement-secret");
+        var transientResult=collector.testConfiguration(context,request("transient-secret"));assertThat(transientResult.persisted()).isFalse();assertThat(query.get()).contains("key=transient-secret");
+        assertThat(jdbc.queryForObject("select count(*) from contexto_coleta_execucao where integracao_id=? and error_message like '%secret%'",Integer.class,integration)).isZero();
+        mvc.perform(get("/api/shared-contexts/"+context+"/integrations").with(user("admin").roles("ADMIN")))
+                .andExpect(status().isOk()).andExpect(result->assertThat(result.getResponse().getContentAsString()).doesNotContain("replacement-secret").doesNotContain("managed-provider-secret"));
+        mvc.perform(delete("/api/shared-contexts/integrations/"+integration+"/credential").with(user("operator").roles("OPERADOR")).with(csrf())).andExpect(status().isForbidden());
+        mvc.perform(delete("/api/shared-contexts/integrations/"+integration+"/credential").with(user("admin").roles("ADMIN")).with(csrf())).andExpect(status().isOk());
+        assertThat(contexts.integrations(context).getFirst().credentialConfigured()).isFalse();int beforeMissing=requests.get();org.assertj.core.api.Assertions.assertThatThrownBy(()->collector.testNow(integration)).hasMessageContaining("credential is absent");assertThat(requests.get()).isEqualTo(beforeMissing);
     }
+
+    private IntegrationRequest request(String credential){return new IntegrationRequest("weather-e2e","WeatherAPI E2E",true,"http://localhost:"+server.getAddress().getPort()+"/current","GET",null,"QUERY",credential,null,"key","q","{}","/current/temp_c","/current/last_updated_epoch","UNIX_SECONDS",null,60,3000,1);}
 }
