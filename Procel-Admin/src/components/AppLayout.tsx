@@ -73,6 +73,12 @@ const navigation: NavigationItem[] = [
     roles: ["ADMIN"],
   },
   {
+    label: "Contextos compartilhados",
+    path: "/contextos-compartilhados",
+    icon: <HubOutlined />,
+    roles: ["ADMIN"],
+  },
+  {
     label: "Telemetria",
     path: "/telemetria",
     icon: <TimelineOutlined />,

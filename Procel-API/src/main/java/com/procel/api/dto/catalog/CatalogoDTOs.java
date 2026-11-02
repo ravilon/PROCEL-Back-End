@@ -38,6 +38,8 @@ public final class CatalogoDTOs {
             String tipoNome,
             String compartimentoId,
             String compartimentoNome,
+            UUID contextoCompartilhadoId,
+            String contextoCompartilhadoNome,
             boolean ativo
     ) {}
 

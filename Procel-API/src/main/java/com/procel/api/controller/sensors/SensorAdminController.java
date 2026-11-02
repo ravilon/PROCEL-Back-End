@@ -87,7 +87,7 @@ public class SensorAdminController {
     }
 
     @PostMapping("/sensors")
-    @Operation(summary = "Cadastra sensor em um compartimento")
+    @Operation(summary = "Cadastra sensor exclusivamente em um compartimento ou contexto compartilhado")
     public SensorAdminDTOs.SensorResponse criarSensor(
             @RequestBody SensorAdminDTOs.SensorRequest request
     ) {

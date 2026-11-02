@@ -1,0 +1,19 @@
+import { apiRequest } from "../lib/api";
+import type { Session } from "../types/auth";
+
+export interface Campus { nome:string; latitude?:number; longitude?:number }
+export interface SharedContext { id:string; nome:string; descricao?:string; ativo:boolean; latitude?:number; longitude?:number; timezone:string; locationMode:"OWN"|"CAMPUS"; campusNome?:string; resolvedLatitude?:number; resolvedLongitude?:number; compartimentoIds:string[] }
+export interface SharedIntegration { id:string; contextoId:string; nome:string; sensorExternalId:string; ativo:boolean; endpointUrl:string; metodo:"GET"|"POST"; authMode:"NONE"|"HEADER"|"QUERY"; credentialConfigured:boolean; credentialHeader?:string; credentialQueryParam?:string; coordinateQueryParam?:string; queryParamsJson?:string; temperatureJsonPointer:string; observedAtJsonPointer:string; observedAtFormat:"ISO_INSTANT"|"UNIX_SECONDS"; sourceIdJsonPointer?:string; intervalSeconds:number; timeoutMillis:number; maxAttempts:number; nextRunAt?:string; lastSuccessAt?:string; lastOutcome?:string; lastObservationAt?:string; lastError?:string }
+export interface IntegrationPayload { sensorExternalId:string; nome:string; ativo:boolean; endpointUrl:string; metodo:string; requestBody?:string; authMode:string; credentialEnv?:string; credentialHeader?:string; credentialQueryParam?:string; coordinateQueryParam?:string; queryParamsJson?:string; temperatureJsonPointer:string; observedAtJsonPointer:string; observedAtFormat:string; sourceIdJsonPointer?:string; intervalSeconds:number; timeoutMillis:number; maxAttempts:number }
+export const listCampuses=(session?:Session|null)=>apiRequest<Campus[]>("/api/campuses",{},session);
+export const updateCampus=(nome:string,payload:object,session?:Session|null)=>apiRequest<Campus>(`/api/campuses/${encodeURIComponent(nome)}`,{method:"PUT",body:JSON.stringify(payload)},session);
+export const listSharedContexts=(session?:Session|null)=>apiRequest<SharedContext[]>("/api/shared-contexts",{},session);
+export const createSharedContext=(payload:object,session?:Session|null)=>apiRequest<SharedContext>("/api/shared-contexts",{method:"POST",body:JSON.stringify(payload)},session);
+export const updateSharedContext=(id:string,payload:object,session?:Session|null)=>apiRequest<SharedContext>(`/api/shared-contexts/${id}`,{method:"PUT",body:JSON.stringify(payload)},session);
+export const replaceContextRooms=(id:string,compartimentoIds:string[],session?:Session|null)=>apiRequest<SharedContext>(`/api/shared-contexts/${id}/rooms`,{method:"PUT",body:JSON.stringify({compartimentoIds})},session);
+export const listSharedIntegrations=(id:string,session?:Session|null)=>apiRequest<SharedIntegration[]>(`/api/shared-contexts/${id}/integrations`,{},session);
+export const saveSharedIntegration=(contextId:string,payload:IntegrationPayload,session?:Session|null)=>apiRequest<SharedIntegration>(`/api/shared-contexts/${contextId}/integration`,{method:"PUT",body:JSON.stringify(payload)},session);
+export const testSharedIntegration=(id:string,session?:Session|null)=>apiRequest<{outcome:string;observationAt:string;value:number;persisted:boolean}>(`/api/shared-contexts/integrations/${id}/test`,{method:"POST"},session);
+export const collectSharedIntegration=(id:string,session?:Session|null)=>apiRequest<{outcome:string;observationAt:string;value:number;persisted:boolean}>(`/api/shared-contexts/integrations/${id}/collect`,{method:"POST"},session);
+export const setSharedIntegrationActive=(id:string,active:boolean,session?:Session|null)=>apiRequest<SharedIntegration>(`/api/shared-contexts/integrations/${id}/${active?"activate":"deactivate"}`,{method:"POST"},session);
+export const selectSharedSourceBatch=(payload:object,session?:Session|null)=>apiRequest<void>("/api/shared-contexts/rooms/source-batch",{method:"PUT",body:JSON.stringify(payload)},session);

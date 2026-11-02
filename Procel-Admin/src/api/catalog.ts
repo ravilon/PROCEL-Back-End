@@ -46,6 +46,10 @@ export function listCompartimentoSensores(
   );
 }
 
+export function listCatalogSensors(session?: Session | null) {
+  return apiRequest<Sensor[]>("/api/catalog/sensores?includeHidden=false", {}, session);
+}
+
 export function listCompartimentoPeriodos(compartimentoId: string, session?: Session | null) {
   return apiRequest<PeriodoAula[]>(
     `/api/catalog/compartimentos/${encodeURIComponent(compartimentoId)}/periodos-aula`,

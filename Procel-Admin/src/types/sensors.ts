@@ -2,8 +2,10 @@ export interface Sensor {
   externalId: string;
   nome: string;
   tipoNome: string;
-  compartimentoId: string;
-  compartimentoNome: string;
+  compartimentoId?: string;
+  compartimentoNome?: string;
+  contextoCompartilhadoId?: string;
+  contextoCompartilhadoNome?: string;
   ativo: boolean;
 }
 

@@ -228,6 +228,8 @@ O JWT de servico usado pelo worker e curto, assinado com segredo configurado e n
 | `PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS` | Origens permitidas |
 | `PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED` | Habilita worker de agregacao |
 | `PROCEL_ANALYTICS_AGGREGATION_VERSION` | Versao logica do algoritmo de buckets |
+| `PROCEL_SHARED_CONTEXT_COLLECTOR_ENABLED` | Habilita a coleta HTTP de observacoes externas compartilhadas |
+| `PROCEL_SHARED_CONTEXT_COLLECTOR_POLL_INTERVAL` | Frequencia de procura por integracoes vencidas (a periodicidade de cada fonte fica no banco) |
 | `PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED` | Habilita worker de avaliacao instantanea de eventos de missoes |
 | `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita infraestrutura de janelas temporais |
 | `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |

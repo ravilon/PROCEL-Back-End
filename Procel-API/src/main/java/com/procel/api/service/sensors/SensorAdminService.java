@@ -11,7 +11,9 @@ import com.procel.api.repository.rooms.CompartimentoRepository;
 import com.procel.api.repository.sensors.ParametroDefRepository;
 import com.procel.api.repository.sensors.SensorRepository;
 import com.procel.api.repository.sensors.TipoDeSensorRepository;
+import com.procel.api.repository.shared.ContextoCompartilhadoRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
 
@@ -27,7 +29,26 @@ public class SensorAdminService {
     private final SensorRepository sensorRepo;
     private final CompartimentoRepository compartimentoRepo;
     private final EntityManager entityManager;
+    private final ContextoCompartilhadoRepository contextoRepo;
 
+    @Autowired
+    public SensorAdminService(
+            TipoDeSensorRepository tipoRepo,
+            ParametroDefRepository parametroRepo,
+            SensorRepository sensorRepo,
+            CompartimentoRepository compartimentoRepo,
+            EntityManager entityManager,
+            ContextoCompartilhadoRepository contextoRepo
+    ) {
+        this.tipoRepo = tipoRepo;
+        this.parametroRepo = parametroRepo;
+        this.sensorRepo = sensorRepo;
+        this.compartimentoRepo = compartimentoRepo;
+        this.entityManager = entityManager;
+        this.contextoRepo = contextoRepo;
+    }
+
+    // Mantem compatibilidade com testes e consumidores locais anteriores.
     public SensorAdminService(
             TipoDeSensorRepository tipoRepo,
             ParametroDefRepository parametroRepo,
@@ -35,11 +56,7 @@ public class SensorAdminService {
             CompartimentoRepository compartimentoRepo,
             EntityManager entityManager
     ) {
-        this.tipoRepo = tipoRepo;
-        this.parametroRepo = parametroRepo;
-        this.sensorRepo = sensorRepo;
-        this.compartimentoRepo = compartimentoRepo;
-        this.entityManager = entityManager;
+        this(tipoRepo, parametroRepo, sensorRepo, compartimentoRepo, entityManager, null);
     }
 
     @Transactional(readOnly = true)
@@ -190,8 +207,10 @@ public class SensorAdminService {
         if (request.tipoNome() == null || request.tipoNome().isBlank()) {
             throw new IllegalArgumentException("tipoNome is required");
         }
-        if (request.compartimentoId() == null || request.compartimentoId().isBlank()) {
-            throw new IllegalArgumentException("compartimentoId is required");
+        boolean hasRoom = request.compartimentoId() != null && !request.compartimentoId().isBlank();
+        boolean hasContext = request.contextoCompartilhadoId() != null;
+        if (hasRoom == hasContext) {
+            throw new IllegalArgumentException("exactly one of compartimentoId or contextoCompartilhadoId is required");
         }
         String externalId = request.externalId().trim();
         if (sensorRepo.existsById(externalId)) {
@@ -199,12 +218,19 @@ public class SensorAdminService {
         }
         TipoDeSensor tipo = tipoRepo.findById(request.tipoNome().trim())
                 .orElseThrow(() -> new NotFoundException("TipoDeSensor not found nome=" + request.tipoNome()));
-        Compartimento compartimento = compartimentoRepo.findById(request.compartimentoId().trim())
-                .orElseThrow(() -> new NotFoundException(
-                        "Compartimento not found id=" + request.compartimentoId()));
-        return toSensorResponse(sensorRepo.save(
-                new Sensor(externalId, request.nome().trim(), tipo, compartimento)
-        ));
+        Sensor sensor;
+        if (hasRoom) {
+            Compartimento compartimento = compartimentoRepo.findById(request.compartimentoId().trim())
+                    .orElseThrow(() -> new NotFoundException("Compartimento not found id=" + request.compartimentoId()));
+            sensor = new Sensor(externalId, request.nome().trim(), tipo, compartimento);
+        } else {
+            if (contextoRepo == null) throw new IllegalStateException("context repository is required for shared sensors");
+            var contexto = contextoRepo.findById(request.contextoCompartilhadoId())
+                    .orElseThrow(() -> new NotFoundException("ContextoCompartilhado not found id=" + request.contextoCompartilhadoId()));
+            sensor = new Sensor(externalId, request.nome().trim(), tipo, null);
+            sensor.setContextoCompartilhado(contexto);
+        }
+        return toSensorResponse(sensorRepo.save(sensor));
     }
 
     @Transactional
@@ -248,8 +274,10 @@ public class SensorAdminService {
                 sensor.getExternalId(),
                 sensor.getNome(),
                 sensor.getTipo().getNome(),
-                sensor.getCompartimento().getId(),
-                sensor.getCompartimento().getNome(),
+                sensor.getCompartimento() == null ? null : sensor.getCompartimento().getId(),
+                sensor.getCompartimento() == null ? null : sensor.getCompartimento().getNome(),
+                sensor.getContextoCompartilhado() == null ? null : sensor.getContextoCompartilhado().getId(),
+                sensor.getContextoCompartilhado() == null ? null : sensor.getContextoCompartilhado().getNome(),
                 sensor.isAtivo()
         );
     }

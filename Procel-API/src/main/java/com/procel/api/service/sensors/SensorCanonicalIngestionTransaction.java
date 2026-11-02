@@ -195,7 +195,11 @@ public class SensorCanonicalIngestionTransaction {
                 request.source().name(),
                 request.values()
         ));
-        avaliacaoRequestService.criarPendente(medicao.getId());
+        // Medicoes de contexto sao fatos passivos: ficam disponiveis na proxima
+        // avaliacao disparada por um sensor local, sem fan-out por compartimento.
+        if (sensor.getCompartimento() != null) {
+            avaliacaoRequestService.criarPendente(medicao.getId());
+        }
 
         metadata.complete(medicao, Instant.now());
         metadataRepo.save(metadata);

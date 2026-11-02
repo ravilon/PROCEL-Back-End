@@ -8,6 +8,7 @@ import com.procel.api.service.academic.AcademicContext;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -41,6 +42,7 @@ public class RoomStateFactLoader {
         this.factory = factory;
     }
 
+    @Transactional(readOnly = true)
     public RoomStateFacts load(EventoDefinicao event, String roomId, Instant measuredAt, AcademicContext academic) {
         List<UUID> parameterIds = event.getCondicoes().stream()
                 .filter(condition -> condition.isAtivo())
@@ -63,15 +65,39 @@ public class RoomStateFactLoader {
                 .addValue("from", Timestamp.from(from), Types.TIMESTAMP)
                 .addValue("at", Timestamp.from(measuredAt), Types.TIMESTAMP);
         List<UUID> ids = jdbc.query("""
-                select distinct on (pv.parametro_def_id) pv.id
-                from parametro_valor pv
-                join medicao m on m.id = pv.medicao_id
-                join sensor s on s.external_id = m.sensor_external_id
-                where s.compartimento_id = :room
-                  and pv.parametro_def_id in (:ids)
-                  and m.timestamp between :from and :at
-                  and (pv.numeric_value is not null or pv.boolean_value is not null or pv.text_value is not null)
-                order by pv.parametro_def_id, m.timestamp desc, m.id desc
+                select distinct on (candidate.parametro_def_id) candidate.valor_id
+                from (
+                    select pv.id as valor_id, pv.parametro_def_id, m.timestamp, m.id, 1 as priority
+                    from parametro_valor pv
+                    join medicao m on m.id = pv.medicao_id
+                    join sensor s on s.external_id = m.sensor_external_id
+                    where s.compartimento_id = :room
+                      and s.ativo
+                      and pv.parametro_def_id in (:ids)
+                      and m.timestamp between :from and :at
+                      and (pv.numeric_value is not null or pv.boolean_value is not null or pv.text_value is not null)
+                    union all
+                    select pv.id, pv.parametro_def_id, m.timestamp, m.id, 0 as priority
+                    from contexto_fonte_selecao fs
+                    join sensor s on s.external_id = fs.sensor_external_id and s.ativo
+                    join contexto_compartilhado c on c.id = s.contexto_compartilhado_id and c.ativo
+                    join contexto_compartilhado_compartimento cc
+                      on cc.contexto_id = c.id and cc.compartimento_id = fs.compartimento_id and cc.ativo
+                    join medicao m on m.sensor_external_id = s.external_id
+                    join parametro_valor pv on pv.medicao_id = m.id and pv.parametro_def_id = fs.parametro_def_id
+                    join contexto_integracao_externa i on i.sensor_external_id = s.external_id
+                    join contexto_coleta_execucao ce on ce.integracao_id = i.id and ce.medicao_id = m.id
+                    left join campus cp on cp.nome = c.campus_nome
+                    where fs.compartimento_id = :room
+                      and fs.parametro_def_id in (:ids)
+                      and m.timestamp <= cast(:at as timestamptz)
+                      and m.timestamp >= (cast(:at as timestamptz) - make_interval(secs => fs.validade_segundos))
+                      and ce.location_hash = encode(digest(concat_ws('|',
+                        case when c.location_mode='CAMPUS' then cp.latitude else c.latitude end,
+                        case when c.location_mode='CAMPUS' then cp.longitude else c.longitude end), 'sha256'), 'hex')
+                      and (pv.numeric_value is not null or pv.boolean_value is not null or pv.text_value is not null)
+                ) candidate
+                order by candidate.parametro_def_id, candidate.priority, candidate.timestamp desc, candidate.id desc
                 """, params, (rs, row) -> rs.getObject(1, UUID.class));
 
         Map<UUID, ParametroValor> byId = valores.findAllById(ids).stream()

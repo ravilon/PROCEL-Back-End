@@ -93,10 +93,13 @@ export function IntegrationsAdminPage() {
         <Box>
           <Typography variant="h4">Integracoes</Typography>
           <Typography color="text.secondary">
-            Gerencie perfis, parsers e vinculos administrativos de sensores.
+            Perfis abaixo recebem dados enviados ao PROCEL; coletas HTTP consultam provedores periodicamente.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
+          <Button component={RouterLink} to="/integracoes/coletas-http" variant="outlined">
+            Coletas HTTP
+          </Button>
           <Button component={RouterLink} to="/integracoes/snapshot" variant="outlined">
             Snapshot
           </Button>

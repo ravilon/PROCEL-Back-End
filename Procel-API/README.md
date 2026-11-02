@@ -183,6 +183,76 @@ diagnostico, transicoes operacionais controladas e execucao manual de workers.
 
 ## Ingestao Canonica
 
+## Contextos compartilhados e temperatura externa
+
+`/api/shared-contexts` administra cobertura, localizacao, vinculos de salas,
+selecao explicita de fonte e integracoes HTTP. Sensores compartilhados usam o
+mesmo pipeline canonico, mas pertencem ao contexto (nunca a uma sala ficticia).
+O coletor fica desabilitado por padrao e nao e chamado por consultas ou pelo
+motor de regras.
+
+Exemplo resumido para um contexto com duas salas:
+
+```http
+POST /api/shared-contexts
+{"nome":"Campus Norte","latitude":-31.77,"longitude":-52.34,"timezone":"America/Sao_Paulo"}
+
+PUT /api/shared-contexts/{contextId}/rooms
+{"compartimentoIds":["SALA-101","SALA-102"]}
+
+POST /api/sensor-admin/sensors
+{"externalId":"weather-campus-norte","nome":"Estacao externa","tipoNome":"clima","contextoCompartilhadoId":"{contextId}"}
+
+PUT /api/shared-contexts/{contextId}/integration
+{"sensorExternalId":"weather-campus-norte","nome":"Provedor contratado","endpointUrl":"http://weather-mock/now","metodo":"GET","credentialEnv":"WEATHER_API_KEY","credentialHeader":"X-API-Key","temperatureJsonPointer":"/temperature","observedAtJsonPointer":"/observedAt","sourceIdJsonPointer":"/stationId","intervalSeconds":900,"timeoutMillis":5000,"maxAttempts":2}
+
+PUT /api/shared-contexts/rooms/SALA-101/source
+{"parametroDefId":"{temperaturaExternaParametroId}","sensorExternalId":"weather-campus-norte","validadeSegundos":3600}
+```
+
+Repita apenas a ultima selecao para `SALA-102`. O tipo `clima` deve possuir o
+parametro numerico ativo `temperatura_externa` com unidade `°C`. Defina
+`WEATHER_API_KEY` no ambiente da API (o segredo nao e persistido) e habilite
+`PROCEL_SHARED_CONTEXT_COLLECTOR_ENABLED=true`. O provedor deve devolver um
+horario ISO-8601 de observacao; ele e parte da identidade idempotente.
+
+`GET .../latest` distingue `AVAILABLE`, `STALE` e `MISSING`. A media de sete
+dias usa janela movel `[agora-7d, agora]`, no fuso cadastrado para exibicao,
+media degrau ponderada pelo tempo, deduplicacao por timestamp, lacunas limitadas
+a uma hora e cobertura minima de 120 horas. Sem cobertura, retorna
+`INSUFFICIENT_COVERAGE` e nao fabrica valor.
+
+### WeatherAPI e localizacao por campus
+
+Campi podem receber latitude/longitude por `PUT /api/campuses/{nome}`. A
+sincronizacao do Cobalto apenas localiza ou cria o campus e, portanto, nao
+sobrescreve essas coordenadas complementares. Um contexto usa coordenadas
+proprias (`locationMode=OWN`) ou referencia dinamicamente um campus
+(`locationMode=CAMPUS`); a referencia geografica nao altera seus vinculos de
+salas.
+
+Preset WeatherAPI usado pela interface de Integracoes:
+
+```json
+{
+  "endpointUrl": "https://api.weatherapi.com/v1/current.json",
+  "metodo": "GET",
+  "authMode": "QUERY",
+  "credentialEnv": "WEATHER_API_KEY",
+  "credentialQueryParam": "key",
+  "coordinateQueryParam": "q",
+  "temperatureJsonPointer": "/current/temp_c",
+  "observedAtJsonPointer": "/current/last_updated_epoch",
+  "observedAtFormat": "UNIX_SECONDS"
+}
+```
+
+O backend monta `q=latitude,longitude` e injeta `key` a partir do segredo; a
+chave nao aparece em DTOs, previews, auditoria ou logs. Cada execucao registra
+coordenadas, origem da localizacao, campus, resultado e hash geografico. A media
+de sete dias usa apenas observacoes do hash atualmente resolvido, evitando
+mistura silenciosa depois de uma mudanca de localizacao.
+
 Rotas principais:
 
 ```text

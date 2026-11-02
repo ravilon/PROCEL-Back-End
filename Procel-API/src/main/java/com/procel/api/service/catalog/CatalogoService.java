@@ -87,7 +87,9 @@ public class CatalogoService {
         return sensorRepo.findAll().stream()
                 .filter(item -> includeHidden || item.isAtivo())
                 .filter(item -> matches(query, item.getExternalId(), item.getNome(),
-                        item.getTipo().getNome(), item.getCompartimento().getNome()))
+                        item.getTipo().getNome(),
+                        item.getCompartimento() == null ? null : item.getCompartimento().getNome(),
+                        item.getContextoCompartilhado() == null ? null : item.getContextoCompartilhado().getNome()))
                 .sorted(Comparator.comparing(item -> item.getNome(), String.CASE_INSENSITIVE_ORDER))
                 .limit(MAX_RESULTS)
                 .map(CatalogoService::toSensor)
@@ -200,8 +202,10 @@ public class CatalogoService {
                 item.getExternalId(),
                 item.getNome(),
                 item.getTipo().getNome(),
-                item.getCompartimento().getId(),
-                item.getCompartimento().getNome(),
+                item.getCompartimento() == null ? null : item.getCompartimento().getId(),
+                item.getCompartimento() == null ? null : item.getCompartimento().getNome(),
+                item.getContextoCompartilhado() == null ? null : item.getContextoCompartilhado().getId(),
+                item.getContextoCompartilhado() == null ? null : item.getContextoCompartilhado().getNome(),
                 item.isAtivo()
         );
     }

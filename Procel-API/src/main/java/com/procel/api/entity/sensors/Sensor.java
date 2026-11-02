@@ -1,6 +1,7 @@
 package com.procel.api.entity.sensors;
 
 import com.procel.api.entity.rooms.Compartimento;
+import com.procel.api.entity.shared.ContextoCompartilhado;
 import jakarta.persistence.*;
 
 @Entity
@@ -25,9 +26,13 @@ public class Sensor {
     @JoinColumn(name = "tipo_nome", nullable = false)
     private TipoDeSensor tipo;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "compartimento_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compartimento_id")
     private Compartimento compartimento;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contexto_compartilhado_id")
+    private ContextoCompartilhado contextoCompartilhado;
 
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
@@ -45,11 +50,13 @@ public class Sensor {
     public String getNome() { return nome; }
     public TipoDeSensor getTipo() { return tipo; }
     public Compartimento getCompartimento() { return compartimento; }
+    public ContextoCompartilhado getContextoCompartilhado() { return contextoCompartilhado; }
     public boolean isAtivo() { return ativo; }
 
     public void setExternalId(String externalId) { this.externalId = externalId; }
     public void setNome(String nome) { this.nome = nome; }
     public void setTipo(TipoDeSensor tipo) { this.tipo = tipo; }
     public void setCompartimento(Compartimento compartimento) { this.compartimento = compartimento; }
+    public void setContextoCompartilhado(ContextoCompartilhado contextoCompartilhado) { this.contextoCompartilhado = contextoCompartilhado; }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
 }

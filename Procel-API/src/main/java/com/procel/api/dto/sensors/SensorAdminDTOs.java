@@ -36,8 +36,13 @@ public final class SensorAdminDTOs {
             String externalId,
             String nome,
             String tipoNome,
-            String compartimentoId
-    ) {}
+            String compartimentoId,
+            UUID contextoCompartilhadoId
+    ) {
+        public SensorRequest(String externalId, String nome, String tipoNome, String compartimentoId) {
+            this(externalId, nome, tipoNome, compartimentoId, null);
+        }
+    }
 
     public record SensorResponse(
             String externalId,
@@ -45,6 +50,13 @@ public final class SensorAdminDTOs {
             String tipoNome,
             String compartimentoId,
             String compartimentoNome,
+            UUID contextoCompartilhadoId,
+            String contextoCompartilhadoNome,
             boolean ativo
-    ) {}
+    ) {
+        public SensorResponse(String externalId, String nome, String tipoNome, String compartimentoId,
+                              String compartimentoNome, boolean ativo) {
+            this(externalId, nome, tipoNome, compartimentoId, compartimentoNome, null, null, ativo);
+        }
+    }
 }

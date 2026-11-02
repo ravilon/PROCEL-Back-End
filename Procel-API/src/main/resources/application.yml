@@ -57,6 +57,11 @@ procel:
   sensors:
     seed-path: seed/sensors/sensors.seed.json
 
+  shared-context:
+    collector:
+      enabled: ${PROCEL_SHARED_CONTEXT_COLLECTOR_ENABLED:false}
+      poll-interval: ${PROCEL_SHARED_CONTEXT_COLLECTOR_POLL_INTERVAL:30s}
+
   missions:
     rule-engine: ${PROCEL_MISSIONS_RULE_ENGINE:simple}
     evaluation:

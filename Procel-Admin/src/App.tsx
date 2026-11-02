@@ -14,6 +14,8 @@ import { ProfileDetailsPage } from "./features/sensor-integrations/ProfileDetail
 import { SnapshotPage } from "./features/sensor-integrations/SnapshotPage";
 import { SyncAdminPage } from "./pages/SyncAdminPage";
 import { TelemetryOperationsPage } from "./pages/TelemetryOperationsPage";
+import { SharedContextsPage } from "./pages/SharedContextsPage";
+import { SharedCollectionOperations } from "./features/sensor-integrations/SharedCollectionOperations";
 
 export default function App() {
   return (
@@ -36,7 +38,9 @@ export default function App() {
             <Route path="integracoes" element={<IntegrationsAdminPage />} />
             <Route path="integracoes/perfis/:profileId" element={<ProfileDetailsPage />} />
             <Route path="integracoes/snapshot" element={<SnapshotPage />} />
+            <Route path="integracoes/coletas-http" element={<SharedCollectionOperations />} />
             <Route path="telemetria" element={<TelemetryOperationsPage />} />
+            <Route path="contextos-compartilhados" element={<SharedContextsPage />} />
           </Route>
         </Route>
         <Route element={<ProtectedRoute allowedRoles={["ADMIN", "OPERADOR", "ANALISTA"]} />}>
