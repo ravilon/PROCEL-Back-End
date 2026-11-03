@@ -1,4 +1,4 @@
--- Inserts the official mission catalog from Documentos/Missoes PROBEN.pdf.
+-- Inserts the official mission catalog from Documentos/Missoes PROCEL.pdf.
 -- Historical/custom missions and their dependent rows are removed so the
 -- catalog contains only the official missions.
 
