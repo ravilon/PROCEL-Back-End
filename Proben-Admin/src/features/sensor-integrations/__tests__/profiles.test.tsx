@@ -80,7 +80,7 @@ describe("profiles", () => {
   it("creates a profile", async () => {
     const user = userEvent.setup();
     renderPage();
-    await user.click(await screen.findByText("Novo perfil"));
+    await user.click(await screen.findByText("Novo perfil de entrada"));
     const dialog = screen.getByRole("dialog");
     await user.type(
       within(dialog).getByRole("textbox", { name: /Nome/ }),

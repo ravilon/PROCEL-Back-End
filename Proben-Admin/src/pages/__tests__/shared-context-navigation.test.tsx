@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { IntegrationsAdminPage } from "../../features/sensor-integrations/IntegrationsAdminPage";
+import { CatalogPage } from "../../features/catalog/CatalogPage";
 import { SensorsAdminPage } from "../SensorsAdminPage";
 
 vi.mock("../../auth/AuthContext", () => ({
@@ -22,9 +23,24 @@ vi.mock("../../api/sensorIntegrations", () => ({
 vi.mock("../../features/shared-contexts/SharedContextsPanel", () => ({
   SharedContextsPanel: () => <div>Painel de contextos compartilhados</div>,
 }));
+vi.mock("../../features/catalog/CompartimentosTree", () => ({
+  CompartimentosTree: () => <div>Árvore de compartimentos</div>,
+}));
+vi.mock("../../features/catalog/DisciplinasTree", () => ({
+  DisciplinasTree: () => <div>Árvore de disciplinas</div>,
+}));
+vi.mock("../../features/catalog/CursosTree", () => ({
+  CursosTree: () => <div>Árvore de cursos</div>,
+}));
+vi.mock("../../features/catalog/PessoasTree", () => ({
+  PessoasTree: () => <div>Árvore de pessoas</div>,
+}));
+vi.mock("../CampusCoordinatesPage", () => ({
+  CampusCoordinatesPage: () => <div>Editor de coordenadas dos campi</div>,
+}));
 
 describe("navegação administrativa compartilhada", () => {
-  it("navega de Integrações até Coordenadas dos campi", async () => {
+  it("navega de Integrações até os perfis de saída HTTP", async () => {
     const user = userEvent.setup();
     const client = new QueryClient({
       defaultOptions: { queries: { retry: false } },
@@ -35,17 +51,34 @@ describe("navegação administrativa compartilhada", () => {
           <Routes>
             <Route path="/integracoes" element={<IntegrationsAdminPage />} />
             <Route
-              path="/integracoes/coordenadas-campi"
-              element={<div>Tela de coordenadas</div>}
+              path="/integracoes/perfis-saida-http"
+              element={<div>Perfis HTTP de saída</div>}
             />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
     await user.click(
-      screen.getByRole("link", { name: "Coordenadas dos campi" }),
+      screen.getByRole("link", { name: "Perfis de saída HTTP" }),
     );
-    expect(screen.getByText("Tela de coordenadas")).toBeInTheDocument();
+    expect(screen.getByText("Perfis HTTP de saída")).toBeInTheDocument();
+  });
+
+  it("mantém coordenadas dos campi como seção do Navegador de dados", () => {
+    render(
+      <MemoryRouter initialEntries={["/catalogo?secao=campi"]}>
+        <Routes>
+          <Route path="/catalogo" element={<CatalogPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole("tab", { name: "Campi" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(
+      screen.getByText("Editor de coordenadas dos campi"),
+    ).toBeInTheDocument();
   });
 
   it("mantém Contextos compartilhados como aba ativa refletida na URL", () => {

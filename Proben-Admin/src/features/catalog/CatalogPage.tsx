@@ -1,19 +1,40 @@
 import {
   ApartmentOutlined,
+  LocationOnOutlined,
   MenuBookOutlined,
   PersonSearchOutlined,
 } from "@mui/icons-material";
 import { Box, Paper, Stack, Tab, Tabs, Typography } from "@mui/material";
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { CampusCoordinatesPage } from "../../pages/CampusCoordinatesPage";
 import { CompartimentosTree } from "./CompartimentosTree";
 import { CursosTree } from "./CursosTree";
 import { DisciplinasTree } from "./DisciplinasTree";
 import { PessoasTree } from "./PessoasTree";
 export function CatalogPage() {
   const { hasAnyRole } = useAuth();
-  const [tab, setTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
   const managerial = hasAnyRole("ADMIN", "OPERADOR");
+  const canEditCampuses = hasAnyRole("ADMIN");
+  const requestedSection = searchParams.get("secao");
+  const allowedSections = [
+    "compartimentos",
+    "disciplinas",
+    "cursos",
+    ...(managerial ? ["pessoas"] : []),
+    ...(canEditCampuses ? ["campi"] : []),
+  ];
+  const section = allowedSections.includes(requestedSection ?? "")
+    ? requestedSection!
+    : "compartimentos";
+
+  const selectSection = (value: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (value === "compartimentos") next.delete("secao");
+    else next.set("secao", value);
+    setSearchParams(next, { replace: true });
+  };
 
   return (
     <Stack spacing={3}>
@@ -26,38 +47,53 @@ export function CatalogPage() {
       </Box>
       <Paper>
         <Tabs
-          value={tab}
-          onChange={(_, value) => setTab(value)}
+          value={section}
+          onChange={(_, value) => selectSection(value)}
           variant="scrollable"
         >
           <Tab
+            value="compartimentos"
             icon={<ApartmentOutlined />}
             iconPosition="start"
             label="Compartimentos"
           />
           <Tab
+            value="disciplinas"
             icon={<MenuBookOutlined />}
             iconPosition="start"
             label="Disciplinas"
           />
           <Tab
+            value="cursos"
             icon={<MenuBookOutlined />}
             iconPosition="start"
             label="Cursos"
           />
           {managerial && (
             <Tab
+              value="pessoas"
               icon={<PersonSearchOutlined />}
               iconPosition="start"
               label="Pessoas"
             />
           )}
+          {canEditCampuses && (
+            <Tab
+              value="campi"
+              icon={<LocationOnOutlined />}
+              iconPosition="start"
+              label="Campi"
+            />
+          )}
         </Tabs>
       </Paper>
-      {tab === 0 && <CompartimentosTree />}
-      {tab === 1 && <DisciplinasTree />}
-      {tab === 2 && <CursosTree />}
-      {tab === 3 && managerial && <PessoasTree />}
+      {section === "compartimentos" && <CompartimentosTree />}
+      {section === "disciplinas" && <DisciplinasTree />}
+      {section === "cursos" && <CursosTree />}
+      {section === "pessoas" && managerial && <PessoasTree />}
+      {section === "campi" && canEditCampuses && (
+        <CampusCoordinatesPage embedded />
+      )}
     </Stack>
   );
 }

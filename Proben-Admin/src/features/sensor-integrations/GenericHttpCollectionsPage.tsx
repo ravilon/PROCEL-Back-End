@@ -6,6 +6,7 @@ import {
   Card,
   CardContent,
   Checkbox,
+  Chip,
   FormControlLabel,
   MenuItem,
   Paper,
@@ -258,9 +259,13 @@ export function GenericHttpCollectionsPage() {
   return (
     <Stack spacing={3}>
       <Box>
-        <Typography variant="h4">Coletas HTTP</Typography>
+        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+          <Typography variant="h4">Perfis de integração HTTP</Typography>
+          <Chip label="Saída" color="primary" variant="outlined" />
+        </Stack>
         <Typography color="text.secondary">
-          Configure consultas externas que alimentam o pipeline canônico.
+          Configure perfis de saída que consultam provedores externos e
+          alimentam o pipeline canônico. Eles não expõem endpoints de entrada.
         </Typography>
       </Box>
       {message && <Alert onClose={() => setMessage("")}>{message}</Alert>}
@@ -277,7 +282,7 @@ export function GenericHttpCollectionsPage() {
             setTestError("");
           }}
         >
-          Nova coleta
+          Novo perfil de saída
         </Button>
         <Button variant="outlined" onClick={applyPreset}>
           Configurar WeatherAPI para um contexto
@@ -394,7 +399,7 @@ export function GenericHttpCollectionsPage() {
                       }
                     />
                   }
-                  label="Integração ativa"
+                  label="Perfil de saída ativo"
                 />
               </Stack>
             )}
@@ -763,7 +768,7 @@ export function GenericHttpCollectionsPage() {
                       }
                     />
                   }
-                  label="Coleta automática ativa"
+                  label="Execução automática ativa"
                 />
               </Stack>
             )}

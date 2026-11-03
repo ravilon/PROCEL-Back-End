@@ -15,7 +15,6 @@ import { SnapshotPage } from "./features/sensor-integrations/SnapshotPage";
 import { SyncAdminPage } from "./pages/SyncAdminPage";
 import { TelemetryOperationsPage } from "./pages/TelemetryOperationsPage";
 import { GenericHttpCollectionsPage } from "./features/sensor-integrations/GenericHttpCollectionsPage";
-import { CampusCoordinatesPage } from "./pages/CampusCoordinatesPage";
 
 export default function App() {
   return (
@@ -42,12 +41,16 @@ export default function App() {
             />
             <Route path="integracoes/snapshot" element={<SnapshotPage />} />
             <Route
-              path="integracoes/coletas-http"
+              path="integracoes/perfis-saida-http"
               element={<GenericHttpCollectionsPage />}
             />
             <Route
+              path="integracoes/coletas-http"
+              element={<Navigate to="/integracoes/perfis-saida-http" replace />}
+            />
+            <Route
               path="integracoes/coordenadas-campi"
-              element={<CampusCoordinatesPage />}
+              element={<Navigate to="/catalogo?secao=campi" replace />}
             />
             <Route
               path="sensores/contextos-compartilhados"

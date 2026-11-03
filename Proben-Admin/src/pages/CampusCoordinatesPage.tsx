@@ -12,7 +12,11 @@ import { useEffect, useMemo, useState } from "react";
 import { listCampuses, updateCampus, type Campus } from "../api/sharedContexts";
 import { useAuth } from "../auth/AuthContext";
 
-export function CampusCoordinatesPage() {
+export function CampusCoordinatesPage({
+  embedded = false,
+}: {
+  embedded?: boolean;
+}) {
   const { session } = useAuth();
   const [campuses, setCampuses] = useState<Campus[]>([]);
   const [query, setQuery] = useState("");
@@ -39,7 +43,9 @@ export function CampusCoordinatesPage() {
   return (
     <Stack spacing={2}>
       <div>
-        <Typography variant="h4">Coordenadas dos campi</Typography>
+        <Typography variant={embedded ? "h5" : "h4"}>
+          Coordenadas dos campi
+        </Typography>
         <Typography color="text.secondary">
           Referências geográficas usadas dinamicamente pelos contextos
           compartilhados.

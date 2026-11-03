@@ -114,24 +114,17 @@ export function IntegrationsAdminPage() {
         <Box>
           <Typography variant="h4">Integracoes</Typography>
           <Typography color="text.secondary">
-            Perfis abaixo recebem dados enviados ao PROBEN; coletas HTTP
-            consultam provedores periodicamente.
+            Perfis de entrada recebem dados enviados ao PROBEN; perfis de saída
+            HTTP consultam provedores externos periodicamente.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1}>
           <Button
             component={RouterLink}
-            to="/integracoes/coletas-http"
+            to="/integracoes/perfis-saida-http"
             variant="outlined"
           >
-            Coletas HTTP
-          </Button>
-          <Button
-            component={RouterLink}
-            to="/integracoes/coordenadas-campi"
-            variant="outlined"
-          >
-            Coordenadas dos campi
+            Perfis de saída HTTP
           </Button>
           <Button
             component={RouterLink}
@@ -145,7 +138,7 @@ export function IntegrationsAdminPage() {
             variant="contained"
             onClick={() => setCreateOpen(true)}
           >
-            Novo perfil
+            Novo perfil de entrada
           </Button>
         </Stack>
       </Stack>
@@ -203,7 +196,7 @@ export function IntegrationsAdminPage() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Novo perfil</DialogTitle>
+        <DialogTitle>Novo perfil de entrada</DialogTitle>
         <DialogContent>
           <ProfileForm
             pending={createProfile.isPending}

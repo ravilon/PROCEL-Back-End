@@ -36,6 +36,7 @@ import { useAuth } from "../auth/AuthContext";
 import { apiRequest } from "../lib/api";
 import { SensorRulesTreePanel } from "./SensorRulesTreePanel";
 import { SharedContextsPanel } from "../features/shared-contexts/SharedContextsPanel";
+import { EnvironmentRulesPanel } from "../features/environment-rules/EnvironmentRulesPanel";
 import type {
   GrupoRegra,
   ParametroDef,
@@ -116,12 +117,18 @@ export function SensorsAdminPage() {
             iconPosition="start"
             label="Contextos compartilhados"
           />
+          <Tab
+            icon={<RuleOutlined />}
+            iconPosition="start"
+            label="Regras de Ambiente"
+          />
         </Tabs>
       </Paper>
       {tab === 0 && <SensorTypesPanel />}
       {tab === 1 && <RuleGroupsPanel />}
       {tab === 2 && <SensorRulesTreePanel />}
       {tab === 3 && <SharedContextsPanel />}
+      {tab === 4 && <EnvironmentRulesPanel />}
     </Stack>
   );
 }

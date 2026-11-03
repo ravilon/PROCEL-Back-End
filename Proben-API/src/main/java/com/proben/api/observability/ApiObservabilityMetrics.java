@@ -185,6 +185,37 @@ public class ApiObservabilityMetrics {
                 .register(registry);
     }
 
+    public void environmentRuleProcessed(String executionType, String result, Duration duration) {
+        String type = executionType == null ? "unknown" : executionType.toLowerCase();
+        String outcome = result == null ? "unknown" : result.toLowerCase();
+        counter("proben.environment.rules.executions", "type", type, "result", outcome).increment();
+        timer("proben.environment.rules.duration", "type", type, "result", outcome).record(duration);
+    }
+
+    public void environmentRuleRetry(boolean terminal) {
+        counter("proben.environment.rules.retries", "terminal", Boolean.toString(terminal)).increment();
+    }
+
+    public void environmentRuleLeaseRecovered() {
+        counter("proben.environment.rules.leases.recovered").increment();
+    }
+
+    public void environmentRuleDuplicate() {
+        counter("proben.environment.rules.duplicates.prevented").increment();
+    }
+
+    public void environmentRulePoints(long amount) {
+        DistributionSummary.builder("proben.environment.rules.points")
+                .description("XP granted by environment rules")
+                .register(registry)
+                .record(Math.max(0, amount));
+    }
+
+    public void registerEnvironmentRuleBacklogGauge(Object owner, Supplier<Number> supplier) {
+        Gauge.builder("proben.environment.rules.backlog", owner, ignored -> supplier.get().doubleValue())
+                .register(registry);
+    }
+
     private Counter counter(String name, String... tags) {
         return Counter.builder(name).tags(tags).register(registry);
     }
