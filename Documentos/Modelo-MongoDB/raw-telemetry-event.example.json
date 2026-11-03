@@ -26,7 +26,7 @@
   "reprocessing": {
     "count": 1,
     "lastRequestedAt": "2026-08-19T09:15:00Z",
-    "lastRequestedBy": "admin@procel.local",
+    "lastRequestedBy": "admin@proben.local",
     "lastReason": "Reprocessar apos ativacao de binding correto"
   },
   "reprocessAudit": [
@@ -37,7 +37,7 @@
       "canonicalMeasurementId": null,
       "profileId": null,
       "parserVersionId": null,
-      "requestedBy": "admin@procel.local",
+      "requestedBy": "admin@proben.local",
       "requestedAt": "2026-08-19T09:15:00Z",
       "reason": "Reprocessar apos ativacao de binding correto"
     }

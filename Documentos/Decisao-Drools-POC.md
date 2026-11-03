@@ -2,20 +2,20 @@
 
 ## Problema
 
-O PROCEL precisa decidir se vale evoluir a prova de conceito do Drools para uma integracao de producao no fluxo de missoes. O objetivo tecnico avaliado foi suportar regras configuraveis e cenarios temporais com evidencias, relogio controlado, limites operacionais e isolamento entre avaliacoes, sem trocar o `SimpleMissionRuleEngine` como padrao.
+O PROBEN precisa decidir se vale evoluir a prova de conceito do Drools para uma integracao de producao no fluxo de missoes. O objetivo tecnico avaliado foi suportar regras configuraveis e cenarios temporais com evidencias, relogio controlado, limites operacionais e isolamento entre avaliacoes, sem trocar o `SimpleMissionRuleEngine` como padrao.
 
 ## Contexto
 
 - `SimpleMissionRuleEngine` permanece a implementacao padrao.
-- `DroolsMissionRuleEngine` continua opt-in por `procel.missions.rule-engine=drools`.
+- `DroolsMissionRuleEngine` continua opt-in por `proben.missions.rule-engine=drools`.
 - O worker instantaneo de missoes nao chama Drools.
-- O worker temporal pode chamar Drools somente quando `procel.missions.evaluation.temporal-windows.drools-enabled=true`.
+- O worker temporal pode chamar Drools somente quando `proben.missions.evaluation.temporal-windows.drools-enabled=true`.
 - Nao ha DRL fornecido por usuario; as regras sao geradas a partir de `EventoDefinicao` e `EventoCondicao`.
 - Nao ha acesso a repositories, entidades JPA, persistencia, atividades ou XP dentro do engine.
 
 ## Dependencias e custo
 
-Dependencias diretas adicionadas ao Procel-API:
+Dependencias diretas adicionadas ao Proben-API:
 
 - `org.kie:kie-api:10.2.0`
 - `org.kie:kie-internal:10.2.0`
@@ -52,17 +52,17 @@ Limites padrao:
 
 Metricas adicionadas:
 
-- `procel.missions.drools.compilations`
-- `procel.missions.drools.compilation.duration`
-- `procel.missions.drools.compilation.failures`
-- `procel.missions.drools.cache.hits`
-- `procel.missions.drools.cache.misses`
-- `procel.missions.drools.cache.evictions`
-- `procel.missions.drools.evaluations`
-- `procel.missions.drools.evaluation.duration`
-- `procel.missions.drools.evaluation.failures`
-- `procel.missions.drools.facts`
-- `procel.missions.drools.limit.rejections`
+- `proben.missions.drools.compilations`
+- `proben.missions.drools.compilation.duration`
+- `proben.missions.drools.compilation.failures`
+- `proben.missions.drools.cache.hits`
+- `proben.missions.drools.cache.misses`
+- `proben.missions.drools.cache.evictions`
+- `proben.missions.drools.evaluations`
+- `proben.missions.drools.evaluation.duration`
+- `proben.missions.drools.evaluation.failures`
+- `proben.missions.drools.facts`
+- `proben.missions.drools.limit.rejections`
 
 Tags usadas:
 
@@ -88,7 +88,7 @@ ficam visiveis tambem dentro dos forks.
 Comando forkado usado:
 
 ```powershell
-.\Procel-API\mvnw.cmd -f Procel-API/pom.xml -Pdrools-benchmark -DskipTests test-compile exec:exec
+.\Proben-API\mvnw.cmd -f Proben-API/pom.xml -Pdrools-benchmark -DskipTests test-compile exec:exec
 ```
 
 Ambiente:
@@ -96,7 +96,7 @@ Ambiente:
 - Windows 11.
 - JVM reportada pelo JMH: OpenJDK 21.0.10.
 - Execucao forkada com `2` forks, `5` warmups, `10` medicoes, `1s` por iteracao e `-prof gc`.
-- Resultados exportados para `Procel-API/target/drools-jmh-results.csv`.
+- Resultados exportados para `Proben-API/target/drools-jmh-results.csv`.
 - WMI local para CPU/memoria foi bloqueado pelo ambiente; por isso, o hardware nao foi identificado automaticamente.
 - Esta medicao e reprodutivel no workspace, mas ainda nao substitui benchmark de producao em ambiente dedicado.
 

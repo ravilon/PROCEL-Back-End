@@ -1,5 +1,5 @@
 <#
-PROCEL Ingestion - API smoke test script (PowerShell)
+PROBEN Ingestion - API smoke test script (PowerShell)
 Backend changed to accept from/to as STRING and parse with Instant.parse().
 So we can send ISO-8601 strings directly (no URL-encoding required).
 
@@ -43,16 +43,16 @@ Assumes endpoints:
 #>
 
 param(
-  [string]$Target = $env:PROCEL_API_TARGET,
+  [string]$Target = $env:PROBEN_API_TARGET,
 
-  [string]$BaseUrlOverride = $env:PROCEL_API_BASE_URL,
+  [string]$BaseUrlOverride = $env:PROBEN_API_BASE_URL,
 
   [ValidateSet("Auto", "PowerShell", "Node")]
-  [string]$HttpTransport = $env:PROCEL_API_HTTP_TRANSPORT,
+  [string]$HttpTransport = $env:PROBEN_API_HTTP_TRANSPORT,
 
   [int]$RequestTimeoutSeconds = 120,
 
-  [string]$ReportPath = $env:PROCEL_API_SMOKE_REPORT_PATH
+  [string]$ReportPath = $env:PROBEN_API_SMOKE_REPORT_PATH
 )
 
 $ErrorActionPreference = "Stop"
@@ -61,7 +61,7 @@ $ErrorActionPreference = "Stop"
 # Config
 # ---------------------------
 $ApiTargets = @{
-  prod = "https://procel.servehttp.com"
+  prod = "https://proben.servehttp.com"
   local = "http://localhost:8080"
 }
 
@@ -89,9 +89,9 @@ $SensorTipoNome = "SII_SMART"
 $RuleParametroNome = "temperature_c"
 
 $PessoaId = "api-test-user"
-$PessoaEmail = "api-test-user@procel.local"
+$PessoaEmail = "api-test-user@proben.local"
 
-$AdminEmail = "admin@procel.local"
+$AdminEmail = "admin@proben.local"
 $AdminPassword = "admin123"
 $JwtToken = $null
 $AdminJwtToken = $null
@@ -129,7 +129,7 @@ function WriteSmokeReport([string]$FinalStatus, [string]$FailureMessage = "") {
   $failed = @($SmokeResults | Where-Object { $_.status -eq "FAIL" }).Count
 
   $lines = [System.Collections.Generic.List[string]]::new()
-  $lines.Add("# PROCEL API Smoke Test Report") | Out-Null
+  $lines.Add("# PROBEN API Smoke Test Report") | Out-Null
   $lines.Add("") | Out-Null
   $lines.Add("- Status: $FinalStatus") | Out-Null
   $lines.Add("- Target: $Target") | Out-Null
@@ -557,7 +557,7 @@ if ([string]::IsNullOrWhiteSpace($UserJwtToken)) { throw "No accessToken returne
 Write-Host "[OK] Test user JWT token acquired. ExpiresAt: $($userLogin.expiresAt)" -ForegroundColor Green
 
 $DisposablePessoaId = "api-delete-$SmokeRunId"
-$DisposablePessoaEmail = "$DisposablePessoaId@procel.local"
+$DisposablePessoaEmail = "$DisposablePessoaId@proben.local"
 $disposablePessoa = TryCall "POST /api/pessoas (disposable delete test)" {
   InvokeApi "/api/pessoas" -Method POST -Body @{
     nome="API Disposable User"

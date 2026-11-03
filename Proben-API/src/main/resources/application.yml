@@ -1,0 +1,113 @@
+spring:
+  application:
+    name: proben-api
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/proben_analytics}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    hikari:
+      connection-timeout: ${SPRING_DATASOURCE_CONNECTION_TIMEOUT_MS:10000}
+      validation-timeout: ${SPRING_DATASOURCE_VALIDATION_TIMEOUT_MS:5000}
+      initialization-fail-timeout: ${SPRING_DATASOURCE_INITIALIZATION_FAIL_TIMEOUT_MS:1}
+      data-source-properties:
+        loginTimeout: ${SPRING_DATASOURCE_LOGIN_TIMEOUT_SECONDS:10}
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 1
+    encoding: UTF-8
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate.SQL: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+proben:
+  rooms:
+    source: cobalto # cobalto | resource
+    resource-path: seed/cobalto-compartimentos.sample.json
+  sensors:
+    seed-path: seed/sensors/sensors.seed.json
+
+  shared-context:
+    collector:
+      enabled: ${PROBEN_SHARED_CONTEXT_COLLECTOR_ENABLED:false}
+      poll-interval: ${PROBEN_SHARED_CONTEXT_COLLECTOR_POLL_INTERVAL:30s}
+
+  missions:
+    rule-engine: ${PROBEN_MISSIONS_RULE_ENGINE:simple}
+    evaluation:
+      worker-enabled: ${PROBEN_MISSIONS_EVALUATION_WORKER_ENABLED:false}
+      temporal-windows:
+        enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED:false}
+        worker-enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED:false}
+        drools-enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED:false}
+        activities-enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED:false}
+
+  analytics:
+    aggregation:
+      worker-enabled: ${PROBEN_ANALYTICS_AGGREGATION_WORKER_ENABLED:false}
+      poll-interval: ${PROBEN_ANALYTICS_AGGREGATION_POLL_INTERVAL:5s}
+      lease-timeout: ${PROBEN_ANALYTICS_AGGREGATION_LEASE_TIMEOUT:10m}
+      max-attempts: ${PROBEN_ANALYTICS_AGGREGATION_MAX_ATTEMPTS:3}
+      backoff: ${PROBEN_ANALYTICS_AGGREGATION_BACKOFF:1m}
+      max-interval: ${PROBEN_ANALYTICS_AGGREGATION_MAX_INTERVAL:366d}
+      min-window: ${PROBEN_ANALYTICS_AGGREGATION_MIN_WINDOW:1m}
+      max-window: ${PROBEN_ANALYTICS_AGGREGATION_MAX_WINDOW:31d}
+      max-windows: ${PROBEN_ANALYTICS_AGGREGATION_MAX_WINDOWS:10000}
+      measurement-page-size: ${PROBEN_ANALYTICS_AGGREGATION_MEASUREMENT_PAGE_SIZE:500}
+      batch-size: ${PROBEN_ANALYTICS_AGGREGATION_BATCH_SIZE:5}
+      aggregation-version: ${PROBEN_ANALYTICS_AGGREGATION_VERSION:1}
+    buckets:
+      max-period: ${PROBEN_ANALYTICS_BUCKETS_MAX_PERIOD:366d}
+      max-page-size: ${PROBEN_ANALYTICS_BUCKETS_MAX_PAGE_SIZE:200}
+
+  cors:
+    allowed-origin-patterns: ${PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}
+
+  security:
+    jwt:
+      secret: ${PROBEN_JWT_SECRET:${PROBEN_TELEMETRY_SERVICE_JWT_SECRET:change-this-local-development-secret-32chars}}
+      expiration-minutes: ${PROBEN_JWT_EXPIRATION_MINUTES:60}
+    bootstrap-admin:
+      enabled: ${PROBEN_BOOTSTRAP_ADMIN_ENABLED:true}
+      user-id: ${PROBEN_BOOTSTRAP_ADMIN_USER_ID:admin}
+      nome: ${PROBEN_BOOTSTRAP_ADMIN_NOME:Administrador PROBEN}
+      email: ${PROBEN_BOOTSTRAP_ADMIN_EMAIL:admin@proben.local}
+      password: ${PROBEN_BOOTSTRAP_ADMIN_PASSWORD:admin123}
+
+  cobalto:
+    rooms:
+      url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaSalas/
+      schedule-url: https://cobalto.ufpel.edu.br/servicosgerais/consultas/salasDeAula/listaCompartimentosTurmasHorariosTurno/
+      timeout-ms: 60000
+      page-size: 800
+      php-sessid: ""   # opcional (se precisar)

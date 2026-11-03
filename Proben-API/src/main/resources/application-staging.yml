@@ -1,0 +1,60 @@
+spring:
+  config:
+    activate:
+      on-profile: staging
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+
+logging:
+  level:
+    org.hibernate.SQL: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+proben:
+  security:
+    bootstrap-admin:
+      enabled: ${PROBEN_BOOTSTRAP_ADMIN_ENABLED:false}
+  analytics:
+    aggregation:
+      worker-enabled: ${PROBEN_ANALYTICS_AGGREGATION_WORKER_ENABLED:false}
+  missions:
+    rule-engine: ${PROBEN_MISSIONS_RULE_ENGINE:simple}
+    drools:
+      max-facts-per-evaluation: ${PROBEN_MISSIONS_DROOLS_MAX_FACTS_PER_EVALUATION:5000}
+      max-cache-entries: ${PROBEN_MISSIONS_DROOLS_MAX_CACHE_ENTRIES:200}
+      cache-expiration: ${PROBEN_MISSIONS_DROOLS_CACHE_EXPIRATION:30m}
+      compilation-timeout: ${PROBEN_MISSIONS_DROOLS_COMPILATION_TIMEOUT:10s}
+      evaluation-timeout: ${PROBEN_MISSIONS_DROOLS_EVALUATION_TIMEOUT:5s}
+      maximum-sample-gap: ${PROBEN_MISSIONS_DROOLS_MAXIMUM_SAMPLE_GAP:5m}
+      maximum-evaluation-span: ${PROBEN_MISSIONS_DROOLS_MAXIMUM_EVALUATION_SPAN:24h}
+    evaluation:
+      worker-enabled: ${PROBEN_MISSIONS_EVALUATION_WORKER_ENABLED:false}
+      fixed-delay: ${PROBEN_MISSIONS_EVALUATION_FIXED_DELAY:5s}
+      batch-size: ${PROBEN_MISSIONS_EVALUATION_BATCH_SIZE:20}
+      lease-duration: ${PROBEN_MISSIONS_EVALUATION_LEASE_DURATION:1m}
+      max-attempts: ${PROBEN_MISSIONS_EVALUATION_MAX_ATTEMPTS:5}
+      initial-backoff: ${PROBEN_MISSIONS_EVALUATION_INITIAL_BACKOFF:5s}
+      max-backoff: ${PROBEN_MISSIONS_EVALUATION_MAX_BACKOFF:5m}
+      temporal-windows:
+        enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED:false}
+        worker-enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED:false}
+        drools-enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED:false}
+        activities-enabled: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED:false}
+        fixed-delay: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_FIXED_DELAY:5s}
+        batch-size: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_BATCH_SIZE:20}
+        lease-duration: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_LEASE_DURATION:1m}
+        max-attempts: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAX_ATTEMPTS:5}
+        max-backlog: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAX_BACKLOG:10000}
+        initial-backoff: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_INITIAL_BACKOFF:5s}
+        max-backoff: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAX_BACKOFF:5m}
+        maximum-sample-gap: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_SAMPLE_GAP:5m}
+        maximum-window-duration: ${PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_WINDOW_DURATION:24h}

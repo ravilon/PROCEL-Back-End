@@ -1,0 +1,34 @@
+spring:
+  config:
+    activate:
+      on-profile: staging
+  data:
+    mongodb:
+      auto-index-creation: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+proben:
+  telemetry:
+    retention-days: ${PROBEN_TELEMETRY_RETENTION_DAYS:7}
+    canonical-worker:
+      enabled: ${PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED:false}
+      api-base-url: ${PROBEN_API_BASE_URL}
+      poll-interval: ${PROBEN_TELEMETRY_WORKER_POLL_INTERVAL:PT5S}
+      lease-timeout: ${PROBEN_TELEMETRY_WORKER_LEASE_TIMEOUT:PT5M}
+      batch-size: ${PROBEN_TELEMETRY_WORKER_BATCH_SIZE:10}
+      max-attempts: ${PROBEN_TELEMETRY_WORKER_MAX_ATTEMPTS:5}
+      backoff: ${PROBEN_TELEMETRY_WORKER_BACKOFF:PT30S,PT2M,PT10M,PT30M,PT2H}
+      snapshot-cache-ttl: ${PROBEN_TELEMETRY_SNAPSHOT_CACHE_TTL:PT5M}
+    mqtt:
+      enabled: ${PROBEN_TELEMETRY_MQTT_ENABLED:false}
+      broker-url: ${PROBEN_TELEMETRY_MQTT_BROKER_URL}
+      client-id: ${PROBEN_TELEMETRY_MQTT_CLIENT_ID:proben-telemetry-staging}
+      clean-start: ${PROBEN_TELEMETRY_MQTT_CLEAN_START:false}
+      session-expiry: ${PROBEN_TELEMETRY_MQTT_SESSION_EXPIRY:PT24H}
+      tls:
+        enabled: ${PROBEN_TELEMETRY_MQTT_TLS_ENABLED:true}

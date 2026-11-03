@@ -1,0 +1,29 @@
+package com.proben.api.service.missions.rules;
+
+import com.proben.api.entity.missions.EventoDefinicao;
+import com.proben.api.service.academic.AcademicContext;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+public record MissionEvaluationContext(
+        Instant evaluationTime,
+        EventoDefinicao eventDefinition,
+        Optional<AcademicContext> academicContext,
+        List<MeasurementFact> measurements,
+        List<RuleEvaluationFact> ruleEvaluations
+) {
+    public MissionEvaluationContext {
+        if (evaluationTime == null) throw new IllegalArgumentException("evaluationTime is required");
+        if (eventDefinition == null) throw new IllegalArgumentException("eventDefinition is required");
+        academicContext = academicContext == null ? Optional.empty() : academicContext;
+        measurements = measurements == null ? List.of() : List.copyOf(measurements);
+        ruleEvaluations = ruleEvaluations == null ? List.of() : List.copyOf(ruleEvaluations);
+    }
+
+    public MissionEvaluationContext(Instant evaluationTime, EventoDefinicao eventDefinition,
+            Optional<AcademicContext> academicContext, List<MeasurementFact> measurements) {
+        this(evaluationTime, eventDefinition, academicContext, measurements, List.of());
+    }
+}

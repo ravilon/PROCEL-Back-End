@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: proben-telemetry
+
+  mongodb:
+    uri: ${SPRING_MONGODB_URI:${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/proben_telemetry}}
+
+  data:
+    mongodb:
+      auto-index-creation: true
+
+springdoc:
+  swagger-ui:
+    path: /docs
+    operations-sorter: method
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+proben:
+  telemetry:
+    max-payload-bytes: ${PROBEN_TELEMETRY_MAX_PAYLOAD_BYTES:262144}
+    retention-days: ${PROBEN_TELEMETRY_RETENTION_DAYS:30}
+    canonical-worker:
+      enabled: ${PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED:false}
+      api-base-url: ${PROBEN_API_BASE_URL:http://localhost:8080}
+      poll-interval: ${PROBEN_TELEMETRY_WORKER_POLL_INTERVAL:PT5S}
+      lease-timeout: ${PROBEN_TELEMETRY_WORKER_LEASE_TIMEOUT:PT5M}
+      batch-size: ${PROBEN_TELEMETRY_WORKER_BATCH_SIZE:10}
+      max-attempts: ${PROBEN_TELEMETRY_WORKER_MAX_ATTEMPTS:5}
+      backoff: ${PROBEN_TELEMETRY_WORKER_BACKOFF:PT30S,PT2M,PT10M,PT30M,PT2H}
+      snapshot-cache-ttl: ${PROBEN_TELEMETRY_SNAPSHOT_CACHE_TTL:PT5M}
+      jwt:
+        subject: ${PROBEN_TELEMETRY_SERVICE_JWT_SUBJECT:proben-telemetry}
+        secret: ${PROBEN_TELEMETRY_SERVICE_JWT_SECRET:change-this-local-development-secret-32chars}
+        ttl: ${PROBEN_TELEMETRY_SERVICE_JWT_TTL:PT5M}
+    mqtt:
+      enabled: ${PROBEN_TELEMETRY_MQTT_ENABLED:false}
+      broker-url: ${PROBEN_TELEMETRY_MQTT_BROKER_URL:tcp://localhost:1883}
+      client-id: ${PROBEN_TELEMETRY_MQTT_CLIENT_ID:proben-telemetry}
+      topic-filters: ${PROBEN_TELEMETRY_MQTT_TOPIC_FILTERS:proben/telemetry/v1/+/+/events,proben/telemetry/v1/+/events}
+      qos: ${PROBEN_TELEMETRY_MQTT_QOS:1}
+      reject-retained: ${PROBEN_TELEMETRY_MQTT_REJECT_RETAINED:true}
+      clean-start: ${PROBEN_TELEMETRY_MQTT_CLEAN_START:false}
+      session-expiry: ${PROBEN_TELEMETRY_MQTT_SESSION_EXPIRY:PT24H}
+      connection-timeout: ${PROBEN_TELEMETRY_MQTT_CONNECTION_TIMEOUT:PT10S}
+      keep-alive: ${PROBEN_TELEMETRY_MQTT_KEEP_ALIVE:PT30S}
+      automatic-reconnect: ${PROBEN_TELEMETRY_MQTT_AUTOMATIC_RECONNECT:true}
+      reconnect-min-delay: ${PROBEN_TELEMETRY_MQTT_RECONNECT_MIN_DELAY:PT1S}
+      reconnect-max-delay: ${PROBEN_TELEMETRY_MQTT_RECONNECT_MAX_DELAY:PT30S}
+      username: ${PROBEN_TELEMETRY_MQTT_USERNAME:}
+      password: ${PROBEN_TELEMETRY_MQTT_PASSWORD:}
+      tls:
+        enabled: ${PROBEN_TELEMETRY_MQTT_TLS_ENABLED:false}
+        trust-store: ${PROBEN_TELEMETRY_MQTT_TLS_TRUST_STORE:}
+        trust-store-password: ${PROBEN_TELEMETRY_MQTT_TLS_TRUST_STORE_PASSWORD:}
+        key-store: ${PROBEN_TELEMETRY_MQTT_TLS_KEY_STORE:}
+        key-store-password: ${PROBEN_TELEMETRY_MQTT_TLS_KEY_STORE_PASSWORD:}
+
+  cors:
+    allowed-origin-patterns: ${PROBEN_TELEMETRY_CORS_ALLOWED_ORIGIN_PATTERNS:${PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS:http://localhost:*,http://127.0.0.1:*,http://192.168.*.*:*,http://10.*.*.*:*,http://172.16.*.*:*,http://172.17.*.*:*,http://172.18.*.*:*,http://172.19.*.*:*,http://172.20.*.*:*,http://172.21.*.*:*,http://172.22.*.*:*,http://172.23.*.*:*,http://172.24.*.*:*,http://172.25.*.*:*,http://172.26.*.*:*,http://172.27.*.*:*,http://172.28.*.*:*,http://172.29.*.*:*,http://172.30.*.*:*,http://172.31.*.*:*}}
+
+  security:
+    jwt:
+      secret: ${PROBEN_JWT_SECRET:change-this-local-development-secret-32chars}
+      expiration-minutes: ${PROBEN_JWT_EXPIRATION_MINUTES:60}

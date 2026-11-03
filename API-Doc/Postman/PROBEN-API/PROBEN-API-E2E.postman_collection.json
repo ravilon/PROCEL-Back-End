@@ -1,0 +1,350 @@
+{
+  "info": {
+    "_postman_id": "6b9f0a40-3f6c-4c2a-9d2f-proben-current",
+    "name": "PROBEN API e Telemetry - Contratos atuais",
+    "description": "Colecao local para validar contratos implementados. Nao contem credenciais de producao.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwtToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Proben-API health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('health ok', function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Proben-Telemetry health",
+          "request": {
+            "method": "GET",
+            "url": "{{telemetryUrl}}/actuator/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"{{adminEmail}}\",\"password\":\"{{adminPassword}}\"}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('login success', function () { pm.response.to.have.status(200); });",
+                  "const json = pm.response.json();",
+                  "pm.environment.set('jwtToken', json.token || json.accessToken || json.jwt || '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Ingestao canonica",
+      "item": [
+        {
+          "name": "Criar medicao canonica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"postman-canonical-{{$timestamp}}\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{fromIso}}\",\"source\":\"POSTMAN\",\"sourceReceivedAt\":\"{{fromIso}}\",\"values\":[{\"parameter\":\"temperature\",\"numericValue\":24.50}]}"
+            },
+            "url": "{{baseUrl}}/api/sensors/ingest"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('created or duplicate', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "if (json.medicaoId) pm.environment.set('canonicalMeasurementId', json.medicaoId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Duplicata equivalente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"{{telemetryMessageId}}\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{fromIso}}\",\"source\":\"POSTMAN\",\"sourceReceivedAt\":\"{{fromIso}}\",\"values\":[{\"parameter\":\"temperature\",\"numericValue\":24.50}]}"
+            },
+            "url": "{{baseUrl}}/api/sensors/ingest"
+          }
+        },
+        {
+          "name": "Conflito idempotente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"{{telemetryMessageId}}\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{toIso}}\",\"source\":\"POSTMAN\",\"sourceReceivedAt\":\"{{toIso}}\",\"values\":[{\"parameter\":\"temperature\",\"numericValue\":99.99}]}"
+            },
+            "url": "{{baseUrl}}/api/sensors/ingest"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Integracoes",
+      "item": [
+        {
+          "name": "Listar perfis",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles"
+          }
+        },
+        {
+          "name": "Detalhar perfil",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles/{{profileId}}"
+          }
+        },
+        {
+          "name": "Listar versoes do perfil",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles/{{profileId}}/versions"
+          }
+        },
+        {
+          "name": "Ativar versao",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/sensor-integrations/profiles/{{profileId}}/versions/{{parserVersionId}}/activate"
+          }
+        },
+        {
+          "name": "Listar bindings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/bindings?profileId={{profileId}}"
+          }
+        },
+        {
+          "name": "Ativar binding",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/sensor-integrations/bindings/{{bindingId}}/activate"
+          }
+        },
+        {
+          "name": "Snapshot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/sensor-integrations/snapshot"
+          }
+        },
+        {
+          "name": "Ingestao externa PAYLOAD_POINTER",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"profile-msg-{{$timestamp}}\",\"sensorId\":\"{{sensorExternalId}}\",\"timestamp\":\"{{fromIso}}\",\"payload\":{\"temperature\":24.5}}"
+            },
+            "url": "{{baseUrl}}/api/sensors/ingest/integrations/{{profileId}}"
+          }
+        },
+        {
+          "name": "Ingestao externa ROUTE_SENSOR",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"messageId\":\"profile-route-msg-{{$timestamp}}\",\"timestamp\":\"{{fromIso}}\",\"payload\":{\"temperature\":24.5}}"
+            },
+            "url": "{{baseUrl}}/api/sensors/{{sensorExternalId}}/ingest/integrations/{{profileId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Telemetry",
+      "item": [
+        {
+          "name": "Ingestao REST bruta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"source\":\"REST\",\"messageId\":\"{{telemetryMessageId}}\",\"sensorId\":\"{{sensorExternalId}}\",\"sourceTimestamp\":\"{{fromIso}}\",\"payload\":{\"temperature\":24.5}}"
+            },
+            "url": "{{telemetryUrl}}/api/telemetry/events"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('accepted or duplicate', function () { pm.expect([200,201]).to.include(pm.response.code); });",
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.environment.set('rawTelemetryEventId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Listar eventos",
+          "request": {
+            "method": "GET",
+            "url": "{{telemetryUrl}}/api/telemetry/events?page=0&size=20&sensorId={{sensorExternalId}}"
+          }
+        },
+        {
+          "name": "Detalhar evento",
+          "request": {
+            "method": "GET",
+            "url": "{{telemetryUrl}}/api/telemetry/events/{{rawTelemetryEventId}}"
+          }
+        },
+        {
+          "name": "Reprocessar evento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Reprocessamento manual de exemplo local\"}"
+            },
+            "url": "{{telemetryUrl}}/api/telemetry/events/{{rawTelemetryEventId}}/reprocess"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Agregacoes",
+      "item": [
+        {
+          "name": "Criar job de agregacao",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"from\":\"{{fromIso}}\",\"to\":\"{{toIso}}\",\"windowDuration\":\"PT15M\",\"sensorExternalId\":\"{{sensorExternalId}}\",\"compartimentoId\":\"{{roomId}}\"}"
+            },
+            "url": "{{baseUrl}}/api/analytics/aggregation-jobs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('accepted', function () { pm.response.to.have.status(202); });",
+                  "const json = pm.response.json();",
+                  "if (json.id) pm.environment.set('aggregationJobId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Consultar job de agregacao",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/analytics/aggregation-jobs/{{aggregationJobId}}"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,588 @@
+import {
+  Alert,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  FormControlLabel,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import { useEffect, useState } from "react";
+import { useAuth } from "../../auth/AuthContext";
+import {
+  collectSharedIntegration,
+  createSharedContext,
+  listCampuses,
+  listSharedContexts,
+  listSharedIntegrations,
+  removeSharedIntegrationCredential,
+  replaceContextRooms,
+  saveSharedIntegration,
+  selectSharedSourceBatch,
+  setSharedIntegrationActive,
+  testSharedIntegration,
+  testSharedIntegrationConfiguration,
+  updateCampus,
+  type Campus,
+  type IntegrationPayload,
+  type SharedContext,
+  type SharedIntegration,
+} from "../../api/sharedContexts";
+import { listCatalogSensors } from "../../api/catalog";
+import { listSensorTypes } from "../../api/sensors";
+import type { ParametroDef, Sensor } from "../../types/sensors";
+const defaults: IntegrationPayload = {
+  sensorExternalId: "",
+  nome: "WeatherAPI",
+  ativo: true,
+  endpointUrl: "https://api.weatherapi.com/v1/current.json",
+  metodo: "GET",
+  contentType: "application/json",
+  authMode: "QUERY",
+  credential: "",
+  credentialQueryParam: "key",
+  coordinateQueryParam: "q",
+  queryParamsJson: "{}",
+  mappings: [],
+  temperatureJsonPointer: "/current/temp_c",
+  observedAtJsonPointer: "/current/last_updated_epoch",
+  observedAtFormat: "UNIX_SECONDS",
+  intervalSeconds: 900,
+  timeoutMillis: 5000,
+  maxAttempts: 2,
+  retryDelayMillis: 500,
+  validitySeconds: 3600,
+  automaticCollection: false,
+};
+export function SharedCollectionOperations() {
+  const { session } = useAuth();
+  const [contexts, setContexts] = useState<SharedContext[]>([]);
+  const [campuses, setCampuses] = useState<Campus[]>([]);
+  const [sensors, setSensors] = useState<Sensor[]>([]);
+  const [parameters, setParameters] = useState<ParametroDef[]>([]);
+  const [items, setItems] = useState<SharedIntegration[]>([]);
+  const [selected, setSelected] = useState("");
+  const [editingId, setEditingId] = useState<string>();
+  const [credentialConfigured, setCredentialConfigured] = useState(false);
+  const [form, setForm] = useState<IntegrationPayload>(defaults);
+  const [message, setMessage] = useState("");
+  const [contextName, setContextName] = useState("");
+  const [mode, setMode] = useState<"OWN" | "CAMPUS">("CAMPUS");
+  const [campus, setCampus] = useState("");
+  const [lat, setLat] = useState("");
+  const [lon, setLon] = useState("");
+  const [rooms, setRooms] = useState("");
+  const [parameter, setParameter] = useState("");
+  const reload = async () => {
+    const [cs, cps] = await Promise.all([
+      listSharedContexts(session),
+      listCampuses(session),
+    ]);
+    setContexts(cs);
+    setCampuses(cps);
+    setItems(
+      (
+        await Promise.all(cs.map((c) => listSharedIntegrations(c.id, session)))
+      ).flat(),
+    );
+    if (!selected && cs[0]) setSelected(cs[0].id);
+  };
+  useEffect(() => {
+    void listSharedContexts(session)
+      .then(async (cs) => {
+        setContexts(cs);
+        setCampuses(await listCampuses(session));
+        setSensors(await listCatalogSensors(session));
+        setParameters(
+          (await listSensorTypes(session))
+            .flatMap((t) => t.parametros)
+            .filter(
+              (p) =>
+                p.nome === "temperatura_externa" &&
+                p.dataType === "NUMERIC" &&
+                p.ativo,
+            ),
+        );
+        setItems(
+          (
+            await Promise.all(
+              cs.map((c) => listSharedIntegrations(c.id, session)),
+            )
+          ).flat(),
+        );
+        if (cs[0]) setSelected(cs[0].id);
+      })
+      .catch((e) =>
+        setMessage(e instanceof Error ? e.message : "Falha ao carregar"),
+      );
+  }, [session]);
+  const create = async () => {
+    try {
+      const c = await createSharedContext(
+        {
+          nome: contextName,
+          ativo: true,
+          locationMode: mode,
+          campusNome: mode === "CAMPUS" ? campus : null,
+          latitude: mode === "OWN" && lat ? Number(lat) : null,
+          longitude: mode === "OWN" && lon ? Number(lon) : null,
+          timezone: "America/Sao_Paulo",
+        },
+        session,
+      );
+      setSelected(c.id);
+      setContextName("");
+      await reload();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Falha");
+    }
+  };
+  const payload = (): IntegrationPayload => ({
+    ...form,
+    credential: form.credential?.trim() ? form.credential : undefined,
+  });
+  const clearCredential = () =>
+    setForm((current) => ({ ...current, credential: "" }));
+  const save = async () => {
+    try {
+      if (!selected) throw new Error("Selecione um contexto");
+      const saved = await saveSharedIntegration(selected, payload(), session);
+      setEditingId(saved.id);
+      setCredentialConfigured(saved.credentialConfigured);
+      setMessage("Coleta salva; a credencial não será exibida novamente.");
+      await reload();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Falha");
+    } finally {
+      clearCredential();
+    }
+  };
+  const testForm = async () => {
+    try {
+      if (!selected) throw new Error("Selecione um contexto");
+      const r = await testSharedIntegrationConfiguration(
+        selected,
+        payload(),
+        session,
+      );
+      setMessage(
+        `${r.outcome}: ${r.value} °C em ${r.observationAt ? new Date(r.observationAt).toLocaleString() : "horário indisponível"}`,
+      );
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Falha");
+    } finally {
+      clearCredential();
+    }
+  };
+  const edit = (i: SharedIntegration) => {
+    setSelected(i.contextoId);
+    setEditingId(i.id);
+    setCredentialConfigured(i.credentialConfigured);
+    setForm({ ...defaults, ...i, credential: "" });
+  };
+  const removeCredential = async () => {
+    if (!editingId) return;
+    try {
+      await removeSharedIntegrationCredential(editingId, session);
+      setCredentialConfigured(false);
+      setMessage("Credencial removida.");
+      await reload();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Falha");
+    }
+  };
+  const run = async (i: SharedIntegration, test: boolean) => {
+    try {
+      const r = test
+        ? await testSharedIntegration(i.id, session)
+        : await collectSharedIntegration(i.id, session);
+      setMessage(
+        `${r.outcome}: ${r.value} °C em ${r.observationAt ? new Date(r.observationAt).toLocaleString() : "horário indisponível"}`,
+      );
+      await reload();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Falha");
+    }
+  };
+  const batch = async () => {
+    try {
+      const ids = rooms
+        .split(",")
+        .map((v) => v.trim())
+        .filter(Boolean);
+      await replaceContextRooms(selected, ids, session);
+      await selectSharedSourceBatch(
+        {
+          compartimentoIds: ids,
+          parametroDefId: parameter,
+          sensorExternalId: form.sensorExternalId,
+          validadeSegundos: 3600,
+        },
+        session,
+      );
+      setMessage("Cobertura e fonte aplicadas ao lote.");
+      await reload();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Falha");
+    }
+  };
+  return (
+    <Stack spacing={3}>
+      <div>
+        <Typography variant="h4">Coletas HTTP periódicas</Typography>
+        <Typography color="text.secondary">
+          Consulta ativa de provedores. Perfis de recebimento permanecem
+          separados.
+        </Typography>
+      </div>
+      {message && <Alert onClose={() => setMessage("")}>{message}</Alert>}
+      <Card>
+        <CardContent>
+          <Stack spacing={1}>
+            <Typography variant="h6">Credencial do provedor</Typography>
+            <TextField
+              type="password"
+              autoComplete="new-password"
+              label="Chave do provedor"
+              value={form.credential ?? ""}
+              onChange={(e) => setForm({ ...form, credential: e.target.value })}
+              helperText={
+                credentialConfigured
+                  ? "Credencial configurada. Deixe vazio para preservar a chave atual."
+                  : "A chave será criptografada pelo backend e não será exibida novamente."
+              }
+            />
+            <Stack direction="row" spacing={1}>
+              <Button onClick={() => void testForm()}>Testar sem salvar</Button>
+              {editingId && credentialConfigured && (
+                <Button color="error" onClick={() => void removeCredential()}>
+                  Remover credencial
+                </Button>
+              )}
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
+          <Typography variant="h6">Coordenadas dos campi</Typography>
+          {campuses.map((c) => (
+            <CampusRow key={c.nome} campus={c} onSaved={reload} />
+          ))}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
+          <Stack spacing={2}>
+            <Typography variant="h6">Contexto geográfico</Typography>
+            <TextField
+              label="Nome"
+              value={contextName}
+              onChange={(e) => setContextName(e.target.value)}
+            />
+            <TextField
+              select
+              label="Referência"
+              value={mode}
+              onChange={(e) => setMode(e.target.value as "OWN" | "CAMPUS")}
+            >
+              <MenuItem value="CAMPUS">Campus</MenuItem>
+              <MenuItem value="OWN">Própria</MenuItem>
+            </TextField>
+            {mode === "CAMPUS" ? (
+              <TextField
+                select
+                label="Campus"
+                value={campus}
+                onChange={(e) => setCampus(e.target.value)}
+              >
+                {campuses.map((c) => (
+                  <MenuItem key={c.nome} value={c.nome}>
+                    {c.nome}
+                  </MenuItem>
+                ))}
+              </TextField>
+            ) : (
+              <Stack direction="row" spacing={1}>
+                <TextField
+                  label="Latitude"
+                  value={lat}
+                  onChange={(e) => setLat(e.target.value)}
+                />
+                <TextField
+                  label="Longitude"
+                  value={lon}
+                  onChange={(e) => setLon(e.target.value)}
+                />
+              </Stack>
+            )}
+            <Button variant="contained" onClick={() => void create()}>
+              Cadastrar
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
+          <Stack spacing={2}>
+            <Typography variant="h6">Configuração da consulta</Typography>
+            <TextField
+              select
+              label="Contexto"
+              value={selected}
+              onChange={(e) => setSelected(e.target.value)}
+            >
+              {contexts.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.nome} ({c.resolvedLatitude ?? "sem latitude"},{" "}
+                  {c.resolvedLongitude ?? "sem longitude"})
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              label="Nome"
+              value={form.nome}
+              onChange={(e) => setForm({ ...form, nome: e.target.value })}
+            />
+            <TextField
+              select
+              label="Sensor de destino"
+              value={form.sensorExternalId}
+              onChange={(e) =>
+                setForm({ ...form, sensorExternalId: e.target.value })
+              }
+            >
+              {sensors
+                .filter((s) => s.contextoCompartilhadoId === selected)
+                .map((s) => (
+                  <MenuItem key={s.externalId} value={s.externalId}>
+                    {s.nome} · {s.externalId}
+                  </MenuItem>
+                ))}
+            </TextField>
+            <TextField
+              label="Endpoint"
+              value={form.endpointUrl}
+              onChange={(e) =>
+                setForm({ ...form, endpointUrl: e.target.value })
+              }
+            />
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+              <TextField
+                select
+                label="Método"
+                value={form.metodo}
+                onChange={(e) => setForm({ ...form, metodo: e.target.value })}
+              >
+                <MenuItem value="GET">GET</MenuItem>
+                <MenuItem value="POST">POST</MenuItem>
+              </TextField>
+              <TextField
+                select
+                label="Autenticação"
+                value={form.authMode}
+                onChange={(e) => setForm({ ...form, authMode: e.target.value })}
+              >
+                <MenuItem value="NONE">Nenhuma</MenuItem>
+                <MenuItem value="HEADER">Header</MenuItem>
+                <MenuItem value="QUERY">Query</MenuItem>
+              </TextField>
+              <TextField
+                label="Parâmetro da chave"
+                value={form.credentialQueryParam ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, credentialQueryParam: e.target.value })
+                }
+              />
+              <TextField
+                label="Parâmetro das coordenadas"
+                value={form.coordinateQueryParam ?? ""}
+                onChange={(e) =>
+                  setForm({ ...form, coordinateQueryParam: e.target.value })
+                }
+              />
+            </Stack>
+            <TextField
+              label="Parâmetros fixos (JSON)"
+              value={form.queryParamsJson ?? ""}
+              onChange={(e) =>
+                setForm({ ...form, queryParamsJson: e.target.value })
+              }
+            />
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+              <TextField
+                label="Pointer temperatura"
+                value={form.temperatureJsonPointer}
+                onChange={(e) =>
+                  setForm({ ...form, temperatureJsonPointer: e.target.value })
+                }
+              />
+              <TextField
+                label="Pointer horário"
+                value={form.observedAtJsonPointer}
+                onChange={(e) =>
+                  setForm({ ...form, observedAtJsonPointer: e.target.value })
+                }
+              />
+              <TextField
+                select
+                label="Formato"
+                value={form.observedAtFormat}
+                onChange={(e) =>
+                  setForm({ ...form, observedAtFormat: e.target.value })
+                }
+              >
+                <MenuItem value="ISO_INSTANT">ISO</MenuItem>
+                <MenuItem value="UNIX_SECONDS">Unix segundos</MenuItem>
+              </TextField>
+            </Stack>
+            <Stack direction="row" spacing={1}>
+              <TextField
+                type="number"
+                label="Intervalo (s)"
+                value={form.intervalSeconds}
+                onChange={(e) =>
+                  setForm({ ...form, intervalSeconds: Number(e.target.value) })
+                }
+              />
+              <TextField
+                type="number"
+                label="Timeout (ms)"
+                value={form.timeoutMillis}
+                onChange={(e) =>
+                  setForm({ ...form, timeoutMillis: Number(e.target.value) })
+                }
+              />
+              <TextField
+                type="number"
+                label="Tentativas"
+                value={form.maxAttempts}
+                onChange={(e) =>
+                  setForm({ ...form, maxAttempts: Number(e.target.value) })
+                }
+              />
+            </Stack>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={form.ativo}
+                  onChange={(e) =>
+                    setForm({ ...form, ativo: e.target.checked })
+                  }
+                />
+              }
+              label="Ativa"
+            />
+            <Button variant="contained" onClick={() => void save()}>
+              Salvar coleta
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
+          <Stack spacing={2}>
+            <Typography variant="h6">Fonte das salas em lote</Typography>
+            <TextField
+              label="IDs das salas, separados por vírgula"
+              value={rooms}
+              onChange={(e) => setRooms(e.target.value)}
+            />
+            <TextField
+              select
+              label="Parâmetro compartilhado"
+              value={parameter}
+              onChange={(e) => setParameter(e.target.value)}
+            >
+              {parameters.map((p) => (
+                <MenuItem key={p.id} value={p.id}>
+                  {p.tipoNome} · {p.nome} ({p.numericUnit})
+                </MenuItem>
+              ))}
+            </TextField>
+            <Button onClick={() => void batch()}>Aplicar ao lote</Button>
+          </Stack>
+        </CardContent>
+      </Card>
+      {items.map((i) => (
+        <Card key={i.id}>
+          <CardContent>
+            <Stack spacing={1}>
+              <Typography variant="h6">{i.nome} · consulta HTTP</Typography>
+              <Typography>
+                {i.ativo ? "Ativa" : "Inativa"} · próxima:{" "}
+                {i.nextRunAt ? new Date(i.nextRunAt).toLocaleString() : "—"}
+              </Typography>
+              <Typography>
+                Resultado: {i.lastOutcome ?? "—"} · observação:{" "}
+                {i.lastObservationAt
+                  ? new Date(i.lastObservationAt).toLocaleString()
+                  : "—"}
+              </Typography>
+              {i.lastError && <Alert severity="warning">{i.lastError}</Alert>}
+              <Stack direction="row">
+                <Button onClick={() => edit(i)}>Editar</Button>
+                <Button onClick={() => void run(i, true)}>Testar</Button>
+                <Button onClick={() => void run(i, false)}>Coletar</Button>
+                <Button
+                  onClick={() =>
+                    void setSharedIntegrationActive(
+                      i.id,
+                      !i.ativo,
+                      session,
+                    ).then(reload)
+                  }
+                >
+                  {i.ativo ? "Desativar" : "Ativar"}
+                </Button>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      ))}
+    </Stack>
+  );
+}
+function CampusRow({
+  campus,
+  onSaved,
+}: {
+  campus: Campus;
+  onSaved: () => Promise<void>;
+}) {
+  const { session } = useAuth();
+  const [lat, setLat] = useState(campus.latitude?.toString() ?? "");
+  const [lon, setLon] = useState(campus.longitude?.toString() ?? "");
+  return (
+    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ my: 1 }}>
+      <TextField label="Campus" value={campus.nome} disabled />
+      <TextField
+        label="Latitude"
+        value={lat}
+        onChange={(e) => setLat(e.target.value)}
+      />
+      <TextField
+        label="Longitude"
+        value={lon}
+        onChange={(e) => setLon(e.target.value)}
+      />
+      <Button
+        onClick={() =>
+          void updateCampus(
+            campus.nome,
+            {
+              latitude: lat ? Number(lat) : null,
+              longitude: lon ? Number(lon) : null,
+            },
+            session,
+          ).then(onSaved)
+        }
+      >
+        Salvar
+      </Button>
+    </Stack>
+  );
+}

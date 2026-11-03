@@ -3,19 +3,19 @@ __export_format: 4
 __export_date: 2026-08-19T00:00:00.000Z
 __export_source: insomnia.desktop.app:v10
 resources:
-  - _id: wrk_procel_current
+  - _id: wrk_proben_current
     _type: workspace
-    name: PROCEL API e Telemetry
+    name: PROBEN API e Telemetry
     description: Contratos atuais locais. Nao contem credenciais de producao.
-  - _id: env_procel_local
+  - _id: env_proben_local
     _type: environment
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Local
     data:
       baseUrl: http://localhost:8080
       telemetryUrl: http://localhost:8081
       jwtToken: ""
-      adminEmail: admin@procel.local
+      adminEmail: admin@proben.local
       adminPassword: change-me-local
       sensorExternalId: sensor-temp-101
       roomId: room-101
@@ -32,23 +32,23 @@ resources:
     metaSortKey: 1
   - _id: fld_health
     _type: request_group
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Health
   - _id: req_api_health
     _type: request
     parentId: fld_health
-    name: Procel-API health
+    name: Proben-API health
     method: GET
     url: "{{ _.baseUrl }}/actuator/health"
   - _id: req_telemetry_health
     _type: request
     parentId: fld_health
-    name: Procel-Telemetry health
+    name: Proben-Telemetry health
     method: GET
     url: "{{ _.telemetryUrl }}/actuator/health"
   - _id: fld_auth
     _type: request_group
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Auth
   - _id: req_login
     _type: request
@@ -68,7 +68,7 @@ resources:
         }
   - _id: fld_canonical
     _type: request_group
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Ingestao canonica
   - _id: req_canonical_ingest
     _type: request
@@ -109,7 +109,7 @@ resources:
       token: "{{ _.jwtToken }}"
   - _id: fld_integrations
     _type: request_group
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Integracoes
   - _id: req_profiles
     _type: request
@@ -203,7 +203,7 @@ resources:
         }
   - _id: fld_telemetry
     _type: request_group
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Telemetry
   - _id: req_raw_ingest
     _type: request
@@ -267,7 +267,7 @@ resources:
         }
   - _id: fld_analytics
     _type: request_group
-    parentId: wrk_procel_current
+    parentId: wrk_proben_current
     name: Agregacoes
   - _id: req_create_job
     _type: request

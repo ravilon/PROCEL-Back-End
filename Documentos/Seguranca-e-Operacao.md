@@ -8,7 +8,7 @@
 | `OPERADOR` | Operacao de sensores, sincronizacoes e criacao de jobs |
 | `ANALISTA` | Consulta de jobs analiticos |
 | `INGESTOR` | Ingestao canonica e por perfil |
-| `TELEMETRY_SERVICE` | Chamadas internas do `Procel-Telemetry` para o `Procel-API` |
+| `TELEMETRY_SERVICE` | Chamadas internas do `Proben-Telemetry` para o `Proben-API` |
 | `USUARIO` | Funcionalidades basicas do console |
 
 ## JWT de Usuario
@@ -19,38 +19,38 @@ Usuarios fazem login por:
 POST /api/auth/login
 ```
 
-O JWT e assinado com `PROCEL_JWT_SECRET`. O valor padrao de desenvolvimento nao deve ser usado em producao.
+O JWT e assinado com `PROBEN_JWT_SECRET`. O valor padrao de desenvolvimento nao deve ser usado em producao.
 
 ## JWT de Servico
 
-O worker canonico do `Procel-Telemetry` gera JWT curto com role fixa `TELEMETRY_SERVICE`. Configure:
+O worker canonico do `Proben-Telemetry` gera JWT curto com role fixa `TELEMETRY_SERVICE`. Configure:
 
 ```text
-PROCEL_TELEMETRY_SERVICE_JWT_SUBJECT
-PROCEL_TELEMETRY_SERVICE_JWT_SECRET
-PROCEL_TELEMETRY_SERVICE_JWT_TTL
+PROBEN_TELEMETRY_SERVICE_JWT_SUBJECT
+PROBEN_TELEMETRY_SERVICE_JWT_SECRET
+PROBEN_TELEMETRY_SERVICE_JWT_TTL
 ```
 
-O segredo deve ser compativel com o segredo aceito pelo `Procel-API`. Tokens e secrets nao devem ser registrados em logs.
+O segredo deve ser compativel com o segredo aceito pelo `Proben-API`. Tokens e secrets nao devem ser registrados em logs.
 
 ## CORS
 
-`Procel-API` e `Procel-Telemetry` usam configuracao por padrao de origem:
+`Proben-API` e `Proben-Telemetry` usam configuracao por padrao de origem:
 
 ```text
-PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS
+PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS
 ```
 
 Use origens explicitas em producao.
 
 ## Bootstrap Admin
 
-O `Procel-API` cria/garante admin inicial por configuracao:
+O `Proben-API` cria/garante admin inicial por configuracao:
 
 ```text
-PROCEL_BOOTSTRAP_ADMIN_EMAIL
-PROCEL_BOOTSTRAP_ADMIN_PASSWORD
-PROCEL_BOOTSTRAP_ADMIN_NAME
+PROBEN_BOOTSTRAP_ADMIN_EMAIL
+PROBEN_BOOTSTRAP_ADMIN_PASSWORD
+PROBEN_BOOTSTRAP_ADMIN_NAME
 ```
 
 Troque a senha padrao antes de expor o ambiente.
@@ -60,7 +60,7 @@ Troque a senha padrao antes de expor o ambiente.
 Ambiente local pode usar MongoDB sem autenticacao. Em producao, use usuario/senha, `authSource` correto e database explicito na URI:
 
 ```text
-mongodb://usuario:senha@host:27017/procel_telemetry?authSource=admin&directConnection=true
+mongodb://usuario:senha@host:27017/proben_telemetry?authSource=admin&directConnection=true
 ```
 
 Erro `Database name must not be empty` indica URI sem database. Erro `AuthenticationFailed` normalmente indica usuario, senha ou `authSource` incorreto.

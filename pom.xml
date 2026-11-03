@@ -5,14 +5,14 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.procel</groupId>
-  <artifactId>procel-back-end</artifactId>
+  <groupId>com.proben</groupId>
+  <artifactId>proben-back-end</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <modules>
-    <module>Procel-API</module>
-    <module>Procel-Telemetry</module>
+    <module>Proben-API</module>
+    <module>Proben-Telemetry</module>
   </modules>
 
 </project>

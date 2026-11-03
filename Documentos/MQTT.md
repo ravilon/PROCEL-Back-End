@@ -1,4 +1,4 @@
-# MQTT no Procel-Telemetry
+# MQTT no Proben-Telemetry
 
 ## Protocolo
 
@@ -9,15 +9,15 @@ A entrada MQTT usa MQTT 5 com Eclipse Paho v5, QoS 1 e ACK manual real. O subscr
 Filtros assinados:
 
 ```text
-procel/telemetry/v1/+/+/events
-procel/telemetry/v1/+/events
+proben/telemetry/v1/+/+/events
+proben/telemetry/v1/+/events
 ```
 
 Formatos aceitos:
 
 ```text
-procel/telemetry/v1/{producerId}/{sensorId}/events
-procel/telemetry/v1/{producerId}/events
+proben/telemetry/v1/{producerId}/{sensorId}/events
+proben/telemetry/v1/{producerId}/events
 ```
 
 `producerId` vem exclusivamente do topico. Quando o topico possui `sensorId`, ele prevalece. Se o envelope tambem informar `sensorId` diferente, a mensagem e descartada como erro permanente.
@@ -80,37 +80,37 @@ Configure TLS, truststore, keystore, usuario e senha por properties/env. Senhas,
 Variaveis principais:
 
 ```text
-PROCEL_TELEMETRY_MQTT_ENABLED
-PROCEL_TELEMETRY_MQTT_BROKER_URL
-PROCEL_TELEMETRY_MQTT_CLIENT_ID
-PROCEL_TELEMETRY_MQTT_USERNAME
-PROCEL_TELEMETRY_MQTT_PASSWORD
-PROCEL_TELEMETRY_MQTT_TLS_ENABLED
+PROBEN_TELEMETRY_MQTT_ENABLED
+PROBEN_TELEMETRY_MQTT_BROKER_URL
+PROBEN_TELEMETRY_MQTT_CLIENT_ID
+PROBEN_TELEMETRY_MQTT_USERNAME
+PROBEN_TELEMETRY_MQTT_PASSWORD
+PROBEN_TELEMETRY_MQTT_TLS_ENABLED
 ```
 
 ## Exemplo Local
 
 ```bash
 mosquitto_pub -h localhost -p 1883 -q 1 \
-  -t procel/telemetry/v1/produtor-a/sensor-01/events \
+  -t proben/telemetry/v1/produtor-a/sensor-01/events \
   -m '{"messageId":"mqtt-20260819-0001","sourceTimestamp":"2026-08-19T08:00:00Z","payload":{"temperature":24.5}}'
 ```
 
 ## Fluxo ate o PostgreSQL
 
 ```text
-MQTT -> Procel-Telemetry -> MongoDB raw_telemetry_events -> worker canonico -> Procel-API -> PostgreSQL
+MQTT -> Proben-Telemetry -> MongoDB raw_telemetry_events -> worker canonico -> Proben-API -> PostgreSQL
 ```
 
-`Procel-Telemetry` nao faz parsing canonico e nao acessa PostgreSQL.
+`Proben-Telemetry` nao faz parsing canonico e nao acessa PostgreSQL.
 
 ## ACL Recomendada
 
 No broker, restrinja cada produtor aos topicos do proprio `producerId`, por exemplo:
 
 ```text
-write procel/telemetry/v1/produtor-a/+/events
-write procel/telemetry/v1/produtor-a/events
+write proben/telemetry/v1/produtor-a/+/events
+write proben/telemetry/v1/produtor-a/events
 ```
 
 Essa ACL complementa a regra de que a identidade do produtor vem do topico.

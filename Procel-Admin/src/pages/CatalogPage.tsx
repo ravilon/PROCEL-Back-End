@@ -1,1 +1,0 @@
-export { CatalogPage } from "../features/catalog/CatalogPage";

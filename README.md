@@ -1,22 +1,22 @@
-# PROCEL
+# PROBEN
 
-PROCEL e uma plataforma para receber telemetria bruta, transformar eventos em medicoes canonicas, administrar sensores e perfis de integracao, e preparar processamento analitico por periodos.
+PROBEN e uma plataforma para receber telemetria bruta, transformar eventos em medicoes canonicas, administrar sensores e perfis de integracao, e preparar processamento analitico por periodos.
 
 O repositorio contem tres aplicacoes principais:
 
 | Aplicacao | Responsabilidade | Banco |
 | --- | --- | --- |
-| `Procel-API` | API principal, autenticacao, dominio academico, sensores, medicoes canonicas, perfis de integracao e jobs analiticos | PostgreSQL |
-| `Procel-Telemetry` | Recebimento bruto REST/MQTT, idempotencia bruta, armazenamento no MongoDB, worker canonico para envio ao `Procel-API` e operacao administrativa da telemetria | MongoDB |
-| `Procel-Admin` | Console web administrativo para catalogo, sensores, regras, integracoes, sincronizacoes, analises e operacao da telemetria | N/A |
+| `Proben-API` | API principal, autenticacao, dominio academico, sensores, medicoes canonicas, perfis de integracao e jobs analiticos | PostgreSQL |
+| `Proben-Telemetry` | Recebimento bruto REST/MQTT, idempotencia bruta, armazenamento no MongoDB, worker canonico para envio ao `Proben-API` e operacao administrativa da telemetria | MongoDB |
+| `Proben-Admin` | Console web administrativo para catalogo, sensores, regras, integracoes, sincronizacoes, analises e operacao da telemetria | N/A |
 
 ## Estrutura
 
 ```text
 .
-|-- Procel-API/          # Spring Boot, PostgreSQL, Flyway, dominio canonico
-|-- Procel-Telemetry/    # Spring Boot, MongoDB, MQTT 5, worker canonico
-|-- Procel-Admin/        # React/Vite, console administrativo
+|-- Proben-API/          # Spring Boot, PostgreSQL, Flyway, dominio canonico
+|-- Proben-Telemetry/    # Spring Boot, MongoDB, MQTT 5, worker canonico
+|-- Proben-Admin/        # React/Vite, console administrativo
 |-- API-Doc/             # Postman, Insomnia e orientacao dos contratos
 |-- Database/            # SQL legado e consultas auxiliares
 |-- Documentos/          # Arquitetura, DER, MongoDB, MQTT, seguranca e catalogo de dados
@@ -37,19 +37,19 @@ O repositorio contem tres aplicacoes principais:
 
 ## Arquitetura Atual
 
-Dispositivos e produtores podem enviar telemetria bruta por REST ou MQTT para o `Procel-Telemetry`. O evento bruto e persistido em `raw_telemetry_events` no MongoDB, com payload original, hash, identidade do produtor, `messageId`, timestamps e estado de processamento.
+Dispositivos e produtores podem enviar telemetria bruta por REST ou MQTT para o `Proben-Telemetry`. O evento bruto e persistido em `raw_telemetry_events` no MongoDB, com payload original, hash, identidade do produtor, `messageId`, timestamps e estado de processamento.
 
-O worker canonico do `Procel-Telemetry`, desabilitado por padrao, faz claim atomico de eventos `RECEIVED`, consulta o snapshot de integracao do `Procel-API`, seleciona o perfil/parser sem resolver ambiguidades silenciosamente e chama a rota interna de ingestao do `Procel-API` com JWT curto de role fixa `TELEMETRY_SERVICE`.
+O worker canonico do `Proben-Telemetry`, desabilitado por padrao, faz claim atomico de eventos `RECEIVED`, consulta o snapshot de integracao do `Proben-API`, seleciona o perfil/parser sem resolver ambiguidades silenciosamente e chama a rota interna de ingestao do `Proben-API` com JWT curto de role fixa `TELEMETRY_SERVICE`.
 
-O `Procel-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao, buckets numericos, motor de eventos de missoes, janelas temporais, atividades ciclicas e ledger de XP. O `Procel-Admin` consome `Procel-API` e `Procel-Telemetry` usando o JWT do usuario autenticado.
+O `Proben-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao, buckets numericos, motor de eventos de missoes, janelas temporais, atividades ciclicas e ledger de XP. O `Proben-Admin` consome `Proben-API` e `Proben-Telemetry` usando o JWT do usuario autenticado.
 
-`Procel-Telemetry` nao acessa diretamente o PostgreSQL.
+`Proben-Telemetry` nao acessa diretamente o PostgreSQL.
 
 ## Fluxos
 
 ### Ingestao REST Canonica
 
-Clientes autorizados como `ADMIN` ou `INGESTOR` podem enviar medicoes canonicas diretamente ao `Procel-API`:
+Clientes autorizados como `ADMIN` ou `INGESTOR` podem enviar medicoes canonicas diretamente ao `Proben-API`:
 
 ```text
 POST /api/sensors/ingest
@@ -69,16 +69,16 @@ POST /api/sensors/{sensorExternalId}/ingest/integrations/{profileId}
 
 ### Entrada MQTT
 
-O `Procel-Telemetry` assina, quando habilitado:
+O `Proben-Telemetry` assina, quando habilitado:
 
 ```text
-procel/telemetry/v1/+/+/events
-procel/telemetry/v1/+/events
+proben/telemetry/v1/+/+/events
+proben/telemetry/v1/+/events
 ```
 
 O `producerId` vem exclusivamente do topico. O `sensorId` do topico prevalece sobre o envelope; divergencia entre topico e envelope e descartada com ACK. O `messageId` e obrigatorio no envelope JSON e nao usa o packet identifier MQTT. O ACK manual ocorre somente depois de persistencia, duplicata equivalente, conflito idempotente ou descarte permanente. Falha transitoria do MongoDB nao recebe ACK para permitir redelivery.
 
-### Worker Telemetry -> Procel-API
+### Worker Telemetry -> Proben-API
 
 O worker canonico:
 
@@ -103,7 +103,7 @@ O reprocessamento e permitido somente para `CANONICAL_FAILED`, `CANONICAL_CONFLI
 
 ### Agregacoes Assincronas
 
-O `Procel-API` permite criar jobs administrativos para dividir um periodo em janelas deterministicas:
+O `Proben-API` permite criar jobs administrativos para dividir um periodo em janelas deterministicas:
 
 ```text
 POST /api/analytics/aggregation-jobs
@@ -134,7 +134,7 @@ summary consolida somente buckets existentes, sem consultar `medicao` ou
 `parametro_valor`, usando media ponderada por `sampleCount`, menor minimo, maior
 maximo e soma das amostras.
 
-O `Procel-Admin` possui a rota `/analiticos`, visivel para `ADMIN`, `OPERADOR`
+O `Proben-Admin` possui a rota `/analiticos`, visivel para `ADMIN`, `OPERADOR`
 e `ANALISTA`. A tela oferece filtros por periodo obrigatorio, sensor, parametro,
 compartimento, versao de agregacao e tamanho da pagina; cards de resumo por
 grupo retornado pelo backend; grafico temporal de `averageValue`; e tabela de
@@ -207,58 +207,58 @@ O MongoDB armazena eventos brutos em `raw_telemetry_events`. A collection possui
 | `OPERADOR` | Operacao funcional e criacao de jobs analiticos |
 | `ANALISTA` | Consulta de jobs analiticos |
 | `INGESTOR` | Ingestao canonica e por perfil |
-| `TELEMETRY_SERVICE` | Rotas internas usadas exclusivamente pelo `Procel-Telemetry` |
+| `TELEMETRY_SERVICE` | Rotas internas usadas exclusivamente pelo `Proben-Telemetry` |
 | `USUARIO` | Acesso basico ao console |
 
 O JWT de servico usado pelo worker e curto, assinado com segredo configurado e nunca deve ser registrado em logs.
 
 ## Variaveis de Ambiente
 
-### Procel-API
+### Proben-API
 
 | Variavel | Finalidade |
 | --- | --- |
 | `SPRING_DATASOURCE_URL` | JDBC do PostgreSQL |
 | `SPRING_DATASOURCE_USERNAME` | Usuario do PostgreSQL |
 | `SPRING_DATASOURCE_PASSWORD` | Senha do PostgreSQL |
-| `PROCEL_JWT_SECRET` | Segredo JWT de usuarios e servicos |
-| `PROCEL_JWT_EXPIRATION_MINUTES` | TTL do JWT de usuario |
-| `PROCEL_BOOTSTRAP_ADMIN_EMAIL` | Email do admin inicial |
-| `PROCEL_BOOTSTRAP_ADMIN_PASSWORD` | Senha do admin inicial |
-| `PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS` | Origens permitidas |
-| `PROCEL_ANALYTICS_AGGREGATION_WORKER_ENABLED` | Habilita worker de agregacao |
-| `PROCEL_ANALYTICS_AGGREGATION_VERSION` | Versao logica do algoritmo de buckets |
-| `PROCEL_SHARED_CONTEXT_COLLECTOR_ENABLED` | Habilita a coleta HTTP de observacoes externas compartilhadas |
-| `PROCEL_SHARED_CONTEXT_COLLECTOR_POLL_INTERVAL` | Frequencia de procura por integracoes vencidas (a periodicidade de cada fonte fica no banco) |
-| `PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED` | Habilita worker de avaliacao instantanea de eventos de missoes |
-| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita infraestrutura de janelas temporais |
-| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |
-| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED` | Habilita Drools no fluxo temporal |
-| `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita efeitos de atividades/XP para ocorrencias temporais satisfeitas |
+| `PROBEN_JWT_SECRET` | Segredo JWT de usuarios e servicos |
+| `PROBEN_JWT_EXPIRATION_MINUTES` | TTL do JWT de usuario |
+| `PROBEN_BOOTSTRAP_ADMIN_EMAIL` | Email do admin inicial |
+| `PROBEN_BOOTSTRAP_ADMIN_PASSWORD` | Senha do admin inicial |
+| `PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS` | Origens permitidas |
+| `PROBEN_ANALYTICS_AGGREGATION_WORKER_ENABLED` | Habilita worker de agregacao |
+| `PROBEN_ANALYTICS_AGGREGATION_VERSION` | Versao logica do algoritmo de buckets |
+| `PROBEN_SHARED_CONTEXT_COLLECTOR_ENABLED` | Habilita a coleta HTTP de observacoes externas compartilhadas |
+| `PROBEN_SHARED_CONTEXT_COLLECTOR_POLL_INTERVAL` | Frequencia de procura por integracoes vencidas (a periodicidade de cada fonte fica no banco) |
+| `PROBEN_MISSIONS_EVALUATION_WORKER_ENABLED` | Habilita worker de avaliacao instantanea de eventos de missoes |
+| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita infraestrutura de janelas temporais |
+| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |
+| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED` | Habilita Drools no fluxo temporal |
+| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita efeitos de atividades/XP para ocorrencias temporais satisfeitas |
 
-### Procel-Telemetry
+### Proben-Telemetry
 
 | Variavel | Finalidade |
 | --- | --- |
 | `SPRING_MONGODB_URI` / `SPRING_DATA_MONGODB_URI` | URI MongoDB, incluindo database |
-| `PROCEL_TELEMETRY_MAX_PAYLOAD_BYTES` | Limite do payload bruto |
-| `PROCEL_TELEMETRY_RETENTION_DAYS` | Retencao TTL |
-| `PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED` | Habilita worker canonico |
-| `PROCEL_API_BASE_URL` | Base URL do `Procel-API` |
-| `PROCEL_TELEMETRY_SERVICE_JWT_SUBJECT` | Subject do JWT de servico |
-| `PROCEL_TELEMETRY_SERVICE_JWT_SECRET` | Segredo do JWT de servico |
-| `PROCEL_TELEMETRY_SERVICE_JWT_TTL` | TTL do JWT de servico |
-| `PROCEL_TELEMETRY_MQTT_ENABLED` | Habilita entrada MQTT |
-| `PROCEL_TELEMETRY_MQTT_BROKER_URL` | URL do broker MQTT |
-| `PROCEL_TELEMETRY_MQTT_USERNAME` | Usuario MQTT |
-| `PROCEL_TELEMETRY_MQTT_PASSWORD` | Senha MQTT |
-| `PROCEL_TELEMETRY_MQTT_TLS_ENABLED` | TLS MQTT |
+| `PROBEN_TELEMETRY_MAX_PAYLOAD_BYTES` | Limite do payload bruto |
+| `PROBEN_TELEMETRY_RETENTION_DAYS` | Retencao TTL |
+| `PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED` | Habilita worker canonico |
+| `PROBEN_API_BASE_URL` | Base URL do `Proben-API` |
+| `PROBEN_TELEMETRY_SERVICE_JWT_SUBJECT` | Subject do JWT de servico |
+| `PROBEN_TELEMETRY_SERVICE_JWT_SECRET` | Segredo do JWT de servico |
+| `PROBEN_TELEMETRY_SERVICE_JWT_TTL` | TTL do JWT de servico |
+| `PROBEN_TELEMETRY_MQTT_ENABLED` | Habilita entrada MQTT |
+| `PROBEN_TELEMETRY_MQTT_BROKER_URL` | URL do broker MQTT |
+| `PROBEN_TELEMETRY_MQTT_USERNAME` | Usuario MQTT |
+| `PROBEN_TELEMETRY_MQTT_PASSWORD` | Senha MQTT |
+| `PROBEN_TELEMETRY_MQTT_TLS_ENABLED` | TLS MQTT |
 
-### Procel-Admin
+### Proben-Admin
 
 | Variavel | Finalidade |
 | --- | --- |
-| `API_BASE_URL` | Injetada pelo entrypoint Docker em runtime para o `Procel-API` |
+| `API_BASE_URL` | Injetada pelo entrypoint Docker em runtime para o `Proben-API` |
 | `VITE_TELEMETRY_API_URL` | URL da Telemetry em build-time |
 
 O entrypoint Docker atual injeta `API_BASE_URL`, mas nao injeta `TELEMETRY_API_URL` em runtime. Para trocar a URL da Telemetry no container atual, a variavel deve estar definida no build do frontend ou o entrypoint precisa ser evoluido em etapa separada.
@@ -266,19 +266,19 @@ O entrypoint Docker atual injeta `API_BASE_URL`, mas nao injeta `TELEMETRY_API_U
 ## Execucao Local
 
 ```bash
-cd Procel-API
+cd Proben-API
 ./mvnw test
 ./mvnw spring-boot:run
 ```
 
 ```bash
-cd Procel-Telemetry
-../Procel-API/mvnw -f pom.xml test
-../Procel-API/mvnw -f pom.xml spring-boot:run
+cd Proben-Telemetry
+../Proben-API/mvnw -f pom.xml test
+../Proben-API/mvnw -f pom.xml spring-boot:run
 ```
 
 ```bash
-cd Procel-Admin
+cd Proben-Admin
 npm ci
 npm run dev
 npm run lint
@@ -289,8 +289,8 @@ npm run build
 Swagger:
 
 ```text
-Procel-API:       http://localhost:8080/docs
-Procel-Telemetry: http://localhost:8081/docs
+Proben-API:       http://localhost:8080/docs
+Proben-Telemetry: http://localhost:8081/docs
 ```
 
 ## Docker e Deploy
@@ -305,10 +305,10 @@ Executado pela raiz:
 docker compose up -d
 ```
 
-Esse modo sobe PostgreSQL, MongoDB, broker MQTT, `Procel-API`,
-`Procel-Telemetry` e `Procel-Admin`. Ele e destinado a desenvolvimento local,
+Esse modo sobe PostgreSQL, MongoDB, broker MQTT, `Proben-API`,
+`Proben-Telemetry` e `Proben-Admin`. Ele e destinado a desenvolvimento local,
 homologacao, testes E2E e validacao da arquitetura completa. Os hostnames
-internos `postgres`, `mongo`, `mqtt` e `procel-api` aparecem somente no
+internos `postgres`, `mongo`, `mqtt` e `proben-api` aparecem somente no
 `compose.yaml` integrado e em exemplos de ambiente desse modo.
 
 Validacao recomendada:
@@ -326,9 +326,9 @@ Cada aplicacao mantem Dockerfile proprio e pode ser construida diretamente a
 partir do seu diretorio:
 
 ```bash
-docker build -t procel-api ./Procel-API
-docker build -t procel-telemetry ./Procel-Telemetry
-docker build -t procel-admin ./Procel-Admin
+docker build -t proben-api ./Proben-API
+docker build -t proben-telemetry ./Proben-Telemetry
+docker build -t proben-admin ./Proben-Admin
 ```
 
 As imagens recebem dependencias externas por variaveis de ambiente, nao dependem
@@ -336,8 +336,8 @@ do Compose da raiz e expoem somente a propria porta. Bancos, broker e aplicacoes
 podem estar no mesmo Compose, em recursos separados do Coolify, em servicos
 gerenciados ou em hosts diferentes.
 
-`Procel-API/compose.yaml` fornece ambiente minimo da API com PostgreSQL.
-`Procel-Telemetry/compose.yaml` fornece ambiente minimo da Telemetry com MongoDB
+`Proben-API/compose.yaml` fornece ambiente minimo da API com PostgreSQL.
+`Proben-Telemetry/compose.yaml` fornece ambiente minimo da Telemetry com MongoDB
 e MQTT. Esses composes independentes nao dependem do Compose da raiz.
 
 Precedencia de configuracao:
@@ -351,9 +351,9 @@ Arquivos de exemplo:
 ```text
 .env.example
 .env.integrated.example
-Procel-API/.env.example
-Procel-Telemetry/.env.example
-Procel-Admin/.env.example
+Proben-API/.env.example
+Proben-Telemetry/.env.example
+Proben-Admin/.env.example
 ```
 
 Nao versionar `.env` real.
@@ -365,17 +365,17 @@ aplicacoes forem separados.
 
 | Aplicacao | Diretorio de build |
 | --- | --- |
-| API | `Procel-API` |
-| Telemetry | `Procel-Telemetry` |
-| Admin | `Procel-Admin` |
+| API | `Proben-API` |
+| Telemetry | `Proben-Telemetry` |
+| Admin | `Proben-Admin` |
 
 Configuracao sugerida:
 
 | Aplicacao | Base directory | Dockerfile | Healthcheck |
 | --- | --- | --- | --- |
-| Procel-API | `/Procel-API` | `/Dockerfile` | `/actuator/health` |
-| Procel-Telemetry | `/Procel-Telemetry` | `/Dockerfile` | `/actuator/health` |
-| Procel-Admin | `/Procel-Admin` | `/Dockerfile` | `/healthz` |
+| Proben-API | `/Proben-API` | `/Dockerfile` | `/actuator/health` |
+| Proben-Telemetry | `/Proben-Telemetry` | `/Dockerfile` | `/actuator/health` |
+| Proben-Admin | `/Proben-Admin` | `/Dockerfile` | `/healthz` |
 
 Variaveis minimas da API:
 
@@ -383,23 +383,23 @@ Variaveis minimas da API:
 SPRING_DATASOURCE_URL
 SPRING_DATASOURCE_USERNAME
 SPRING_DATASOURCE_PASSWORD
-PROCEL_JWT_SECRET
-PROCEL_TELEMETRY_SERVICE_JWT_SECRET
-PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS
+PROBEN_JWT_SECRET
+PROBEN_TELEMETRY_SERVICE_JWT_SECRET
+PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS
 ```
 
 Variaveis minimas da Telemetry:
 
 ```text
 SPRING_MONGODB_URI
-PROCEL_API_BASE_URL
-PROCEL_JWT_SECRET
-PROCEL_TELEMETRY_SERVICE_JWT_SECRET
-PROCEL_TELEMETRY_MQTT_ENABLED
-PROCEL_TELEMETRY_MQTT_BROKER_URL
-PROCEL_TELEMETRY_MQTT_USERNAME
-PROCEL_TELEMETRY_MQTT_PASSWORD
-PROCEL_TELEMETRY_MQTT_TLS_ENABLED
+PROBEN_API_BASE_URL
+PROBEN_JWT_SECRET
+PROBEN_TELEMETRY_SERVICE_JWT_SECRET
+PROBEN_TELEMETRY_MQTT_ENABLED
+PROBEN_TELEMETRY_MQTT_BROKER_URL
+PROBEN_TELEMETRY_MQTT_USERNAME
+PROBEN_TELEMETRY_MQTT_PASSWORD
+PROBEN_TELEMETRY_MQTT_TLS_ENABLED
 ```
 
 Variaveis minimas do Admin:
@@ -411,14 +411,14 @@ TELEMETRY_API_URL
 
 Dominios sugeridos: `api.seu-dominio`, `telemetry.seu-dominio` e
 `admin.seu-dominio`. Configure CORS na API e na Telemetry para permitir o
-dominio externo do Admin. `PROCEL_API_BASE_URL` na Telemetry deve usar a URL
+dominio externo do Admin. `PROBEN_API_BASE_URL` na Telemetry deve usar a URL
 interna do recurso API quando estiverem na mesma rede privada do Coolify, ou a
 URL externa HTTPS quando estiverem em redes diferentes. `API_BASE_URL` e
 `TELEMETRY_API_URL` no Admin devem ser URLs acessiveis pelo navegador do usuario.
 
-Ordem recomendada: publicar PostgreSQL e MongoDB, publicar Procel-API, validar
-`/actuator/health`, publicar broker MQTT se usado, publicar Procel-Telemetry,
-validar `/actuator/health`, publicar Procel-Admin e validar `/healthz`.
+Ordem recomendada: publicar PostgreSQL e MongoDB, publicar Proben-API, validar
+`/actuator/health`, publicar broker MQTT se usado, publicar Proben-Telemetry,
+validar `/actuator/health`, publicar Proben-Admin e validar `/healthz`.
 
 Teste isolado: acesse healthcheck de cada modulo, faca login no Admin contra a
 API configurada, liste eventos de Telemetry se `TELEMETRY_API_URL` estiver
@@ -427,12 +427,12 @@ habilitada e valide a tela `/analiticos` contra a API.
 Nao use secrets padrao em producao. A URI do MongoDB deve incluir o database, por exemplo:
 
 ```text
-mongodb://usuario:senha@host:27017/procel_telemetry?authSource=admin&directConnection=true
+mongodb://usuario:senha@host:27017/proben_telemetry?authSource=admin&directConnection=true
 ```
 
 ## Testes
 
-`Procel-API` usa Testcontainers para PostgreSQL em testes de integracao. `Procel-Telemetry` usa Testcontainers para MongoDB e HiveMQ nos testes MQTT. Quando Docker nao estiver disponivel, os testes dependentes de containers podem falhar ou ser ignorados conforme a configuracao do teste.
+`Proben-API` usa Testcontainers para PostgreSQL em testes de integracao. `Proben-Telemetry` usa Testcontainers para MongoDB e HiveMQ nos testes MQTT. Quando Docker nao estiver disponivel, os testes dependentes de containers podem falhar ou ser ignorados conforme a configuracao do teste.
 
 ## Postman e Insomnia
 
@@ -471,7 +471,7 @@ Documentos/Catalogo-Dados.md
 | 2 | Perfis, parsers e bindings | Concluida |
 | 3 | Console administrativo | Concluida |
 | 4 | Armazenamento bruto no MongoDB | Concluida |
-| 5 | Worker `Telemetry -> Procel-API` | Concluida |
+| 5 | Worker `Telemetry -> Proben-API` | Concluida |
 | 6 | Entrada MQTT | Concluida |
 | 7 | Reprocessamento e operacao administrativa | Concluida |
 | 8 | Agregacoes assincronas por periodo | Concluida |

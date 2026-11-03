@@ -2,7 +2,7 @@
 
 ## Endpoints
 
-Procel-API e Procel-Telemetry publicam:
+Proben-API e Proben-Telemetry publicam:
 
 - `/actuator/health`
 - `/actuator/prometheus`
@@ -22,64 +22,64 @@ Comportamento:
 - gera UUID quando o header está ausente ou inválido;
 - devolve o valor efetivo no response;
 - registra o valor no MDC com chave `correlationId`;
-- propaga chamadas do Procel-Telemetry para o Procel-API;
+- propaga chamadas do Proben-Telemetry para o Proben-API;
 - limpa o MDC ao finalizar a requisição;
 - nunca usa JWT, payload, usuário ou dados pessoais como correlation ID.
 
 ## Métricas
 
-Procel-Telemetry:
+Proben-Telemetry:
 
-- `procel.telemetry.events`
-- `procel.telemetry.events.duration`
-- `procel.telemetry.mqtt.messages`
-- `procel.telemetry.mqtt.duration`
-- `procel.telemetry.mqtt.reconnections`
-- `procel.telemetry.canonical.results`
-- `procel.telemetry.canonical.duration`
-- `procel.telemetry.canonical.retries`
-- `procel.telemetry.canonical.failures`
-- `procel.telemetry.backlog`
+- `proben.telemetry.events`
+- `proben.telemetry.events.duration`
+- `proben.telemetry.mqtt.messages`
+- `proben.telemetry.mqtt.duration`
+- `proben.telemetry.mqtt.reconnections`
+- `proben.telemetry.canonical.results`
+- `proben.telemetry.canonical.duration`
+- `proben.telemetry.canonical.retries`
+- `proben.telemetry.canonical.failures`
+- `proben.telemetry.backlog`
 
-Procel-API:
+Proben-API:
 
-- `procel.analytics.aggregation.jobs`
-- `procel.analytics.aggregation.windows.processed`
-- `procel.analytics.aggregation.windows.completed`
-- `procel.analytics.aggregation.windows.failed`
-- `procel.analytics.aggregation.windows.retries`
-- `procel.analytics.aggregation.windows.duration`
-- `procel.analytics.buckets.persisted`
-- `procel.analytics.queries`
-- `procel.analytics.query.errors`
-- `procel.analytics.query.duration`
-- `procel.missions.activities.created`
-- `procel.missions.activities.progressed`
-- `procel.missions.activities.completed`
-- `procel.missions.beneficiaries.resolved`
-- `procel.missions.beneficiaries.empty`
-- `procel.missions.activity.processing.failures`
-- `procel.missions.xp.granted`
-- `procel.missions.xp.amount`
-- `procel.missions.xp.duplicates`
-- `procel.missions.xp.failures`
-- `procel.missions.drools.compilations`
-- `procel.missions.drools.compilation.duration`
-- `procel.missions.drools.compilation.failures`
-- `procel.missions.drools.cache.hits`
-- `procel.missions.drools.cache.misses`
-- `procel.missions.drools.cache.evictions`
-- `procel.missions.drools.evaluations`
-- `procel.missions.drools.evaluation.duration`
-- `procel.missions.drools.evaluation.failures`
-- `procel.missions.drools.facts`
-- `procel.missions.drools.limit.rejections`
-- `procel.missions.temporal.windows.opened`
-- `procel.missions.temporal.windows.satisfied`
-- `procel.missions.temporal.windows.expired`
-- `procel.missions.temporal.windows.failed`
-- `procel.missions.temporal.windows.retries`
-- `procel.missions.temporal.windows.backlog`
+- `proben.analytics.aggregation.jobs`
+- `proben.analytics.aggregation.windows.processed`
+- `proben.analytics.aggregation.windows.completed`
+- `proben.analytics.aggregation.windows.failed`
+- `proben.analytics.aggregation.windows.retries`
+- `proben.analytics.aggregation.windows.duration`
+- `proben.analytics.buckets.persisted`
+- `proben.analytics.queries`
+- `proben.analytics.query.errors`
+- `proben.analytics.query.duration`
+- `proben.missions.activities.created`
+- `proben.missions.activities.progressed`
+- `proben.missions.activities.completed`
+- `proben.missions.beneficiaries.resolved`
+- `proben.missions.beneficiaries.empty`
+- `proben.missions.activity.processing.failures`
+- `proben.missions.xp.granted`
+- `proben.missions.xp.amount`
+- `proben.missions.xp.duplicates`
+- `proben.missions.xp.failures`
+- `proben.missions.drools.compilations`
+- `proben.missions.drools.compilation.duration`
+- `proben.missions.drools.compilation.failures`
+- `proben.missions.drools.cache.hits`
+- `proben.missions.drools.cache.misses`
+- `proben.missions.drools.cache.evictions`
+- `proben.missions.drools.evaluations`
+- `proben.missions.drools.evaluation.duration`
+- `proben.missions.drools.evaluation.failures`
+- `proben.missions.drools.facts`
+- `proben.missions.drools.limit.rejections`
+- `proben.missions.temporal.windows.opened`
+- `proben.missions.temporal.windows.satisfied`
+- `proben.missions.temporal.windows.expired`
+- `proben.missions.temporal.windows.failed`
+- `proben.missions.temporal.windows.retries`
+- `proben.missions.temporal.windows.backlog`
 
 Tags usadas:
 
@@ -108,43 +108,43 @@ Tags proibidas por alta cardinalidade:
 Eventos recebidos por origem:
 
 ```promql
-sum by (source, outcome) (rate(procel_telemetry_events_total[5m]))
+sum by (source, outcome) (rate(proben_telemetry_events_total[5m]))
 ```
 
 Mensagens MQTT rejeitadas:
 
 ```promql
-sum(rate(procel_telemetry_mqtt_messages_total{outcome="rejected"}[5m]))
+sum(rate(proben_telemetry_mqtt_messages_total{outcome="rejected"}[5m]))
 ```
 
 Backlog de telemetria por status:
 
 ```promql
-procel_telemetry_backlog
+proben_telemetry_backlog
 ```
 
 Falhas canônicas:
 
 ```promql
-sum by (source) (rate(procel_telemetry_canonical_failures_total[5m]))
+sum by (source) (rate(proben_telemetry_canonical_failures_total[5m]))
 ```
 
 Janelas de agregação com retry:
 
 ```promql
-sum(rate(procel_analytics_aggregation_windows_retries_total[5m]))
+sum(rate(proben_analytics_aggregation_windows_retries_total[5m]))
 ```
 
 Erros em consultas analíticas:
 
 ```promql
-sum by (type) (rate(procel_analytics_query_errors_total[5m]))
+sum by (type) (rate(proben_analytics_query_errors_total[5m]))
 ```
 
 Média de duração de janelas:
 
 ```promql
-rate(procel_analytics_aggregation_windows_duration_seconds_sum[5m])
+rate(proben_analytics_aggregation_windows_duration_seconds_sum[5m])
 /
-rate(procel_analytics_aggregation_windows_duration_seconds_count[5m])
+rate(proben_analytics_aggregation_windows_duration_seconds_count[5m])
 ```

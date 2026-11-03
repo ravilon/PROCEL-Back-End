@@ -1,6 +1,6 @@
 # Contratos HTTP
 
-## Procel-API
+## Proben-API
 
 Base local: `http://localhost:8080`
 
@@ -115,8 +115,8 @@ integration_profile_id + sensor_external_id + original_producer_id + raw_message
 ### Consulta de Buckets Numericos
 
 `from` e `to` sao obrigatorios, `from < to`, e o periodo maximo e configurado em
-`procel.analytics.buckets.max-period`. `page` deve ser maior ou igual a zero e
-`size` deve ficar entre `1` e `procel.analytics.buckets.max-page-size`.
+`proben.analytics.buckets.max-period`. `page` deve ser maior ou igual a zero e
+`size` deve ficar entre `1` e `proben.analytics.buckets.max-page-size`.
 `aggregationVersion`, quando informado, deve ser positiva.
 
 O filtro temporal retorna buckets integralmente contidos no intervalo:
@@ -131,7 +131,7 @@ O endpoint `/api/analytics/numeric-buckets/summary` nao consulta `medicao` nem
 `parametro_valor`; ele consolida os buckets persistidos usando media ponderada por
 `sampleCount`, menor `minimumValue`, maior `maximumValue` e soma de `sampleCount`.
 
-### Consumo no Procel-Admin
+### Consumo no Proben-Admin
 
 A rota `/analiticos` esta disponivel para `ADMIN`, `OPERADOR` e `ANALISTA`.
 `USUARIO` e `INGESTOR` nao veem o item `Análises` no menu e nao acessam a rota.
@@ -157,7 +157,7 @@ e XP sao idempotentes e usam constraints no PostgreSQL.
 `xp_lancamento` e append-only. O saldo retornado por `/api/pessoas/{pessoaId}/xp`
 e calculado pela soma de concessoes, estornos e ajustes existentes no ledger.
 
-## Procel-Telemetry
+## Proben-Telemetry
 
 Base local: `http://localhost:8081`
 
@@ -198,8 +198,8 @@ Base local: `http://localhost:8081`
 OpenAPI gerado em runtime:
 
 ```text
-Procel-API:       /v3/api-docs
-Procel-Telemetry: /v3/api-docs
+Proben-API:       /v3/api-docs
+Proben-Telemetry: /v3/api-docs
 ```
 
 ## Deploy
@@ -212,15 +212,15 @@ Modo integrado pela raiz:
 docker compose up -d
 ```
 
-Sobe PostgreSQL, MongoDB, MQTT, Procel-API, Procel-Telemetry e Procel-Admin. Os
+Sobe PostgreSQL, MongoDB, MQTT, Proben-API, Proben-Telemetry e Proben-Admin. Os
 hostnames internos do Compose aparecem apenas como defaults desse modo.
 
 Modo independente:
 
 ```bash
-docker build -t procel-api ./Procel-API
-docker build -t procel-telemetry ./Procel-Telemetry
-docker build -t procel-admin ./Procel-Admin
+docker build -t proben-api ./Proben-API
+docker build -t proben-telemetry ./Proben-Telemetry
+docker build -t proben-admin ./Proben-Admin
 ```
 
 Cada imagem aceita dependencias externas por variaveis de ambiente e possui

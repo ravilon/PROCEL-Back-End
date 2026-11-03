@@ -1,13 +1,13 @@
 # API-Doc
 
-Esta pasta contem contratos manuais para testes e validacao das APIs PROCEL.
+Esta pasta contem contratos manuais para testes e validacao das APIs PROBEN.
 
 ## Estrutura
 
 ```text
 API-Doc/
 |-- Postman/
-|   |-- PROCEL-API/
+|   |-- PROBEN-API/
 |   `-- Cobalto/
 `-- Insomnia/
 ```
@@ -17,15 +17,15 @@ API-Doc/
 As especificacoes vivas sao geradas pelos backends:
 
 ```text
-Procel-API:       /v3/api-docs e /docs
-Procel-Telemetry: /v3/api-docs e /docs
+Proben-API:       /v3/api-docs e /docs
+Proben-Telemetry: /v3/api-docs e /docs
 ```
 
 O resumo manual dos contratos esta em `Contratos-HTTP.md`.
 
 ## Postman
 
-`Postman/PROCEL-API/PROCEL-API-E2E.postman_collection.json` contem chamadas para:
+`Postman/PROBEN-API/PROBEN-API-E2E.postman_collection.json` contem chamadas para:
 
 - health;
 - login;
@@ -39,7 +39,7 @@ O resumo manual dos contratos esta em `Contratos-HTTP.md`.
 - listagem, detalhe e reprocessamento;
 - jobs de agregacao, consulta de progresso e consultas analiticas.
 
-`Postman/PROCEL-API/PROCEL-API-Env.postman_environment.json` define variaveis locais. Nao ha credenciais de producao.
+`Postman/PROBEN-API/PROBEN-API-Env.postman_environment.json` define variaveis locais. Nao ha credenciais de producao.
 
 ## Insomnia
 

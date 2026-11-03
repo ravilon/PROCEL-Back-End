@@ -1,0 +1,39 @@
+name: proben-api
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: proben-api-postgres
+    environment:
+      POSTGRES_DB: proben_analytics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  proben-api:
+    build:
+      context: .
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://postgres:5432/proben_analytics}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-postgres}
+      PROBEN_JWT_SECRET: ${PROBEN_JWT_SECRET:-change-this-local-development-secret-32chars}
+      PROBEN_TELEMETRY_SERVICE_JWT_SECRET: ${PROBEN_TELEMETRY_SERVICE_JWT_SECRET:-change-this-local-development-secret-32chars}
+      PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS: ${PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS:-http://localhost:*,http://127.0.0.1:*}
+      PROBEN_ANALYTICS_AGGREGATION_WORKER_ENABLED: ${PROBEN_ANALYTICS_AGGREGATION_WORKER_ENABLED:-false}
+    ports:
+      - "${PROBEN_API_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

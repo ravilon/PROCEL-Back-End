@@ -1,10 +1,10 @@
 # Documentos
 
-Documentacao tecnica complementar do PROCEL.
+Documentacao tecnica complementar do PROBEN.
 
 | Caminho | Conteudo |
 | --- | --- |
-| `ArquiteturaGeral/Arquitetura-PROCEL.drawio` | Arquitetura geral atual |
+| `ArquiteturaGeral/Arquitetura-PROBEN.drawio` | Arquitetura geral atual |
 | `DER-BancoAnalitico/DER-Salas.drawio` | DER existente do banco analitico |
 | `Modelo-MongoDB/` | Modelo documental da telemetria bruta |
 | `MQTT.md` | Contrato e operacao MQTT |
@@ -14,6 +14,6 @@ Documentacao tecnica complementar do PROCEL.
 | `MissionEventWindowClosedSemantics.md` | Semantica de eventos `JANELA_ENCERRADA` |
 | `Staging.md` | Provisionamento e validacao segura de staging |
 
-Os diagramas distinguem componentes implementados, parciais e planejados. `Procel-Telemetry` nao deve ser representado acessando diretamente o PostgreSQL.
+Os diagramas distinguem componentes implementados, parciais e planejados. `Proben-Telemetry` nao deve ser representado acessando diretamente o PostgreSQL.
 O DER do banco analitico deve acompanhar as migrations Flyway atuais, mantendo o
 estilo visual existente.

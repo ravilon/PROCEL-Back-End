@@ -1,19 +1,19 @@
-# Staging PROCEL
+# Staging PROBEN
 
-Este documento descreve como provisionar um staging seguro do PROCEL no Coolify para validar o fluxo temporal sem tocar em producao.
+Este documento descreve como provisionar um staging seguro do PROBEN no Coolify para validar o fluxo temporal sem tocar em producao.
 
 ## Objetivo
 
 Validar, em ambiente isolado, o caminho `Medicao -> EventoAvaliacaoRequest -> EventoJanelaAvaliacao DURACAO/TRANSICAO/JANELA_ENCERRADA -> avaliacao temporal, com Drools quando habilitado -> EventoOcorrencia`.
 
 Atividades, beneficiarios e XP so devem ser conectados quando
-`PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true` estiver
+`PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true` estiver
 habilitada explicitamente em staging.
 
 ## Recursos Isolados
 
-- Procel-API: servico proprio com URL de staging.
-- Procel-Telemetry: servico proprio com URL de staging.
+- Proben-API: servico proprio com URL de staging.
+- Proben-Telemetry: servico proprio com URL de staging.
 - PostgreSQL: banco e volume exclusivos; nomes devem conter `staging`.
 - MongoDB: banco e volume exclusivos; nomes devem conter `staging`.
 - MQTT: broker ou namespace exclusivo de staging.
@@ -30,34 +30,34 @@ Obrigatorias para a API:
 - `SPRING_DATASOURCE_URL`
 - `SPRING_DATASOURCE_USERNAME`
 - `SPRING_DATASOURCE_PASSWORD`
-- `PROCEL_JWT_SECRET`
-- `PROCEL_BOOTSTRAP_ADMIN_ENABLED=false`
-- `PROCEL_CORS_ALLOWED_ORIGIN_PATTERNS`
+- `PROBEN_JWT_SECRET`
+- `PROBEN_BOOTSTRAP_ADMIN_ENABLED=false`
+- `PROBEN_CORS_ALLOWED_ORIGIN_PATTERNS`
 
 Obrigatorias para Telemetry:
 
 - `SPRING_PROFILES_ACTIVE=staging`
 - `SPRING_MONGODB_URI`
-- `PROCEL_API_BASE_URL`
-- `PROCEL_JWT_SECRET`
-- `PROCEL_TELEMETRY_SERVICE_JWT_SECRET`
-- `PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED=true`
-- `PROCEL_TELEMETRY_MQTT_ENABLED=true`, se MQTT for validado
+- `PROBEN_API_BASE_URL`
+- `PROBEN_JWT_SECRET`
+- `PROBEN_TELEMETRY_SERVICE_JWT_SECRET`
+- `PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED=true`
+- `PROBEN_TELEMETRY_MQTT_ENABLED=true`, se MQTT for validado
 
 Flags temporais da API para a validacao:
 
-- `PROCEL_MISSIONS_RULE_ENGINE=simple`
-- `PROCEL_MISSIONS_EVALUATION_WORKER_ENABLED=true`
-- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED=true`
-- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED=true`
-- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED=true`
-- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true`, somente quando a validacao incluir atividades/XP
+- `PROBEN_MISSIONS_RULE_ENGINE=simple`
+- `PROBEN_MISSIONS_EVALUATION_WORKER_ENABLED=true`
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED=true`
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED=true`
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED=true`
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true`, somente quando a validacao incluir atividades/XP
 
 Para validacao rapida, use duracoes curtas:
 
-- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_SAMPLE_GAP=5s`
-- `PROCEL_MISSIONS_DROOLS_MAXIMUM_SAMPLE_GAP=5s`
-- `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_WINDOW_DURATION=10m`
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_SAMPLE_GAP=5s`
+- `PROBEN_MISSIONS_DROOLS_MAXIMUM_SAMPLE_GAP=5s`
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_MAXIMUM_WINDOW_DURATION=10m`
 
 ## Ordem de Deploy no Coolify
 
@@ -65,10 +65,10 @@ Para validacao rapida, use duracoes curtas:
 2. Criar PostgreSQL staging com database e volume contendo `staging` no nome.
 3. Criar MongoDB staging com database e volume contendo `staging` no nome.
 4. Criar MQTT staging, com TLS e credenciais proprias quando exposto fora da rede privada.
-5. Publicar Procel-API com `SPRING_PROFILES_ACTIVE=staging`.
+5. Publicar Proben-API com `SPRING_PROFILES_ACTIVE=staging`.
 6. Validar `GET /actuator/health` da API.
 7. Confirmar Flyway em `V25`.
-8. Publicar Procel-Telemetry com `SPRING_PROFILES_ACTIVE=staging`.
+8. Publicar Proben-Telemetry com `SPRING_PROFILES_ACTIVE=staging`.
 9. Validar `GET /actuator/health` da Telemetry.
 10. Validar `/actuator/prometheus` com credencial administrativa.
 11. Rodar `scripts/validate-staging.ps1 -Target staging ...`.
@@ -89,10 +89,10 @@ Todos os dados criados pelo script usam prefixo `staging-temporal-`. A limpeza d
 Rollback de aplicacao:
 
 1. Desabilitar workers temporais:
-   - `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED=false`
-   - `PROCEL_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED=false`, se necessario.
+   - `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED=false`
+   - `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED=false`, se necessario.
 2. Desabilitar worker canonico:
-   - `PROCEL_TELEMETRY_CANONICAL_WORKER_ENABLED=false`
+   - `PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED=false`
 3. Reimplantar a versao anterior pelo Coolify.
 4. Confirmar `/actuator/health`.
 

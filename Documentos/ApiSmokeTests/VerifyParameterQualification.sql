@@ -1,4 +1,4 @@
--- PROCEL Ingestion - Parameter Qualification verification queries
+-- PROBEN Ingestion - Parameter Qualification verification queries
 --
 -- Use after running:
 --   .\Documentos\ApiSmokeTests\ApiSmokeTest.ps1 -Target local
@@ -6,12 +6,12 @@
 -- Local database defaults:
 --   host: localhost
 --   port: 5432
---   database: procel_analytics
+--   database: proben_analytics
 --   user: postgres
 --   password: postgres
 --
 -- psql example:
---   psql -h localhost -p 5432 -U postgres -d procel_analytics -f .\Documentos\ApiSmokeTests\VerifyParameterQualification.sql
+--   psql -h localhost -p 5432 -U postgres -d proben_analytics -f .\Documentos\ApiSmokeTests\VerifyParameterQualification.sql
 --
 -- Note: application.yml currently uses ddl-auto=create-drop, so restarting
 -- the app can drop/recreate these tables and remove smoke-test data.

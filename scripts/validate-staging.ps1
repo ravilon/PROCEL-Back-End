@@ -73,7 +73,7 @@ function SecretFromEnv([string]$Name) {
 function Assert-NotProductionText([string]$Name, [string]$Value) {
   if ([string]::IsNullOrWhiteSpace($Value)) { Fail "$Name is required." }
   $blocked = @(
-    "procel.servehttp.com",
+    "proben.servehttp.com",
     "servehttp.com",
     "producao",
     "produção",
@@ -396,9 +396,9 @@ if ($flyway -ne "24") {
 }
 Write-Host "[OK] Flyway is at V24"
 
-Require-PrometheusMetric $ApiBaseUrl "procel_missions_temporal_windows_backlog"
-Require-PrometheusMetric $ApiBaseUrl "procel_missions_drools_evaluations"
-Require-PrometheusMetric $TelemetryBaseUrl "procel_telemetry_canonical"
+Require-PrometheusMetric $ApiBaseUrl "proben_missions_temporal_windows_backlog"
+Require-PrometheusMetric $ApiBaseUrl "proben_missions_drools_evaluations"
+Require-PrometheusMetric $TelemetryBaseUrl "proben_telemetry_canonical"
 
 Ensure-SensorTypeAndParams
 Ensure-Sensors
@@ -469,7 +469,7 @@ if (-not $SkipRestartScenario) {
   Write-Host "[SCENARIO] restart during open window"
   $restartStart = [DateTimeOffset]::UtcNow.AddSeconds(3)
   Ingest-Measurement $Sensors[0] $restartStart $true "restart-0" | Out-Null
-  Write-Host "Restart Procel-API staging now, wait for health UP, then press ENTER. No production resource may be touched."
+  Write-Host "Restart Proben-API staging now, wait for health UP, then press ENTER. No production resource may be touched."
   Read-Host "Press ENTER after the staging API restart is complete" | Out-Null
   Invoke-Api "/actuator/health" -Token "" | Out-Null
   Ingest-Measurement $Sensors[0] $restartStart.AddSeconds($DurationSeconds) $true "restart-1" | Out-Null

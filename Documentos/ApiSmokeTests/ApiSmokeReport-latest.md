@@ -1,8 +1,8 @@
-﻿# PROCEL API Smoke Test Report
+﻿# PROBEN API Smoke Test Report
 
 - Status: PASSED
 - Target: prod
-- Base URL: https://procel.servehttp.com
+- Base URL: https://proben.servehttp.com
 - HTTP transport: Node
 - Started: 2026-09-17T21:24:14.0473501-03:00
 - Finished: 2026-09-17T21:25:25.6549622-03:00

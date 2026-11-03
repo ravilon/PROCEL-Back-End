@@ -1,0 +1,54 @@
+name: proben-telemetry
+
+services:
+  mongo:
+    image: mongo:7
+    container_name: proben-telemetry-mongo
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mqtt:
+    image: eclipse-mosquitto:2
+    ports:
+      - "${MQTT_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mqtt_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-h", "127.0.0.1", "-t", "$$SYS/#", "-C", "1", "-W", "5"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  proben-telemetry:
+    build:
+      context: .
+    environment:
+      SPRING_MONGODB_URI: ${SPRING_MONGODB_URI:-mongodb://mongo:27017/proben_telemetry}
+      PROBEN_API_BASE_URL: ${PROBEN_API_BASE_URL:-http://host.docker.internal:8080}
+      PROBEN_JWT_SECRET: ${PROBEN_JWT_SECRET:-change-this-local-development-secret-32chars}
+      PROBEN_TELEMETRY_SERVICE_JWT_SECRET: ${PROBEN_TELEMETRY_SERVICE_JWT_SECRET:-change-this-local-development-secret-32chars}
+      PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED: ${PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED:-false}
+      PROBEN_TELEMETRY_MQTT_ENABLED: ${PROBEN_TELEMETRY_MQTT_ENABLED:-true}
+      PROBEN_TELEMETRY_MQTT_BROKER_URL: ${PROBEN_TELEMETRY_MQTT_BROKER_URL:-tcp://mqtt:1883}
+      PROBEN_TELEMETRY_MQTT_USERNAME: ${PROBEN_TELEMETRY_MQTT_USERNAME:-}
+      PROBEN_TELEMETRY_MQTT_PASSWORD: ${PROBEN_TELEMETRY_MQTT_PASSWORD:-}
+      PROBEN_TELEMETRY_MQTT_TLS_ENABLED: ${PROBEN_TELEMETRY_MQTT_TLS_ENABLED:-false}
+    ports:
+      - "${PROBEN_TELEMETRY_PORT:-8081}:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mqtt:
+        condition: service_started
+
+volumes:
+  mongo_data:
+  mqtt_data:

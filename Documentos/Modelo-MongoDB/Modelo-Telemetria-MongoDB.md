@@ -6,7 +6,7 @@
 raw_telemetry_events
 ```
 
-A collection armazena eventos brutos recebidos pelo `Procel-Telemetry` antes de qualquer ingestao canonica no `Procel-API`.
+A collection armazena eventos brutos recebidos pelo `Proben-Telemetry` antes de qualquer ingestao canonica no `Proben-API`.
 
 ## Ciclo de Vida
 
