@@ -19,6 +19,10 @@ class EnvironmentRuleMigrationTest {
     void upgradesV32AndEnforcesScopeAndDefaultUniqueness() throws Exception {
         Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration").target("32").load().migrate();
+        try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
+             var statement = connection.createStatement()) {
+            statement.executeUpdate("insert into campus(nome) values ('PRESERVED-CAMPUS')");
+        }
         Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
                 .locations("classpath:db/migration").load().migrate();
         try (var connection = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
@@ -29,6 +33,10 @@ class EnvironmentRuleMigrationTest {
             assertThatThrownBy(() -> statement.executeUpdate("insert into regra_ambiente(nome,categoria,padrao,escopo,timezone,cron_expression,politica_ocupacao,politica_beneficiario,created_by,updated_by) values ('Invalid','EQUIPAMENTOS',false,'GLOBAL','UTC','0 */10 * * * *','IGNORE','NONE','test','test')"))
                     .hasMessageContaining("ck_regra_ambiente_scope_fields");
             try (var result = statement.executeQuery("select count(*) from flyway_schema_history where version='33' and success")) {
+                assertThat(result.next()).isTrue();
+                assertThat(result.getInt(1)).isEqualTo(1);
+            }
+            try (var result = statement.executeQuery("select count(*) from campus where nome='PRESERVED-CAMPUS'")) {
                 assertThat(result.next()).isTrue();
                 assertThat(result.getInt(1)).isEqualTo(1);
             }

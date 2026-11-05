@@ -5,6 +5,7 @@ import type {
   EnvironmentRuleExecution,
   EnvironmentRuleInput,
   EnvironmentRuleResolution,
+  EnvironmentRuleTestResult,
 } from "../types/environmentRules";
 
 export const environmentRulesApi = {
@@ -51,7 +52,7 @@ export const environmentRulesApi = {
       session,
     ),
   test: (id: string, room: string, session?: Session | null) =>
-    apiRequest<Record<string, unknown>>(
+    apiRequest<EnvironmentRuleTestResult>(
       `/api/environment-rules/${id}/test`,
       { method: "POST", body: JSON.stringify({ compartimentoId: room }) },
       session,

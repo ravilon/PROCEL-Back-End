@@ -32,14 +32,16 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { environmentRulesApi } from "../../api/environmentRules";
 import { listCompartimentos } from "../../api/catalog";
 import { useAuth } from "../../auth/AuthContext";
 import type {
   EnvironmentRule,
   EnvironmentRuleInput,
+  EnvironmentRuleTestResult,
 } from "../../types/environmentRules";
+import { EnvironmentRuleDialog } from "./EnvironmentRuleDialog";
 
 const categories = ["AR_CONDICIONADO", "ILUMINACAO", "EQUIPAMENTOS"];
 const emptyRule: EnvironmentRuleInput = {
@@ -79,6 +81,11 @@ export function EnvironmentRulesPanel() {
   const [resolutionRoom, setResolutionRoom] = useState("");
   const [historyRule, setHistoryRule] = useState<EnvironmentRule | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [dryRun, setDryRun] = useState<{
+    rule: EnvironmentRule;
+    room: string;
+    result: EnvironmentRuleTestResult;
+  } | null>(null);
 
   const rooms = useQuery({
     queryKey: ["environment-rules", "rooms"],
@@ -125,7 +132,7 @@ export function EnvironmentRulesPanel() {
     onSuccess: refresh,
   });
   const run = useMutation<
-    unknown,
+    EnvironmentRuleTestResult | unknown,
     Error,
     { rule: EnvironmentRule; dry: boolean }
   >({
@@ -137,11 +144,16 @@ export function EnvironmentRulesPanel() {
         : environmentRulesApi.execute(rule.id, room, session);
     },
     onSuccess: (result, variables) => {
-      setMessage(
-        variables.dry
-          ? `Teste: ${JSON.stringify(result)}`
-          : "Execução manual enfileirada.",
-      );
+      if (variables.dry) {
+        setDryRun({
+          rule: variables.rule,
+          room: variables.rule.compartimentoId ?? resolutionRoom,
+          result: result as EnvironmentRuleTestResult,
+        });
+        setMessage(null);
+      } else {
+        setMessage("Execução manual enfileirada.");
+      }
       refresh();
     },
   });
@@ -218,6 +230,15 @@ export function EnvironmentRulesPanel() {
       </Paper>
 
       <Paper variant="outlined" sx={{ overflowX: "auto" }}>
+        {rules.isPending && (
+          <Typography sx={{ p: 2 }}>Carregando regras…</Typography>
+        )}
+        {rules.isError && (
+          <Alert severity="error">Não foi possível carregar as regras.</Alert>
+        )}
+        {!rules.isPending && !rules.isError && rules.data?.length === 0 && (
+          <Typography sx={{ p: 2 }}>Nenhuma regra encontrada.</Typography>
+        )}
         <Table size="small">
           <TableHead>
             <TableRow>
@@ -329,8 +350,10 @@ export function EnvironmentRulesPanel() {
             </Typography>
           </Box>
           <FormControl sx={{ minWidth: 260 }}>
-            <InputLabel>Sala</InputLabel>
+            <InputLabel id="environment-resolution-room-label">Sala</InputLabel>
             <Select
+              id="environment-resolution-room"
+              labelId="environment-resolution-room-label"
               label="Sala"
               value={resolutionRoom}
               onChange={(event) => setResolutionRoom(event.target.value)}
@@ -366,22 +389,79 @@ export function EnvironmentRulesPanel() {
               />
               <Typography variant="caption" display="block" sx={{ mt: 1 }}>
                 Específica: {item.specific?.nome ?? "—"}
+                {item.origem !== "SPECIFIC" && item.specific
+                  ? " (ignorada: regra inativa ou sem precedência)"
+                  : ""}
                 <br />
                 Campus: {item.campusDefault?.nome ?? "—"}
+                {item.origem === "SPECIFIC" && item.campusDefault
+                  ? " (ignorada: existe regra específica)"
+                  : ""}
                 <br />
                 Global: {item.globalDefault?.nome ?? "—"}
+                {item.origem !== "GLOBAL_DEFAULT" && item.globalDefault
+                  ? " (ignorada: nível mais específico disponível)"
+                  : ""}
               </Typography>
             </Paper>
           ))}
         </Stack>
       </Paper>
 
-      <RuleDialog
+      {dryRun && (
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            Teste sem persistência: nenhuma execução ou pontuação foi
+            persistida.
+          </Alert>
+          <Typography variant="h6">Resultado da simulação</Typography>
+          <Typography>
+            Regra {dryRun.rule.nome} · versão {dryRun.rule.versao} · sala{" "}
+            {dryRun.room}
+          </Typography>
+          <Typography>
+            Origem{" "}
+            {resolution.data?.find(
+              (item) => item.categoria === dryRun.rule.categoria,
+            )?.origem ?? "não resolvida"}{" "}
+            · timezone {dryRun.rule.timezone}
+          </Typography>
+          <Typography>
+            Resultado: {dryRun.result.resultado} · pontos que seriam concedidos:{" "}
+            {dryRun.result.pontosCalculados}
+          </Typography>
+          {dryRun.result.motivo && (
+            <Alert severity="info">Motivo: {dryRun.result.motivo}</Alert>
+          )}
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            sx={{ mt: 2 }}
+          >
+            <Diagnostic
+              title="Medições, timestamps, validade e limites"
+              value={dryRun.result.evidencias}
+            />
+            <Diagnostic title="Ocupação" value={dryRun.result.ocupacao} />
+            <Diagnostic
+              title="Contexto acadêmico"
+              value={dryRun.result.contextoAcademico}
+            />
+            <Diagnostic
+              title="Beneficiários"
+              value={dryRun.result.beneficiarios}
+            />
+          </Stack>
+        </Paper>
+      )}
+
+      <EnvironmentRuleDialog
         key={editing?.id ?? (creating ? "new" : "closed")}
         open={creating || Boolean(editing)}
         rule={editing}
         rooms={rooms.data ?? []}
         campuses={campuses}
+        existingRules={rules.data ?? []}
         onClose={() => {
           setCreating(false);
           setEditing(null);
@@ -402,6 +482,25 @@ export function EnvironmentRulesPanel() {
   );
 }
 
+function Diagnostic({ title, value }: { title: string; value: unknown }) {
+  return (
+    <Box sx={{ flex: 1, minWidth: 0 }}>
+      <Typography variant="subtitle2">{title}</Typography>
+      <Box
+        component="pre"
+        sx={{
+          bgcolor: "grey.100",
+          p: 1,
+          overflow: "auto",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {JSON.stringify(value ?? null, null, 2)}
+      </Box>
+    </Box>
+  );
+}
+
 function Filter({
   label,
   value,
@@ -413,10 +512,13 @@ function Filter({
   values: string[];
   onChange: (value: string) => void;
 }) {
+  const id = useId();
   return (
     <FormControl size="small" sx={{ minWidth: 130 }}>
-      <InputLabel>{label}</InputLabel>
+      <InputLabel id={`${id}-label`}>{label}</InputLabel>
       <Select
+        id={id}
+        labelId={`${id}-label`}
         label={label}
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -432,7 +534,7 @@ function Filter({
   );
 }
 
-function RuleDialog({
+export function LegacyRuleDialog({
   open,
   rule,
   rooms,

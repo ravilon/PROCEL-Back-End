@@ -16,6 +16,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
 import java.time.Instant;
+import java.time.DateTimeException;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
@@ -47,13 +48,15 @@ class EnvironmentRuleResolutionIntegrationTest {
         jdbc.update("delete from regra_ambiente_execucao");
         jdbc.update("delete from regra_ambiente");
         jdbc.update("delete from compartimento where id in ('ENV-R1','ENV-R2')");
-        jdbc.update("delete from predio where id='ENV-B'");
+        jdbc.update("delete from compartimento where id='ENV-R3'");
+        jdbc.update("delete from predio where id in ('ENV-B','ENV-B2')");
         jdbc.update("delete from unidade where nome='ENV-U'");
-        jdbc.update("delete from campus where nome='ENV-C'");
-        jdbc.update("insert into campus(nome) values ('ENV-C')");
+        jdbc.update("delete from campus where nome in ('ENV-C','ENV-C2')");
+        jdbc.update("insert into campus(nome) values ('ENV-C'),('ENV-C2')");
         jdbc.update("insert into unidade(nome) values ('ENV-U')");
-        jdbc.update("insert into predio(id,campus_id,nome) values ('ENV-B','ENV-C','ENV-B')");
+        jdbc.update("insert into predio(id,campus_id,nome) values ('ENV-B','ENV-C','ENV-B'),('ENV-B2','ENV-C2','ENV-B2')");
         jdbc.update("insert into compartimento(id,predio_id,unidade_id,nome,tipo) values ('ENV-R1','ENV-B','ENV-U','Room 1','Sala'),('ENV-R2','ENV-B','ENV-U','Room 2','Sala')");
+        jdbc.update("insert into compartimento(id,predio_id,unidade_id,nome,tipo) values ('ENV-R3','ENV-B2','ENV-U','Room 3','Sala')");
     }
 
     @Test void resolvesSpecificThenCampusThenGlobalAndFallsBackAfterDeactivation() {
@@ -105,11 +108,88 @@ class EnvironmentRuleResolutionIntegrationTest {
         assertThat(jdbc.update("update regra_ambiente_execucao set motivo='stale owner' where id=? and lease_token=?", UUID.fromString(execution.id().toString()), oldToken)).isZero();
     }
 
+    @Test void roomsFromDifferentCampusesResolveTheirOwnDefaults() {
+        var first = service.create(request("Campus C", "CAMPUS", "ENV-C", null, true));
+        var second = service.create(request("Campus C2", "CAMPUS", "ENV-C2", null, true));
+        assertThat(service.resolve("ENV-R1", "ILUMINACAO").effective().id()).isEqualTo(first.id());
+        assertThat(service.resolve("ENV-R3", "ILUMINACAO").effective().id()).isEqualTo(second.id());
+    }
+
+    @Test void scopeConstraintsAreRejectedBeforePersistence() {
+        assertThatThrownBy(() -> service.create(request("Room missing", "ROOM", null, null, false)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("ROOM");
+        assertThatThrownBy(() -> service.create(request("Campus missing", "CAMPUS", null, null, true)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("CAMPUS");
+        assertThatThrownBy(() -> service.create(request("Campus with room", "CAMPUS", "ENV-C", "ENV-R1", true)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("CAMPUS");
+        assertThatThrownBy(() -> service.create(request("Global with campus", "GLOBAL", "ENV-C", null, true)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("GLOBAL");
+    }
+
+    @Test void invalidCronAndTimezoneAreRejected() {
+        assertThatThrownBy(() -> service.create(withSchedule(request("Bad cron", "GLOBAL", null, null, true), "not-a-cron", "UTC")))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.create(withSchedule(request("Bad zone", "GLOBAL", null, null, true), EnvironmentRuleService.TEN_MINUTES_PRESET, "Mars/Olympus")))
+                .isInstanceOf(DateTimeException.class);
+    }
+
+    @Test void declarativeConfigurationRejectsUnknownOperatorsAndDoesNotInterpretCode() {
+        var invalid = json.createObjectNode();
+        invalid.putArray("conditions").addObject()
+                .put("alias", "unsafe").put("parametroDefId", UUID.randomUUID().toString())
+                .put("source", "LOCAL").put("operator", "EVAL").put("value", "System.exit(1)");
+        assertThatThrownBy(() -> service.create(withConfiguration(request("Invalid operator", "GLOBAL", null, null, true), invalid)))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("operator");
+
+        var inert = json.createObjectNode();
+        inert.put("script", "java.lang.Runtime.getRuntime().exec('anything')");
+        inert.putArray("conditions");
+        var stored = service.create(withConfiguration(request("Inert data", "GLOBAL", null, null, true), inert));
+        assertThat(stored.configuracao().path("script").asText()).contains("Runtime");
+        assertThat(jdbc.queryForObject("select count(*) from regra_ambiente", Integer.class)).isEqualTo(1);
+    }
+
+    @Test void updateKeepsTheExecutionSnapshotAndDeletionWithoutHistoryWorks() {
+        var rule = service.create(request("Original", "GLOBAL", null, null, true));
+        var execution = service.manual(rule.id(), "ENV-R1", Instant.now());
+        var updated = service.update(rule.id(), request("Edited", "GLOBAL", null, null, true));
+        assertThat(updated.versao()).isEqualTo(rule.versao() + 1);
+        assertThat(jdbc.queryForObject("select regra_snapshot->>'nome' from regra_ambiente_execucao where id=?", String.class, execution.id()))
+                .isEqualTo("Original");
+        assertThat(service.execution(execution.id()).regraVersao()).isEqualTo(rule.versao());
+
+        var disposable = service.create(request("Disposable", "ROOM", null, "ENV-R2", false));
+        service.delete(disposable.id());
+        assertThat(jdbc.queryForObject("select count(*) from regra_ambiente where id=?", Integer.class, disposable.id())).isZero();
+    }
+
+    @Test void validLeasePreventsASecondClaimAndManualExecutionIsDistinguished() {
+        var global = service.create(request("Global", "GLOBAL", null, null, true));
+        var execution = service.manual(global.id(), "ENV-R1", Instant.now().minusSeconds(1));
+        jdbc.update("update regra_ambiente_execucao set status='PROCESSING',attempts=1,lease_token=gen_random_uuid(),lease_until=now()+interval '1 minute' where id=?", execution.id());
+        assertThat(worker.processAvailable()).isZero();
+        assertThat(service.execution(execution.id()).tipoExecucao()).isEqualTo("MANUAL");
+    }
+
     private RuleRequest request(String name, String scope, String campus, String room, boolean standard) {
         return new RuleRequest(name, null, "ILUMINACAO", true, standard, scope, campus, room,
                 "America/Sao_Paulo", EnvironmentRuleService.TEN_MINUTES_PRESET, List.of(1,2,3,4,5,6,7),
                 null, null, "IGNORE", "NONE", true,
                 json.createObjectNode().put("satisfied", 0).put("notSatisfied", 0),
                 json.createObjectNode().set("conditions", json.createArrayNode()));
+    }
+
+    private RuleRequest withSchedule(RuleRequest source, String cron, String timezone) {
+        return new RuleRequest(source.nome(), source.descricao(), source.categoria(), source.ativo(), source.padrao(), source.escopo(),
+                source.campusNome(), source.compartimentoId(), timezone, cron, source.diasSemana(), source.vigenciaInicio(),
+                source.vigenciaFim(), source.politicaOcupacao(), source.politicaBeneficiario(), source.monitorarSemPontos(),
+                source.pontuacao(), source.configuracao());
+    }
+
+    private RuleRequest withConfiguration(RuleRequest source, com.fasterxml.jackson.databind.JsonNode configuration) {
+        return new RuleRequest(source.nome(), source.descricao(), source.categoria(), source.ativo(), source.padrao(), source.escopo(),
+                source.campusNome(), source.compartimentoId(), source.timezone(), source.cronExpression(), source.diasSemana(),
+                source.vigenciaInicio(), source.vigenciaFim(), source.politicaOcupacao(), source.politicaBeneficiario(),
+                source.monitorarSemPontos(), source.pontuacao(), configuration);
     }
 }

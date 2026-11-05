@@ -68,3 +68,13 @@ export interface EnvironmentRuleExecution {
   durationMs?: number | null;
   createdAt: string;
 }
+
+export interface EnvironmentRuleTestResult {
+  resultado: string;
+  motivo?: string | null;
+  evidencias: Record<string, unknown>;
+  contextoAcademico?: Record<string, unknown> | null;
+  ocupacao?: Record<string, unknown> | null;
+  beneficiarios: unknown[];
+  pontosCalculados: number;
+}
