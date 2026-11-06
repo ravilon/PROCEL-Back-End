@@ -269,11 +269,11 @@ public class EnvironmentRuleService {
             JsonNode ti = evidence.path("Ti"); JsonNode temed = evidence.path("Temed");
             if (!ti.hasNonNull("value") || !temed.hasNonNull("value"))
                 return skipped("SKIPPED_NO_DATA", "Ti and Temed are required", academicJson, occupancyJson, evidence, beneficiary.json);
-            var band = AdaptiveComfortCalculator.calculate(ti.get("value").decimalValue(),
+            var band = AdaptiveComfortCalculator.calculate(temed.get("value").decimalValue(),
                     decimal(rule.configuracao(), "lowerOffset", "3.5"), decimal(rule.configuracao(), "upperOffset", "3.5"));
             evidence.set("comfortBand", json.valueToTree(band));
             BigDecimal internal = ti.get("value").decimalValue();
-            satisfied = internal.compareTo(band.lower()) >= 0 && internal.compareTo(band.upper()) <= 0;
+            satisfied = satisfied && internal.compareTo(band.lower()) >= 0 && internal.compareTo(band.upper()) <= 0;
         }
         int points = rule.monitorarSemPontos() ? 0 : rule.pontuacao().path(satisfied ? "satisfied" : "notSatisfied").asInt(0);
         return new Evaluation(satisfied ? "SATISFIED" : "NOT_SATISFIED", null, evidence, academicJson,
@@ -283,28 +283,37 @@ public class EnvironmentRuleService {
     private Observation localObservation(String room, UUID parameter, Instant at, JsonNode config) {
         String sensor = text(config, "sensorExternalId");
         int maxAge = config.path("maxAgeSeconds").asInt(600);
+        ObjectNode base = json.createObjectNode().put("parameterId", parameter.toString())
+                .put("source", "LOCAL").put("maxAgeSeconds", maxAge);
+        if (sensor != null) base.put("sensorExternalId", sensor);
         var rows = jdbc.query("""
-            select m.id,pv.id,s.external_id,m.timestamp,pv.numeric_value,pv.boolean_value,pv.text_value
+            select m.id,pv.id,s.external_id,m.timestamp,pv.numeric_value,pv.boolean_value,pv.text_value,
+              p.id parameter_id,p.nome parameter_name,p.numeric_unit,p.data_type
             from sensor s join medicao m on m.sensor_external_id=s.external_id
             join parametro_valor pv on pv.medicao_id=m.id and pv.parametro_def_id=?
-            where s.ativo and s.compartimento_id=? and (? is null or s.external_id=?) and m.timestamp<=?
+            join parametro_def p on p.id=pv.parametro_def_id and p.tipo_nome=s.tipo_nome and p.ativo
+            where s.ativo and s.compartimento_id=? and (?::varchar is null or s.external_id=?) and m.timestamp<=?
             order by m.timestamp desc,m.id desc limit 1
             """, (rs, n) -> observationRow(rs, at, maxAge), parameter, room, sensor, sensor, Timestamp.from(at));
-        return rows.isEmpty() ? Observation.skip("SKIPPED_NO_DATA", "required local measurement is missing", json.createObjectNode(), json) : rows.getFirst();
+        if (!rows.isEmpty()) return rows.getFirst();
+        base.put("rejectionReason", "SKIPPED_NO_DATA").put("rejectionDetail", "required local measurement is missing");
+        return Observation.skip("SKIPPED_NO_DATA", "required local measurement is missing", base, json);
     }
 
     private Observation sharedObservation(String room, UUID parameter, Instant at, boolean average) {
         if (average) {
             var avg = shared.average7d(room, parameter, at);
             ObjectNode node = json.valueToTree(avg);
-            if (!"AVAILABLE".equals(avg.status())) return Observation.skip("SKIPPED_INSUFFICIENT_COVERAGE", "external average has insufficient coverage", node, json);
+            node.put("origin", "SHARED");
+            if (!"AVAILABLE".equals(avg.status())) return rejected("SKIPPED_INSUFFICIENT_COVERAGE", "external average has insufficient coverage", node);
             node.set("value", json.valueToTree(avg.average()));
             return new Observation(avg.average(), null, null, node);
         }
         var latest = shared.latest(room, parameter, at);
         ObjectNode node = json.valueToTree(latest);
-        if ("MISSING".equals(latest.status())) return Observation.skip("SKIPPED_NO_DATA", "selected shared source has no measurement", node, json);
-        if ("STALE".equals(latest.status())) return Observation.skip("SKIPPED_STALE_DATA", "selected shared measurement is stale", node, json);
+        node.put("origin", "SHARED");
+        if ("MISSING".equals(latest.status())) return rejected("SKIPPED_NO_DATA", "selected shared source has no measurement", node);
+        if ("STALE".equals(latest.status())) return rejected("SKIPPED_STALE_DATA", "selected shared measurement is stale", node);
         node.set("value", json.valueToTree(latest.value()));
         return new Observation(latest.value(), null, null, node);
     }
@@ -313,13 +322,21 @@ public class EnvironmentRuleService {
         Instant observed = rs.getTimestamp("timestamp").toInstant();
         ObjectNode node = json.createObjectNode().put("measurementId", rs.getObject(1).toString())
                 .put("parameterValueId", rs.getObject(2).toString()).put("sensorExternalId", rs.getString(3))
-                .put("observedAt", observed.toString());
-        if (observed.isAfter(at)) return Observation.skip("SKIPPED_FUTURE_DATA", "observation is in the future", node, json);
-        if (observed.isBefore(at.minusSeconds(maxAge))) return Observation.skip("SKIPPED_STALE_DATA", "measurement is stale", node, json);
+                .put("observedAt", observed.toString()).put("parameterId", rs.getObject("parameter_id").toString())
+                .put("parameterName", rs.getString("parameter_name")).put("dataType", rs.getString("data_type"))
+                .put("source", "LOCAL").put("maxAgeSeconds", maxAge);
+        if (rs.getString("numeric_unit") != null) node.put("unit", rs.getString("numeric_unit"));
+        if (observed.isAfter(at)) return rejected("SKIPPED_FUTURE_DATA", "observation is in the future", node);
+        if (observed.isBefore(at.minusSeconds(maxAge))) return rejected("SKIPPED_STALE_DATA", "measurement is stale", node);
         Object raw = rs.getBigDecimal(5) != null ? rs.getBigDecimal(5) : rs.getObject(6) != null ? rs.getBoolean(6) : rs.getString(7);
-        if (raw == null) return Observation.skip("SKIPPED_NO_DATA", "measurement value is null", node, json);
+        if (raw == null) return rejected("SKIPPED_NO_DATA", "measurement value is null", node);
         node.set("value", json.valueToTree(raw));
         return new Observation(raw, null, null, node);
+    }
+
+    private Observation rejected(String result, String reason, ObjectNode node) {
+        node.put("rejectionReason", result).put("rejectionDetail", reason);
+        return Observation.skip(result, reason, node, json);
     }
 
     private OccupancyState occupancy(RuleResponse rule, String room, Instant at, AcademicContext academic) {
@@ -385,8 +402,17 @@ public class EnvironmentRuleService {
         Set<String> aliases = new HashSet<>();
         for (JsonNode c : conditions) {
             String alias = requiredText(c,"alias"); if (!aliases.add(alias)) throw new IllegalArgumentException("condition aliases must be unique");
-            UUID.fromString(requiredText(c,"parametroDefId")); enumValue(c.path("source").asText("LOCAL"), SOURCES, "source");
+            UUID parameter = UUID.fromString(requiredText(c,"parametroDefId"));
+            String source = enumValue(c.path("source").asText("LOCAL"), SOURCES, "source");
             String op = c.path("operator").asText("EQ").toUpperCase(Locale.ROOT); if (!OPERATORS.contains(op)) throw new IllegalArgumentException("invalid condition operator");
+            if (!exists("select exists(select 1 from parametro_def where id=? and ativo)", parameter))
+                throw new IllegalArgumentException("condition parameter is inactive or missing");
+            String sensor = text(c, "sensorExternalId");
+            if ("LOCAL".equals(source) && sensor != null && !exists("""
+                    select exists(select 1 from sensor s join parametro_def p on p.id=? and p.tipo_nome=s.tipo_nome
+                      where s.external_id=? and s.ativo and p.ativo)
+                    """, parameter, sensor))
+                throw new IllegalArgumentException("condition parameter is incompatible with sensor");
             if (!c.has("value") && !c.path("sevenDayAverage").asBoolean(false)
                     && !"ADAPTIVE_COMFORT".equals(config.path("preset").asText()))
                 throw new IllegalArgumentException("condition value is required");

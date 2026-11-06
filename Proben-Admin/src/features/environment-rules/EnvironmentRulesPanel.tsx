@@ -405,6 +405,20 @@ export function EnvironmentRulesPanel() {
               </Typography>
             </Paper>
           ))}
+          {resolutionRoom && resolution.isPending && (
+            <Typography>Calculando precedência…</Typography>
+          )}
+          {resolutionRoom && resolution.isError && (
+            <Alert severity="error">
+              Não foi possível resolver a precedência desta sala.
+            </Alert>
+          )}
+          {resolutionRoom &&
+            !resolution.isPending &&
+            !resolution.isError &&
+            resolution.data?.length === 0 && (
+              <Typography>Nenhuma configuração válida resolvida.</Typography>
+            )}
         </Stack>
       </Paper>
 

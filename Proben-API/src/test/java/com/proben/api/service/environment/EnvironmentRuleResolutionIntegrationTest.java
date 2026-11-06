@@ -2,6 +2,7 @@ package com.proben.api.service.environment;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proben.api.dto.environment.EnvironmentRuleDTOs.RuleRequest;
+import com.proben.api.dto.environment.EnvironmentRuleDTOs.CopyRequest;
 import com.proben.api.exception.ConflictException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -169,6 +170,20 @@ class EnvironmentRuleResolutionIntegrationTest {
         jdbc.update("update regra_ambiente_execucao set status='PROCESSING',attempts=1,lease_token=gen_random_uuid(),lease_until=now()+interval '1 minute' where id=?", execution.id());
         assertThat(worker.processAvailable()).isZero();
         assertThat(service.execution(execution.id()).tipoExecucao()).isEqualTo("MANUAL");
+    }
+
+    @Test void copyCreatesIndependentRoomRulesAndRollsBackAtomicallyOnFailure() {
+        var original = service.create(request("Original", "ROOM", null, "ENV-R1", false));
+        var copies = service.copyToRooms(original.id(), new CopyRequest(List.of("ENV-R2", "ENV-R3")));
+        assertThat(copies).hasSize(2).extracting(rule -> rule.compartimentoId()).containsExactlyInAnyOrder("ENV-R2", "ENV-R3");
+        assertThat(copies).extracting(rule -> rule.id()).doesNotContain(original.id());
+        assertThat(service.get(original.id()).compartimentoId()).isEqualTo("ENV-R1");
+        copies.forEach(copy -> assertThat(copy.configuracao()).isEqualTo(original.configuracao()));
+
+        copies.forEach(copy -> service.setActive(copy.id(), false));
+        assertThatThrownBy(() -> service.copyToRooms(original.id(), new CopyRequest(List.of("ENV-R2", "MISSING-ROOM"))))
+                .isInstanceOf(RuntimeException.class);
+        assertThat(jdbc.queryForObject("select count(*) from regra_ambiente where compartimento_id='ENV-R2' and ativo", Integer.class)).isZero();
     }
 
     private RuleRequest request(String name, String scope, String campus, String room, boolean standard) {

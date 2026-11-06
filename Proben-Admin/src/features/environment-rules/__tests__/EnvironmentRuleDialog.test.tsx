@@ -38,14 +38,71 @@ const rooms = [
     id: "ROOM-2",
     nome: "Sala 202",
     tipo: "Sala",
+    predioId: "B1",
+    predioNome: "Bloco A",
+    campusNome: "Campus Centro",
+    unidadeNome: "Unidade",
+  },
+  {
+    id: "ROOM-3",
+    nome: "Sala 303",
+    tipo: "Sala",
     predioId: "B2",
     predioNome: "Bloco B",
+    campusNome: "Campus Centro",
+    unidadeNome: "Unidade",
+  },
+  {
+    id: "ROOM-5",
+    nome: "Sala 203",
+    tipo: "Sala",
+    predioId: "B1",
+    predioNome: "Bloco A",
+    campusNome: "Campus Centro",
+    unidadeNome: "Unidade",
+  },
+  {
+    id: "ROOM-4",
+    nome: "Sala Norte",
+    tipo: "Sala",
+    predioId: "B3",
+    predioNome: "Bloco Norte",
     campusNome: "Campus Norte",
     unidadeNome: "Unidade",
   },
 ];
 
-function renderDialog() {
+const existingRoomRule = {
+  id: "rule-room-1",
+  nome: "Conforto sala 101",
+  descricao: null,
+  categoria: "AR_CONDICIONADO",
+  ativo: true,
+  padrao: false,
+  escopo: "ROOM" as const,
+  campusNome: null,
+  compartimentoId: "ROOM-1",
+  timezone: "America/Sao_Paulo",
+  cronExpression: "0 */10 * * * *",
+  diasSemana: [1, 2, 3, 4, 5, 6, 7],
+  vigenciaInicio: null,
+  vigenciaFim: null,
+  politicaOcupacao: "IGNORE" as const,
+  politicaBeneficiario: "NONE" as const,
+  monitorarSemPontos: true,
+  pontuacao: { satisfied: 0, notSatisfied: 0 },
+  configuracao: { conditions: [] },
+  versao: 1,
+  createdAt: "2026-01-01T00:00:00Z",
+  createdBy: "admin",
+  updatedAt: "2026-01-01T00:00:00Z",
+  updatedBy: "admin",
+};
+
+function renderDialog(
+  rule: typeof existingRoomRule | null = null,
+  onSaved = vi.fn(),
+) {
   const client = new QueryClient({
     defaultOptions: {
       queries: { retry: false, gcTime: Infinity },
@@ -56,12 +113,12 @@ function renderDialog() {
     <QueryClientProvider client={client}>
       <EnvironmentRuleDialog
         open
-        rule={null}
+        rule={rule}
         rooms={rooms}
         campuses={["Campus Centro", "Campus Norte"]}
         existingRules={[]}
         onClose={vi.fn()}
-        onSaved={vi.fn()}
+        onSaved={onSaved}
       />
     </QueryClientProvider>,
   );
@@ -125,6 +182,10 @@ describe("EnvironmentRuleDialog", () => {
       },
     ]);
     vi.mocked(environmentRulesApi.create).mockResolvedValue({} as never);
+    vi.mocked(environmentRulesApi.update).mockResolvedValue(
+      existingRoomRule as never,
+    );
+    vi.mocked(environmentRulesApi.copy).mockResolvedValue([]);
   });
 
   it("cria regra específica por controles visuais e gera o JSON declarativo", async () => {
@@ -244,5 +305,63 @@ describe("EnvironmentRuleDialog", () => {
     client.clear();
     vi.runOnlyPendingTimers();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("copia para várias salas compatíveis usando IDs independentes", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    renderDialog(existingRoomRule, onSaved);
+    await user.click(screen.getByLabelText("Copiar para salas"));
+    expect(
+      await screen.findByRole("option", { name: "Sala 202 · Campus Centro" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Sala 303 · Campus Centro" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: "Sala Norte · Campus Norte" }),
+    ).not.toBeInTheDocument();
+    await user.click(
+      screen.getByRole("option", { name: "Sala 202 · Campus Centro" }),
+    );
+    await user.click(
+      screen.getByRole("option", { name: "Sala 203 · Campus Centro" }),
+    );
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await waitFor(() =>
+      expect(environmentRulesApi.copy).toHaveBeenCalledWith(
+        "rule-room-1",
+        ["ROOM-2", "ROOM-5"],
+        expect.anything(),
+      ),
+    );
+    expect(environmentRulesApi.update).toHaveBeenCalledWith(
+      "rule-room-1",
+      expect.objectContaining({ compartimentoId: "ROOM-1" }),
+      expect.anything(),
+    );
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it("exibe falha atômica da cópia e mantém o diálogo aberto", async () => {
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    vi.mocked(environmentRulesApi.copy).mockRejectedValue(
+      new Error("Não foi possível copiar as regras."),
+    );
+    renderDialog(existingRoomRule, onSaved);
+    await user.click(screen.getByLabelText("Copiar para salas"));
+    await user.click(
+      await screen.findByRole("option", {
+        name: "Sala 202 · Campus Centro",
+      }),
+    );
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    expect(
+      await screen.findByText("Não foi possível copiar as regras."),
+    ).toBeInTheDocument();
+    expect(onSaved).not.toHaveBeenCalled();
   });
 });

@@ -47,6 +47,11 @@ const room = {
   campusNome: "Campus Centro",
   unidadeNome: "Unidade",
 };
+const room2 = {
+  ...room,
+  id: "ROOM-2",
+  nome: "Sala 202",
+};
 const rule = {
   id: "rule-1",
   nome: "Conforto 101",
@@ -91,7 +96,7 @@ function renderPanel() {
 describe("EnvironmentRulesPanel", () => {
   beforeEach(() => {
     admin = true;
-    vi.mocked(listCompartimentos).mockResolvedValue([room]);
+    vi.mocked(listCompartimentos).mockResolvedValue([room, room2]);
     vi.mocked(environmentRulesApi.list).mockResolvedValue([rule]);
     vi.mocked(environmentRulesApi.resolve).mockResolvedValue([
       {
@@ -253,6 +258,144 @@ describe("EnvironmentRulesPanel", () => {
     renderPanel();
     expect(
       await screen.findByText("Não foi possível carregar as regras."),
+    ).toBeInTheDocument();
+  });
+
+  it("seleciona o padrão do campus quando a regra específica está inativa", async () => {
+    const user = userEvent.setup();
+    const campusRule = {
+      ...rule,
+      id: "campus",
+      nome: "Padrão campus",
+      escopo: "CAMPUS" as const,
+      padrao: true,
+      compartimentoId: null,
+      campusNome: "Campus Centro",
+    };
+    vi.mocked(environmentRulesApi.resolve).mockResolvedValueOnce([
+      {
+        compartimentoId: room.id,
+        categoria: rule.categoria,
+        specific: { ...rule, ativo: false },
+        campusDefault: campusRule,
+        globalDefault: null,
+        effective: campusRule,
+        origem: "CAMPUS_DEFAULT",
+      },
+    ]);
+    renderPanel();
+    await user.click(
+      screen
+        .getAllByLabelText("Sala", { selector: "div", exact: true })
+        .at(-1)!,
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Sala 101 · Campus Centro" }),
+    );
+    expect(
+      await screen.findByText("CAMPUS_DEFAULT: Padrão campus"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/ignorada: regra inativa/)).toBeInTheDocument();
+  });
+
+  it("seleciona o padrão global quando os níveis anteriores não existem", async () => {
+    const user = userEvent.setup();
+    const globalRule = {
+      ...rule,
+      id: "global",
+      nome: "Padrão global",
+      escopo: "GLOBAL" as const,
+      padrao: true,
+      compartimentoId: null,
+    };
+    vi.mocked(environmentRulesApi.resolve).mockResolvedValueOnce([
+      {
+        compartimentoId: room.id,
+        categoria: rule.categoria,
+        specific: null,
+        campusDefault: null,
+        globalDefault: globalRule,
+        effective: globalRule,
+        origem: "GLOBAL_DEFAULT",
+      },
+    ]);
+    renderPanel();
+    await user.click(
+      screen
+        .getAllByLabelText("Sala", { selector: "div", exact: true })
+        .at(-1)!,
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Sala 101 · Campus Centro" }),
+    );
+    expect(
+      await screen.findByText("GLOBAL_DEFAULT: Padrão global"),
+    ).toBeInTheDocument();
+  });
+
+  it("recalcula a cadeia ao mudar de sala e não inventa regra efetiva", async () => {
+    const user = userEvent.setup();
+    vi.mocked(environmentRulesApi.resolve)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          compartimentoId: room2.id,
+          categoria: rule.categoria,
+          specific: null,
+          campusDefault: null,
+          globalDefault: null,
+          effective: null,
+          origem: null,
+        },
+      ]);
+    renderPanel();
+    const select = screen
+      .getAllByLabelText("Sala", { selector: "div", exact: true })
+      .at(-1)!;
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: "Sala 101 · Campus Centro" }),
+    );
+    expect(
+      await screen.findByText("Nenhuma configuração válida resolvida."),
+    ).toBeInTheDocument();
+    await user.click(select);
+    await user.click(
+      await screen.findByRole("option", { name: "Sala 202 · Campus Centro" }),
+    );
+    expect(await screen.findByText("Sem regra aplicável")).toBeInTheDocument();
+    expect(environmentRulesApi.resolve).toHaveBeenNthCalledWith(
+      2,
+      "ROOM-2",
+      expect.anything(),
+    );
+  });
+
+  it("exibe loading e erro ao resolver a precedência", async () => {
+    const user = userEvent.setup();
+    let reject!: (reason: Error) => void;
+    vi.mocked(environmentRulesApi.resolve).mockReturnValueOnce(
+      new Promise((_, promiseReject) => {
+        reject = promiseReject;
+      }),
+    );
+    renderPanel();
+    await user.click(
+      screen
+        .getAllByLabelText("Sala", { selector: "div", exact: true })
+        .at(-1)!,
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Sala 101 · Campus Centro" }),
+    );
+    expect(
+      await screen.findByText("Calculando precedência…"),
+    ).toBeInTheDocument();
+    reject(new Error("offline"));
+    expect(
+      await screen.findByText(
+        "Não foi possível resolver a precedência desta sala.",
+      ),
     ).toBeInTheDocument();
   });
 });

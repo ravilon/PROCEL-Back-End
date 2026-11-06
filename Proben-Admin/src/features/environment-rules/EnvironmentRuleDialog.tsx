@@ -157,6 +157,9 @@ export function EnvironmentRuleDialog({
   );
   const [building, setBuilding] = useState("");
   const [copyRooms, setCopyRooms] = useState<string[]>([]);
+  const sourceRoom = rule?.compartimentoId
+    ? rooms.find((room) => room.id === rule.compartimentoId)
+    : undefined;
   const [validation, setValidation] = useState<string[]>([]);
   const sensors = useQuery({
     queryKey: ["environment-rules", "sensors"],
@@ -673,8 +676,12 @@ export function EnvironmentRuleDialog({
           </Box>
           {rule?.escopo === "ROOM" && (
             <FormControl fullWidth>
-              <InputLabel>Copiar para salas</InputLabel>
+              <InputLabel id="environment-rule-copy-rooms-label">
+                Copiar para salas
+              </InputLabel>
               <Select
+                id="environment-rule-copy-rooms"
+                labelId="environment-rule-copy-rooms-label"
                 multiple
                 label="Copiar para salas"
                 value={copyRooms}
@@ -687,7 +694,13 @@ export function EnvironmentRuleDialog({
                 }
               >
                 {rooms
-                  .filter((room) => room.id !== rule.compartimentoId)
+                  .filter(
+                    (room) =>
+                      room.id !== rule.compartimentoId &&
+                      (!sourceRoom ||
+                        (room.campusNome === sourceRoom.campusNome &&
+                          room.predioId === sourceRoom.predioId)),
+                  )
                   .map((room) => (
                     <MenuItem key={room.id} value={room.id}>
                       {room.nome} · {room.campusNome}

@@ -202,7 +202,7 @@ public class SharedContextService {
     public ObservationResponse latest(String roomId, UUID parameterId, Instant at) {
         Instant reference = at == null ? Instant.now() : at;
         var rows = jdbc.query("""
-            select pv.numeric_value,p.numeric_unit,m.timestamp,s.external_id,m.source,fs.validade_segundos
+            select pv.numeric_value,p.numeric_unit,m.timestamp,s.external_id,m.source,fs.validade_segundos,ce.location_hash
             from contexto_fonte_selecao fs join sensor s on s.external_id=fs.sensor_external_id
             join medicao m on m.sensor_external_id=s.external_id
             join parametro_valor pv on pv.medicao_id=m.id and pv.parametro_def_id=fs.parametro_def_id
@@ -210,17 +210,19 @@ public class SharedContextService {
             join contexto_integracao_externa i on i.sensor_external_id=s.external_id
             join contexto_coleta_execucao ce on ce.integracao_id=i.id and ce.medicao_id=m.id
             join contexto_compartilhado c on c.id=i.contexto_id
+            join contexto_compartilhado_compartimento cc on cc.contexto_id=c.id and cc.compartimento_id=fs.compartimento_id
             left join campus cp on cp.nome=c.campus_nome
             where fs.compartimento_id=? and fs.parametro_def_id=? and m.timestamp<=?
+              and c.ativo and cc.ativo and s.ativo and p.ativo and i.ativo
               and ce.location_hash=encode(digest(concat_ws('|',case when c.location_mode='CAMPUS' then cp.latitude else c.latitude end,
                 case when c.location_mode='CAMPUS' then cp.longitude else c.longitude end),'sha256'),'hex')
             order by m.timestamp desc,m.id desc limit 1
             """, (rs,n) -> {
                 Instant observed=rs.getTimestamp(3).toInstant(); Instant valid=observed.plusSeconds(rs.getInt(6));
                 return new ObservationResponse(valid.isBefore(reference)?"STALE":"AVAILABLE",rs.getBigDecimal(1),rs.getString(2),observed,
-                        rs.getString(4),rs.getString(5),valid);
+                        rs.getString(4),rs.getString(5),valid,rs.getString(7));
             }, roomId, parameterId, Timestamp.from(reference));
-        return rows.isEmpty() ? new ObservationResponse("MISSING",null,null,null,null,null,null) : rows.getFirst();
+        return rows.isEmpty() ? new ObservationResponse("MISSING",null,null,null,null,null,null,null) : rows.getFirst();
     }
 
     public SevenDayAverageResponse average7d(String roomId, UUID parameterId, Instant at) {
@@ -236,8 +238,12 @@ public class SharedContextService {
             join contexto_integracao_externa i on i.sensor_external_id=fs.sensor_external_id
             join contexto_coleta_execucao ce on ce.integracao_id=i.id and ce.medicao_id=m.id
             join contexto_compartilhado c on c.id=i.contexto_id
+            join contexto_compartilhado_compartimento cc on cc.contexto_id=c.id and cc.compartimento_id=fs.compartimento_id
+            join parametro_def p on p.id=fs.parametro_def_id
             left join campus cp on cp.nome=c.campus_nome
             where fs.compartimento_id=? and fs.parametro_def_id=? and m.timestamp between ? and ? and pv.numeric_value is not null
+              and c.ativo and cc.ativo and fs.sensor_external_id in (select external_id from sensor where ativo)
+              and p.ativo and i.ativo
               and ce.location_hash=encode(digest(concat_ws('|',case when c.location_mode='CAMPUS' then cp.latitude else c.latitude end,
                 case when c.location_mode='CAMPUS' then cp.longitude else c.longitude end),'sha256'),'hex')
             order by m.timestamp,m.id desc
@@ -247,8 +253,15 @@ public class SharedContextService {
         BigDecimal hours=seconds.divide(BigDecimal.valueOf(3600),2,java.math.RoundingMode.HALF_UP);
         String status=hours.compareTo(MIN_COVERED_HOURS)>=0?"AVAILABLE":"INSUFFICIENT_COVERAGE";
         BigDecimal avg=status.equals("AVAILABLE")?weighted.divide(seconds,2,java.math.RoundingMode.HALF_UP):null;
+        String locationHash=jdbc.query("""
+            select encode(digest(concat_ws('|',case when c.location_mode='CAMPUS' then cp.latitude else c.latitude end,
+              case when c.location_mode='CAMPUS' then cp.longitude else c.longitude end),'sha256'),'hex')
+            from contexto_fonte_selecao fs join sensor s on s.external_id=fs.sensor_external_id
+            join contexto_compartilhado c on c.id=s.contexto_compartilhado_id left join campus cp on cp.nome=c.campus_nome
+            where fs.compartimento_id=? and fs.parametro_def_id=?
+            """,(rs,n)->rs.getString(1),roomId,parameterId).stream().findFirst().orElse(null);
         return new SevenDayAverageResponse(status,avg,"°C",start,end,timezone,hours,MIN_COVERED_HOURS,points.size(),
-                "time-weighted step average; duplicate timestamps collapsed; gaps capped at 1h; minimum 120 covered hours");
+                "time-weighted step average; duplicate timestamps collapsed; gaps capped at 1h; minimum 120 covered hours",locationHash);
     }
 
     private IntegrationResponse integration(UUID id) {

@@ -74,8 +74,9 @@ public final class SharedContextDTOs {
         }
     }
     public record ObservationResponse(String status, BigDecimal value, String unit, Instant observedAt,
-                                      String sensorExternalId, String source, Instant validUntil) {}
+                                      String sensorExternalId, String source, Instant validUntil, String locationHash) {}
     public record SevenDayAverageResponse(String status, BigDecimal average, String unit, Instant windowStart,
                                            Instant windowEnd, String timezone, BigDecimal coveredHours,
-                                           BigDecimal requiredHours, int distinctObservations, String method) {}
+                                           BigDecimal requiredHours, int distinctObservations, String method,
+                                           String locationHash) {}
 }

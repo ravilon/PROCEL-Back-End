@@ -114,6 +114,7 @@ public class EnvironmentRuleWorker {
     }
 
     private boolean complete(Claim claim, EnvironmentRuleService.Evaluation e, Instant started) {
+        var evidence=enrichedEvidence(claim,e);
         Boolean completed=transactions.execute(status->{
             var owned=jdbc.query("select id from regra_ambiente_execucao where id=? and status='PROCESSING' and lease_token=? and lease_until>now() for update",
                     (rs,n)->rs.getObject(1,UUID.class),claim.id,claim.token);
@@ -131,12 +132,23 @@ public class EnvironmentRuleWorker {
                 update regra_ambiente_execucao set status='COMPLETED',resultado=?,motivo=?,evidencias=?::jsonb,contexto_academico=?::jsonb,
                   ocupacao=?::jsonb,beneficiarios=?::jsonb,pontos_calculados=?,lancamentos=?::jsonb,instante_real=now(),finished_at=now(),
                   duration_ms=?,lease_until=null,lease_token=null where id=? and lease_token=?
-                """,e.result(),e.reason(),string(e.evidence()),string(e.academic()),string(e.occupancy()),string(e.beneficiaries()),e.points(),
+                """,e.result(),e.reason(),string(evidence),string(e.academic()),string(e.occupancy()),string(e.beneficiaries()),e.points(),
                     string(launches),Duration.between(started,Instant.now()).toMillis(),claim.id,claim.token);
             if(changed==1 && !launches.isEmpty()) metrics.environmentRulePoints(e.points()*launches.size());
             return changed==1;
         });
         return Boolean.TRUE.equals(completed);
+    }
+
+    private com.fasterxml.jackson.databind.JsonNode enrichedEvidence(Claim claim, EnvironmentRuleService.Evaluation evaluation) {
+        var evidence=evaluation.evidence()!=null&&evaluation.evidence().isObject()
+                ? ((com.fasterxml.jackson.databind.node.ObjectNode)evaluation.evidence()).deepCopy()
+                : json.createObjectNode();
+        String campus=jdbc.queryForObject("""
+            select p.campus_id from compartimento c join predio p on p.id=c.predio_id where c.id=?
+            """,String.class,claim.room);
+        evidence.set("_execution",json.createObjectNode().put("roomId",claim.room).put("campus",campus));
+        return evidence;
     }
 
     private void retryOrFail(Claim c,String error,Instant started) {
