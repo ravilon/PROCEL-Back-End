@@ -130,7 +130,12 @@ public class EnvironmentRuleService {
         if (!"ROOM".equals(r.escopo())) throw new IllegalArgumentException("Only ROOM rules can be copied");
         if (request.compartimentoIds().isEmpty()) throw new IllegalArgumentException("compartimentoIds is required");
         List<RuleResponse> copies = new ArrayList<>();
-        for (String room : request.compartimentoIds().stream().map(String::trim).distinct().toList()) {
+        for (String room : request.compartimentoIds().stream()
+                .filter(Objects::nonNull)
+                .map(roomId -> roomId.trim())
+                .filter(roomId -> !roomId.isEmpty())
+                .distinct()
+                .toList()) {
             copies.add(create(new RuleRequest(r.nome(), r.descricao(), r.categoria(), r.ativo(), false, "ROOM", null,
                     room, r.timezone(), r.cronExpression(), r.diasSemana(), r.vigenciaInicio(), r.vigenciaFim(),
                     r.politicaOcupacao(), r.politicaBeneficiario(), r.monitorarSemPontos(), r.pontuacao(), r.configuracao())));
@@ -426,7 +431,8 @@ public class EnvironmentRuleService {
     }
 
     private List<RuleResponse> candidates(String sql, Object... args) { return jdbc.query(sql, this::rule, args); }
-    private void ensureUnambiguous(List<RuleResponse>... levels) { for (var level : levels) if (level.size()>1) throw new ConflictException("Ambiguous active environment rule resolution"); }
+    @SafeVarargs
+    private final void ensureUnambiguous(List<RuleResponse>... levels) { for (var level : levels) if (level.size()>1) throw new ConflictException("Ambiguous active environment rule resolution"); }
     private RuleResponse first(List<RuleResponse> values) { return values.isEmpty()?null:values.getFirst(); }
     private String requireRoom(String room) { if (blank(room)==null) throw new IllegalArgumentException("compartimentoId is required"); if(!exists("select exists(select 1 from compartimento where id=?)",room.trim()))throw new NotFoundException("Compartimento not found id="+room);return room.trim(); }
     private boolean exists(String sql,Object...args){return Boolean.TRUE.equals(jdbc.queryForObject(sql,Boolean.class,args));}
@@ -458,7 +464,7 @@ public class EnvironmentRuleService {
     private Evaluation skipped(String status,String reason,JsonNode academic,JsonNode occupancy){return skipped(status,reason,academic,occupancy,json.createObjectNode(),json.createArrayNode());}
     private Evaluation skipped(String status,String reason,JsonNode academic,JsonNode occupancy,JsonNode evidence,JsonNode beneficiaries){return new Evaluation(status,reason,evidence,academic,occupancy,beneficiaries,0,List.of());}
     record Evaluation(String result,String reason,JsonNode evidence,JsonNode academic,JsonNode occupancy,JsonNode beneficiaries,int points,List<String> beneficiaryIds){}
-    private record Observation(Object value,String result,String reason,ObjectNode json){static Observation skip(String r,String why,ObjectNode node,ObjectMapper json){return new Observation(null,r,why,node);}static Observation skip(String r,String why,ObjectNode node, Object ignored){return new Observation(null,r,why,node);}}
+    private record Observation(Object value,String result,String reason,ObjectNode json){static Observation skip(String r,String why,ObjectNode node,ObjectMapper json){return new Observation(null,r,why,node);}}
     private record OccupancyState(boolean occupied,String source){}
     private record BeneficiaryState(List<String> ids,ArrayNode json,String reason){}
     private record Normalized(String name,String description,String category,boolean active,boolean standard,String scope,String campus,String room,String zone,String cron,List<Integer> days,Instant start,Instant end,String occupancy,String beneficiary,boolean monitor,JsonNode points,JsonNode config){}
