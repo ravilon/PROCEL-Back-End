@@ -32,7 +32,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "../../auth/AuthContext";
 import {
   getCompartimentoFilterOptions,
@@ -41,6 +41,7 @@ import {
   listCompartimentoSensores,
 } from "../../api/catalog";
 import { assignRuleGroupToRooms, listRuleGroups } from "../../api/rules";
+import { listSharedContexts } from "../../api/sharedContexts";
 import {
   createSensor as createSensorRequest,
   hideSensor as hideSensorRequest,
@@ -105,6 +106,11 @@ export function CompartimentosTree() {
   const roomFilterOptions = useQuery({
     queryKey: ["catalog", "room-filter-options"],
     queryFn: () => getCompartimentoFilterOptions(session),
+  });
+  const sharedContexts = useQuery({
+    queryKey: ["catalog", "shared-contexts"],
+    queryFn: () => listSharedContexts(session),
+    enabled: hasAnyRole("ADMIN", "OPERADOR", "ANALISTA"),
   });
   const ruleGroups = useQuery({
     queryKey: ["rules", "groups"],
@@ -195,6 +201,20 @@ export function CompartimentosTree() {
   const selectedSensorType = sensorTypes.data?.find(
     (type) => type.nome === selectedSensor?.tipoNome,
   );
+  const contextNamesByRoom = useMemo(() => {
+    const result = new Map<string, string[]>();
+    for (const context of sharedContexts.data ?? []) {
+      for (const roomId of context.compartimentoIds) {
+        const names = result.get(roomId) ?? [];
+        names.push(context.nome);
+        result.set(roomId, names);
+      }
+    }
+    return result;
+  }, [sharedContexts.data]);
+  const selectedRoomContexts = selectedRoom
+    ? (contextNamesByRoom.get(selectedRoom.id) ?? [])
+    : [];
 
   const createSensor = useMutation({
     mutationFn: () =>
@@ -357,7 +377,11 @@ export function CompartimentosTree() {
                 )}
                 <ListItemText
                   primary={room.nome}
-                  secondary={`${room.id} · ${room.predioNome}`}
+                  secondary={`${room.id} · ${room.predioNome}${
+                    contextNamesByRoom.get(room.id)?.length
+                      ? ` · Contextos: ${contextNamesByRoom.get(room.id)!.join(", ")}`
+                      : ""
+                  }`}
                 />
               </ListItemButton>
             ))}
@@ -393,6 +417,24 @@ export function CompartimentosTree() {
                       size="small"
                     />
                   )}
+                  {hasAnyRole("ADMIN", "OPERADOR", "ANALISTA") &&
+                    (selectedRoomContexts.length ? (
+                      selectedRoomContexts.map((contextName) => (
+                        <Chip
+                          key={contextName}
+                          label={`Contexto: ${contextName}`}
+                          color="primary"
+                          variant="outlined"
+                          size="small"
+                        />
+                      ))
+                    ) : (
+                      <Chip
+                        label="Sem contexto compartilhado"
+                        variant="outlined"
+                        size="small"
+                      />
+                    ))}
                 </Stack>
               </Paper>
 

@@ -248,7 +248,8 @@ function renderAnalytics(
 async function selectAutocomplete(label: string, option: RegExp) {
   const user = userEvent.setup();
   await user.click(screen.getByLabelText(label));
-  await user.click(await screen.findByRole("option", { name: option }));
+  const listbox = await screen.findByRole("listbox");
+  await user.click(within(listbox).getByRole("option", { name: option }));
 }
 
 describe("AnalyticsPage", () => {

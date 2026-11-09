@@ -33,6 +33,16 @@ export interface ContextDeletePreview {
   deletable: boolean;
   dependencies: string[];
 }
+export interface SharedObservation {
+  status: "AVAILABLE" | "STALE" | "MISSING";
+  value?: number;
+  unit?: string;
+  observedAt?: string;
+  sensorExternalId?: string;
+  source?: string;
+  validUntil?: string;
+  locationHash?: string;
+}
 export interface HttpMapping {
   parametroDefId: string;
   parameterName: string;
@@ -263,5 +273,16 @@ export const selectSharedSourceBatch = (
   apiRequest<void>(
     "/api/shared-contexts/rooms/source-batch",
     { method: "PUT", body: JSON.stringify(payload) },
+    session,
+  );
+export const getSharedObservation = (
+  roomId: string,
+  parameterId: string,
+  at?: string,
+  session?: Session | null,
+) =>
+  apiRequest<SharedObservation>(
+    `/api/shared-contexts/rooms/${encodeURIComponent(roomId)}/parameters/${encodeURIComponent(parameterId)}/latest${at ? `?at=${encodeURIComponent(at)}` : ""}`,
+    {},
     session,
   );

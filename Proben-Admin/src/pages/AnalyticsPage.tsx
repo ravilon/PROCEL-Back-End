@@ -22,6 +22,7 @@ import {
 } from "../features/analytics/AnalyticsFilters";
 import { AnalyticsSummaryCards } from "../features/analytics/AnalyticsSummaryCards";
 import { AnalyticsTimeSeriesChart } from "../features/analytics/AnalyticsTimeSeriesChart";
+import { SharedObservationQuery } from "../features/analytics/SharedObservationQuery";
 import {
   analyticsErrorMessage,
   cleanAnalyticsFilters,
@@ -140,6 +141,12 @@ export function AnalyticsPage() {
           </Box>
         </Stack>
       </Box>
+
+      <SharedObservationQuery
+        rooms={rooms.data ?? []}
+        parameters={parametros}
+        loadingCatalogs={rooms.isLoading || sensorTypes.isLoading}
+      />
 
       <AnalyticsFilters
         value={draftFilters}
