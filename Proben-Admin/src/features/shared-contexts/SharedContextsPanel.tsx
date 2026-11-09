@@ -58,6 +58,12 @@ export function SharedContextsPanel() {
   const [parameters, setParameters] = useState<ParametroDef[]>([]);
   const [search, setSearch] = useState("");
   const [newName, setNewName] = useState("");
+  const [newLocationMode, setNewLocationMode] = useState<"OWN" | "CAMPUS">(
+    "CAMPUS",
+  );
+  const [newCampusName, setNewCampusName] = useState("");
+  const [newLatitude, setNewLatitude] = useState("");
+  const [newLongitude, setNewLongitude] = useState("");
   const [error, setError] = useState("");
   const reload = async () => {
     const [result, sensorResult] = await Promise.all([
@@ -134,12 +140,25 @@ export function SharedContextsPanel() {
         {
           nome: newName.trim(),
           ativo: true,
-          locationMode: "OWN",
+          locationMode: newLocationMode,
+          campusNome:
+            newLocationMode === "CAMPUS" ? newCampusName || null : null,
+          latitude:
+            newLocationMode === "OWN" && newLatitude !== ""
+              ? Number(newLatitude)
+              : null,
+          longitude:
+            newLocationMode === "OWN" && newLongitude !== ""
+              ? Number(newLongitude)
+              : null,
           timezone: "America/Sao_Paulo",
         },
         session,
       );
       setNewName("");
+      setNewCampusName("");
+      setNewLatitude("");
+      setNewLongitude("");
       await reload();
     } catch (caught) {
       setError(
@@ -162,26 +181,79 @@ export function SharedContextsPanel() {
       )}
       <Card variant="outlined">
         <CardContent>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+          <Stack spacing={1}>
             <TextField
               label="Pesquisar contextos"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               fullWidth
             />
-            <TextField
-              label="Nome do novo contexto"
-              value={newName}
-              onChange={(event) => setNewName(event.target.value)}
-              fullWidth
-            />
-            <Button
-              variant="contained"
-              disabled={!newName.trim()}
-              onClick={() => void create()}
-            >
-              Criar
-            </Button>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
+              <TextField
+                label="Nome do novo contexto"
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
+                fullWidth
+              />
+              <TextField
+                select
+                label="Referência geográfica do novo contexto"
+                value={newLocationMode}
+                onChange={(event) =>
+                  setNewLocationMode(event.target.value as "OWN" | "CAMPUS")
+                }
+                fullWidth
+              >
+                <MenuItem value="CAMPUS">
+                  Usar coordenadas de um campus
+                </MenuItem>
+                <MenuItem value="OWN">Usar coordenadas próprias</MenuItem>
+              </TextField>
+              {newLocationMode === "CAMPUS" ? (
+                <TextField
+                  select
+                  label="Campus de referência do novo contexto"
+                  value={newCampusName}
+                  onChange={(event) => setNewCampusName(event.target.value)}
+                  fullWidth
+                >
+                  {filters?.campi.map((value) => (
+                    <MenuItem key={value} value={value}>
+                      {value}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ) : (
+                <>
+                  <TextField
+                    type="number"
+                    label="Latitude do novo contexto"
+                    value={newLatitude}
+                    onChange={(event) => setNewLatitude(event.target.value)}
+                    inputProps={{ step: "any", min: -90, max: 90 }}
+                    fullWidth
+                  />
+                  <TextField
+                    type="number"
+                    label="Longitude do novo contexto"
+                    value={newLongitude}
+                    onChange={(event) => setNewLongitude(event.target.value)}
+                    inputProps={{ step: "any", min: -180, max: 180 }}
+                    fullWidth
+                  />
+                </>
+              )}
+              <Button
+                variant="contained"
+                disabled={
+                  !newName.trim() ||
+                  (newLocationMode === "CAMPUS" && !newCampusName)
+                }
+                onClick={() => void create()}
+              >
+                Criar
+              </Button>
+            </Stack>
           </Stack>
         </CardContent>
       </Card>
@@ -232,6 +304,16 @@ function ContextCard({
   const [editOpen, setEditOpen] = useState(false);
   const [name, setName] = useState(context.nome);
   const [description, setDescription] = useState(context.descricao ?? "");
+  const [locationMode, setLocationMode] = useState<"OWN" | "CAMPUS">(
+    context.locationMode,
+  );
+  const [campusName, setCampusName] = useState(context.campusNome ?? "");
+  const [latitude, setLatitude] = useState(
+    context.latitude == null ? "" : String(context.latitude),
+  );
+  const [longitude, setLongitude] = useState(
+    context.longitude == null ? "" : String(context.longitude),
+  );
   const [preview, setPreview] = useState<ContextDeletePreview>();
   const [confirmation, setConfirmation] = useState("");
   const [sourceSensor, setSourceSensor] = useState("");
@@ -272,6 +354,27 @@ function ContextCard({
     campusNome: context.campusNome,
     latitude: context.locationMode === "OWN" ? context.latitude : null,
     longitude: context.locationMode === "OWN" ? context.longitude : null,
+    timezone: context.timezone,
+  });
+  const openEdit = () => {
+    setName(context.nome);
+    setDescription(context.descricao ?? "");
+    setLocationMode(context.locationMode);
+    setCampusName(context.campusNome ?? "");
+    setLatitude(context.latitude == null ? "" : String(context.latitude));
+    setLongitude(context.longitude == null ? "" : String(context.longitude));
+    setEditOpen(true);
+  };
+  const editPayload = () => ({
+    nome: name.trim(),
+    descricao: description.trim() || null,
+    ativo: context.ativo,
+    locationMode,
+    campusNome: locationMode === "CAMPUS" ? campusName || null : null,
+    latitude:
+      locationMode === "OWN" && latitude !== "" ? Number(latitude) : null,
+    longitude:
+      locationMode === "OWN" && longitude !== "" ? Number(longitude) : null,
     timezone: context.timezone,
   });
   const guarded = async (action: () => Promise<unknown>, fallback: string) => {
@@ -339,10 +442,20 @@ function ContextCard({
                 {context.descricao || "Sem descrição"} ·{" "}
                 {context.ativo ? "Ativo" : "Inativo"}
               </Typography>
+              <Typography color="text.secondary" variant="body2">
+                Referência:{" "}
+                {context.locationMode === "CAMPUS"
+                  ? context.campusNome || "campus não definido"
+                  : "coordenadas próprias"}
+                {context.resolvedLatitude != null &&
+                context.resolvedLongitude != null
+                  ? ` · ${context.resolvedLatitude}, ${context.resolvedLongitude}`
+                  : " · coordenadas não resolvidas"}
+              </Typography>
             </Box>
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               <Chip label={`${selected.size} salas`} />
-              <Button onClick={() => setEditOpen(true)}>Editar</Button>
+              <Button onClick={openEdit}>Editar</Button>
               <Button
                 onClick={() =>
                   void guarded(
@@ -684,19 +797,71 @@ function ContextCard({
                   onChange={(event) => setDescription(event.target.value)}
                   multiline
                 />
+                <TextField
+                  select
+                  label="Referência geográfica"
+                  value={locationMode}
+                  onChange={(event) =>
+                    setLocationMode(event.target.value as "OWN" | "CAMPUS")
+                  }
+                >
+                  <MenuItem value="CAMPUS">
+                    Usar coordenadas de um campus
+                  </MenuItem>
+                  <MenuItem value="OWN">Usar coordenadas próprias</MenuItem>
+                </TextField>
+                {locationMode === "CAMPUS" ? (
+                  <TextField
+                    select
+                    label="Campus de referência"
+                    value={campusName}
+                    onChange={(event) => setCampusName(event.target.value)}
+                    helperText="As coordenadas cadastradas para o campus serão utilizadas."
+                  >
+                    {filterOptions?.campi.map((value) => (
+                      <MenuItem key={value} value={value}>
+                        {value}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    <TextField
+                      type="number"
+                      label="Latitude"
+                      value={latitude}
+                      onChange={(event) => setLatitude(event.target.value)}
+                      inputProps={{ step: "any", min: -90, max: 90 }}
+                      fullWidth
+                    />
+                    <TextField
+                      type="number"
+                      label="Longitude"
+                      value={longitude}
+                      onChange={(event) => setLongitude(event.target.value)}
+                      inputProps={{ step: "any", min: -180, max: 180 }}
+                      fullWidth
+                    />
+                  </Stack>
+                )}
               </Stack>
             </DialogContent>
             <DialogActions>
               <Button onClick={() => setEditOpen(false)}>Cancelar</Button>
               <Button
                 variant="contained"
-                disabled={!name.trim()}
+                disabled={
+                  !name.trim() ||
+                  (locationMode === "CAMPUS" && !campusName) ||
+                  (locationMode === "OWN" &&
+                    (latitude === "") !== (longitude === ""))
+                }
                 onClick={() =>
                   void guarded(
                     () =>
                       updateSharedContext(
                         context.id,
-                        payload(context.ativo, name, description),
+                        editPayload(),
                         session,
                       ).then(() => setEditOpen(false)),
                     "Falha ao editar",

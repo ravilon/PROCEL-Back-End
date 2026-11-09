@@ -93,9 +93,20 @@ describe("Contextos compartilhados", () => {
       screen.getByLabelText("Nome do novo contexto"),
       "Novo contexto",
     );
+    await user.click(
+      screen.getByLabelText("Campus de referência do novo contexto"),
+    );
+    await user.click(
+      await screen.findByRole("option", { name: "Campus Anglo" }),
+    );
     await user.click(screen.getByRole("button", { name: "Criar" }));
     expect(api.create).toHaveBeenCalledWith(
-      expect.objectContaining({ nome: "Novo contexto", ativo: true }),
+      expect.objectContaining({
+        nome: "Novo contexto",
+        ativo: true,
+        locationMode: "CAMPUS",
+        campusNome: "Campus Anglo",
+      }),
       null,
     );
     await user.click(screen.getByRole("button", { name: "Editar" }));
@@ -104,10 +115,26 @@ describe("Contextos compartilhados", () => {
       .querySelector('input[value="Tempo Anglo"]') as HTMLInputElement;
     await user.clear(name);
     await user.type(name, "Tempo Anglo atualizado");
+    await user.click(screen.getByLabelText("Referência geográfica"));
+    await user.click(
+      await screen.findByRole("option", {
+        name: "Usar coordenadas de um campus",
+      }),
+    );
+    await user.click(screen.getByLabelText("Campus de referência"));
+    await user.click(
+      await screen.findByRole("option", { name: "Campus Anglo" }),
+    );
     await user.click(screen.getByRole("button", { name: "Salvar" }));
     expect(api.update).toHaveBeenCalledWith(
       "ctx-1",
-      expect.objectContaining({ nome: "Tempo Anglo atualizado" }),
+      expect.objectContaining({
+        nome: "Tempo Anglo atualizado",
+        locationMode: "CAMPUS",
+        campusNome: "Campus Anglo",
+        latitude: null,
+        longitude: null,
+      }),
       null,
     );
   });

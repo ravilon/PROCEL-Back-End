@@ -3,6 +3,7 @@ package com.proben.api.controller.shared;
 import com.proben.api.dto.shared.SharedContextDTOs.*;
 import com.proben.api.service.shared.SharedContextCollector;
 import com.proben.api.service.shared.SharedContextService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
@@ -29,10 +30,13 @@ public class SharedContextController {
     @GetMapping("/{id}/delete-preview") @PreAuthorize("hasRole('ADMIN')")
     public ContextDeletePreview deletePreview(@PathVariable UUID id){return service.deletePreview(id);}
     @DeleteMapping("/{id}") @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable UUID id){service.delete(id);}
     @PutMapping("/rooms/{roomId}/source") @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void source(@PathVariable String roomId,@RequestBody SourceSelectionRequest request){service.selectSource(roomId,request);}
     @PutMapping("/rooms/source-batch") @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void sourceBatch(@RequestBody BatchSourceSelectionRequest request){service.selectSourceBatch(request);}
     @PutMapping("/{id}/integration") @PreAuthorize("hasRole('ADMIN')")
     public IntegrationResponse integration(@PathVariable UUID id,@RequestBody IntegrationRequest request){return service.configureIntegration(id,request);}
