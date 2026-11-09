@@ -41,7 +41,10 @@ import {
   listCompartimentoSensores,
 } from "../../api/catalog";
 import { assignRuleGroupToRooms, listRuleGroups } from "../../api/rules";
-import { listSharedContexts } from "../../api/sharedContexts";
+import {
+  listRoomSharedObservations,
+  listSharedContexts,
+} from "../../api/sharedContexts";
 import {
   createSensor as createSensorRequest,
   hideSensor as hideSensorRequest,
@@ -111,6 +114,15 @@ export function CompartimentosTree() {
     queryKey: ["catalog", "shared-contexts"],
     queryFn: () => listSharedContexts(session),
     enabled: hasAnyRole("ADMIN", "OPERADOR", "ANALISTA"),
+  });
+  const sharedObservations = useQuery({
+    queryKey: ["catalog", "room-shared-observations", selectedRoom?.id],
+    queryFn: () =>
+      listRoomSharedObservations(selectedRoom!.id, undefined, session),
+    enabled: Boolean(
+      selectedRoom && hasAnyRole("ADMIN", "OPERADOR", "ANALISTA"),
+    ),
+    refetchInterval: 60_000,
   });
   const ruleGroups = useQuery({
     queryKey: ["rules", "groups"],
@@ -437,6 +449,103 @@ export function CompartimentosTree() {
                     ))}
                 </Stack>
               </Paper>
+
+              {hasAnyRole("ADMIN", "OPERADOR", "ANALISTA") && (
+                <Paper sx={{ p: 2 }} variant="outlined">
+                  <Typography variant="h6" gutterBottom>
+                    Resultados dos contextos compartilhados
+                  </Typography>
+                  {sharedObservations.isLoading && (
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <CircularProgress size={18} />
+                      <Typography variant="body2" color="text.secondary">
+                        Consultando resultados vinculados à sala...
+                      </Typography>
+                    </Stack>
+                  )}
+                  {sharedObservations.isError && (
+                    <Alert severity="error">
+                      Não foi possível carregar os resultados compartilhados.
+                    </Alert>
+                  )}
+                  {sharedObservations.data?.length === 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      Esta sala não possui fontes compartilhadas selecionadas.
+                    </Typography>
+                  )}
+                  <Stack spacing={1}>
+                    {sharedObservations.data?.map((item) => (
+                      <Paper
+                        key={`${item.contextId}:${item.parameterId}`}
+                        variant="outlined"
+                        sx={{ p: 1.5 }}
+                      >
+                        <Stack
+                          direction={{ xs: "column", sm: "row" }}
+                          justifyContent="space-between"
+                          spacing={1}
+                        >
+                          <Stack spacing={0.25}>
+                            <Typography variant="subtitle2">
+                              {item.parameterName}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {item.contextName} · parâmetro {item.parameterId}
+                            </Typography>
+                            <Typography variant="body2">
+                              {item.observation.status === "MISSING"
+                                ? "Sem medição elegível"
+                                : `${item.observation.value ?? "—"} ${item.observation.unit ?? item.parameterUnit ?? ""}`}
+                            </Typography>
+                            {item.observation.observedAt && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Observada em{" "}
+                                {new Date(
+                                  item.observation.observedAt,
+                                ).toLocaleString()}
+                                {item.observation.validUntil
+                                  ? ` · válida até ${new Date(item.observation.validUntil).toLocaleString()}`
+                                  : ""}
+                              </Typography>
+                            )}
+                            {item.observation.sensorExternalId && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                Sensor {item.observation.sensorExternalId} ·
+                                origem {item.observation.source ?? "—"}
+                              </Typography>
+                            )}
+                          </Stack>
+                          <Chip
+                            label={item.observation.status}
+                            color={
+                              item.observation.status === "AVAILABLE"
+                                ? "success"
+                                : item.observation.status === "STALE"
+                                  ? "warning"
+                                  : "default"
+                            }
+                            variant={
+                              item.observation.status === "MISSING"
+                                ? "outlined"
+                                : "filled"
+                            }
+                            size="small"
+                          />
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </Paper>
+              )}
 
               {hasAnyRole("ADMIN", "OPERADOR", "ANALISTA") && (
                 <Paper variant="outlined">

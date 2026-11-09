@@ -56,6 +56,8 @@ public class SharedContextController {
     public IntegrationResponse removeCredential(@PathVariable UUID id){return service.removeManagedCredential(id);}
     @GetMapping("/rooms/{roomId}/parameters/{parameterId}/latest") @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     public ObservationResponse latest(@PathVariable String roomId,@PathVariable UUID parameterId,@RequestParam(required=false) Instant at){return service.latest(roomId,parameterId,at);}
+    @GetMapping("/rooms/{roomId}/observations/latest") @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
+    public List<RoomObservationResponse> roomObservations(@PathVariable String roomId,@RequestParam(required=false) Instant at){return service.roomObservations(roomId,at);}
     @GetMapping("/rooms/{roomId}/parameters/{parameterId}/average-7d") @PreAuthorize("hasAnyRole('ADMIN','OPERADOR','ANALISTA')")
     public SevenDayAverageResponse average(@PathVariable String roomId,@PathVariable UUID parameterId,@RequestParam(required=false) Instant at){return service.average7d(roomId,parameterId,at);}
 }

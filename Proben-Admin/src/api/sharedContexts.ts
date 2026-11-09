@@ -43,6 +43,14 @@ export interface SharedObservation {
   validUntil?: string;
   locationHash?: string;
 }
+export interface RoomSharedObservation {
+  contextId: string;
+  contextName: string;
+  parameterId: string;
+  parameterName: string;
+  parameterUnit?: string;
+  observation: SharedObservation;
+}
 export interface HttpMapping {
   parametroDefId: string;
   parameterName: string;
@@ -283,6 +291,16 @@ export const getSharedObservation = (
 ) =>
   apiRequest<SharedObservation>(
     `/api/shared-contexts/rooms/${encodeURIComponent(roomId)}/parameters/${encodeURIComponent(parameterId)}/latest${at ? `?at=${encodeURIComponent(at)}` : ""}`,
+    {},
+    session,
+  );
+export const listRoomSharedObservations = (
+  roomId: string,
+  at?: string,
+  session?: Session | null,
+) =>
+  apiRequest<RoomSharedObservation[]>(
+    `/api/shared-contexts/rooms/${encodeURIComponent(roomId)}/observations/latest${at ? `?at=${encodeURIComponent(at)}` : ""}`,
     {},
     session,
   );

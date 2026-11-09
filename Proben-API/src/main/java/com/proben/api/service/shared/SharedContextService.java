@@ -225,6 +225,27 @@ public class SharedContextService {
         return rows.isEmpty() ? new ObservationResponse("MISSING",null,null,null,null,null,null,null) : rows.getFirst();
     }
 
+    public List<RoomObservationResponse> roomObservations(String roomId, Instant at) {
+        record Selection(UUID contextId, String contextName, UUID parameterId, String parameterName,
+                         String parameterUnit) {}
+        List<Selection> selections = jdbc.query("""
+            select distinct c.id,c.nome,p.id,p.nome,p.numeric_unit
+            from contexto_fonte_selecao fs
+            join parametro_def p on p.id=fs.parametro_def_id
+            join sensor s on s.external_id=fs.sensor_external_id
+            join contexto_compartilhado c on c.id=s.contexto_compartilhado_id
+            join contexto_compartilhado_compartimento cc
+              on cc.contexto_id=c.id and cc.compartimento_id=fs.compartimento_id
+            where fs.compartimento_id=?
+            order by c.nome,p.nome
+            """, (rs,n) -> new Selection(rs.getObject(1,UUID.class),rs.getString(2),
+                rs.getObject(3,UUID.class),rs.getString(4),rs.getString(5)), roomId);
+        return selections.stream().map(selection -> new RoomObservationResponse(
+                selection.contextId(), selection.contextName(), selection.parameterId(),
+                selection.parameterName(), selection.parameterUnit(),
+                latest(roomId, selection.parameterId(), at))).toList();
+    }
+
     public SevenDayAverageResponse average7d(String roomId, UUID parameterId, Instant at) {
         Instant end=at==null?Instant.now():at; Instant start=end.minus(Duration.ofDays(7));
         String timezone=jdbc.query("""

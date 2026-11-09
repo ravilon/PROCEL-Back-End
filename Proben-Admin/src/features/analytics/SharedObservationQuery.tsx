@@ -2,14 +2,17 @@ import { SearchOutlined } from "@mui/icons-material";
 import {
   Alert,
   AlertTitle,
+  Autocomplete,
   Button,
   Chip,
   Paper,
   Stack,
   TextField,
   Typography,
+  createFilterOptions,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { listCompartimentos } from "../../api/catalog";
 import {
   getSharedObservation,
   type SharedObservation,
@@ -30,26 +33,107 @@ const statusColor = {
   MISSING: "default",
 } as const;
 
+const roomFilter = createFilterOptions<Compartimento>({
+  stringify: (room) =>
+    [
+      room.id,
+      room.nome,
+      room.predioId,
+      room.predioNome,
+      room.campusNome,
+      room.unidadeNome,
+      room.tipo,
+    ].join(" "),
+});
+
+const parameterFilter = createFilterOptions<ParametroDef>({
+  stringify: (parameter) =>
+    [
+      parameter.id,
+      parameter.nome,
+      parameter.descricao,
+      parameter.tipoNome,
+      parameter.numericUnit,
+      parameter.dataType,
+    ].join(" "),
+});
+
 export function SharedObservationQuery({
   rooms,
   parameters,
   loadingCatalogs,
 }: SharedObservationQueryProps) {
   const { session } = useAuth();
-  const [roomId, setRoomId] = useState("");
-  const [parameterId, setParameterId] = useState("");
+  const [selectedRoom, setSelectedRoom] = useState<Compartimento | null>(null);
+  const [selectedParameter, setSelectedParameter] =
+    useState<ParametroDef | null>(null);
+  const [roomInput, setRoomInput] = useState("");
+  const [remoteRooms, setRemoteRooms] = useState<Compartimento[]>([]);
+  const [searchingRooms, setSearchingRooms] = useState(false);
+  const [roomSearchError, setRoomSearchError] = useState("");
   const [referenceAt, setReferenceAt] = useState("");
   const [result, setResult] = useState<SharedObservation>();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const query = roomInput.trim();
+    if (!query || (selectedRoom && roomLabel(selectedRoom) === query)) {
+      return;
+    }
+
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setSearchingRooms(true);
+      setRoomSearchError("");
+      void listCompartimentos({ q: query }, session)
+        .then((found) => {
+          if (active) setRemoteRooms(found);
+        })
+        .catch(() => {
+          if (active) {
+            setRemoteRooms([]);
+            setRoomSearchError("Não foi possível pesquisar as salas.");
+          }
+        })
+        .finally(() => {
+          if (active) setSearchingRooms(false);
+        });
+    }, 300);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [roomInput, selectedRoom, session]);
+
+  const roomOptions = useMemo(() => {
+    const hasActiveSearch =
+      roomInput.trim() &&
+      (!selectedRoom || roomLabel(selectedRoom) !== roomInput.trim());
+    const available =
+      hasActiveSearch && remoteRooms.length ? remoteRooms : rooms;
+    const unique = new Map<string, Compartimento>();
+    if (selectedRoom) unique.set(selectedRoom.id, selectedRoom);
+    for (const room of available) unique.set(room.id, room);
+    return [...unique.values()];
+  }, [remoteRooms, roomInput, rooms, selectedRoom]);
+
   const submit = async () => {
+    if (!selectedRoom || !selectedParameter) return;
     setLoading(true);
     setError("");
     setResult(undefined);
     try {
       const at = referenceAt ? new Date(referenceAt).toISOString() : undefined;
-      setResult(await getSharedObservation(roomId, parameterId, at, session));
+      setResult(
+        await getSharedObservation(
+          selectedRoom.id,
+          selectedParameter.id,
+          at,
+          session,
+        ),
+      );
     } catch (caught) {
       setError(
         caught instanceof Error ? caught.message : "Falha ao consultar fonte",
@@ -72,7 +156,7 @@ export function SharedObservationQuery({
               Disponibilidade da fonte compartilhada
             </Typography>
             <Typography color="text.secondary" variant="body2">
-              Consulte a medição efetiva de uma sala e simule outro horário de
+              Pesquise por ID, nome ou localização e simule outro horário de
               referência para validar a janela de validade.
             </Typography>
           </div>
@@ -85,38 +169,95 @@ export function SharedObservationQuery({
           )}
         </Stack>
         <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-          <TextField
-            select
-            label="Sala"
-            value={roomId}
-            onChange={(event) => setRoomId(event.target.value)}
-            disabled={loadingCatalogs || loading}
+          <Autocomplete
             fullWidth
-            SelectProps={{ native: true }}
-          >
-            <option value="" />
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.nome} · {room.predioNome} · {room.campusNome}
-              </option>
-            ))}
-          </TextField>
-          <TextField
-            select
-            label="Parâmetro"
-            value={parameterId}
-            onChange={(event) => setParameterId(event.target.value)}
-            disabled={loadingCatalogs || loading}
+            options={roomOptions}
+            value={selectedRoom}
+            inputValue={roomInput}
+            loading={searchingRooms}
+            disabled={loading}
+            filterOptions={roomFilter}
+            getOptionLabel={roomLabel}
+            isOptionEqualToValue={(option, selected) =>
+              option.id === selected.id
+            }
+            onInputChange={(_, value) => {
+              setRoomInput(value);
+              setRoomSearchError("");
+              if (!value) setSearchingRooms(false);
+            }}
+            onChange={(_, room) => {
+              setSelectedRoom(room);
+              setSearchingRooms(false);
+              setResult(undefined);
+              setError("");
+            }}
+            noOptionsText="Nenhuma sala encontrada"
+            loadingText="Pesquisando salas..."
+            renderOption={(props, room) => (
+              <li {...props} key={room.id}>
+                <Stack>
+                  <Typography variant="body2">
+                    {room.id} — {room.nome}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {room.predioNome} · {room.campusNome} · {room.unidadeNome}
+                  </Typography>
+                </Stack>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Sala"
+                placeholder="Digite o ID, nome, prédio ou campus"
+                error={Boolean(roomSearchError)}
+                helperText={
+                  roomSearchError ||
+                  "A busca consulta o catálogo completo enquanto você digita."
+                }
+              />
+            )}
+          />
+          <Autocomplete
             fullWidth
-            SelectProps={{ native: true }}
-          >
-            <option value="" />
-            {parameters.map((parameter) => (
-              <option key={parameter.id} value={parameter.id}>
-                {parameter.nome} · {parameter.tipoNome}
-              </option>
-            ))}
-          </TextField>
+            options={parameters}
+            value={selectedParameter}
+            loading={loadingCatalogs}
+            disabled={loadingCatalogs || loading}
+            filterOptions={parameterFilter}
+            getOptionLabel={parameterLabel}
+            isOptionEqualToValue={(option, selected) =>
+              option.id === selected.id
+            }
+            onChange={(_, parameter) => {
+              setSelectedParameter(parameter);
+              setResult(undefined);
+              setError("");
+            }}
+            noOptionsText="Nenhum parâmetro encontrado"
+            renderOption={(props, parameter) => (
+              <li {...props} key={parameter.id}>
+                <Stack>
+                  <Typography variant="body2">
+                    {parameter.id} — {parameter.nome}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {parameter.tipoNome} · {parameter.dataType}
+                    {parameter.numericUnit ? ` · ${parameter.numericUnit}` : ""}
+                  </Typography>
+                </Stack>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Parâmetro"
+                placeholder="Digite o ID, nome, tipo ou unidade"
+                helperText="A pesquisa considera todos os campos do parâmetro."
+              />
+            )}
+          />
           <TextField
             type="datetime-local"
             label="Horário de referência (opcional)"
@@ -129,8 +270,9 @@ export function SharedObservationQuery({
           <Button
             variant="contained"
             startIcon={<SearchOutlined />}
-            disabled={!roomId || !parameterId || loading}
+            disabled={!selectedRoom || !selectedParameter || loading}
             onClick={() => void submit()}
+            sx={{ minWidth: 130 }}
           >
             Consultar
           </Button>
@@ -175,4 +317,12 @@ export function SharedObservationQuery({
 
 function formatDate(value?: string) {
   return value ? new Date(value).toLocaleString() : "—";
+}
+
+function roomLabel(room: Compartimento) {
+  return `${room.id} — ${room.nome}`;
+}
+
+function parameterLabel(parameter: ParametroDef) {
+  return `${parameter.id} — ${parameter.nome}`;
 }
