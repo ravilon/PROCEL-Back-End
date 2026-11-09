@@ -69,7 +69,7 @@ describe("Consulta de disponibilidade da fonte compartilhada", () => {
     await user.click(screen.getByLabelText("Parâmetro"));
     await user.click(
       await screen.findByRole("option", {
-        name: /parameter-1.*temperatura_externa/,
+        name: /temperatura_externa/,
       }),
     );
     await user.click(screen.getByRole("button", { name: "Consultar" }));

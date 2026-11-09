@@ -493,7 +493,7 @@ export function CompartimentosTree() {
                               variant="caption"
                               color="text.secondary"
                             >
-                              {item.contextName} · parâmetro {item.parameterId}
+                              {item.contextName}
                             </Typography>
                             <Typography variant="body2">
                               {item.observation.status === "MISSING"

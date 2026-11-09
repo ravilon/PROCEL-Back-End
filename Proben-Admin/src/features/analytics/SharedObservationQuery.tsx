@@ -49,7 +49,6 @@ const roomFilter = createFilterOptions<Compartimento>({
 const parameterFilter = createFilterOptions<ParametroDef>({
   stringify: (parameter) =>
     [
-      parameter.id,
       parameter.nome,
       parameter.descricao,
       parameter.tipoNome,
@@ -239,9 +238,7 @@ export function SharedObservationQuery({
             renderOption={(props, parameter) => (
               <li {...props} key={parameter.id}>
                 <Stack>
-                  <Typography variant="body2">
-                    {parameter.id} — {parameter.nome}
-                  </Typography>
+                  <Typography variant="body2">{parameter.nome}</Typography>
                   <Typography variant="caption" color="text.secondary">
                     {parameter.tipoNome} · {parameter.dataType}
                     {parameter.numericUnit ? ` · ${parameter.numericUnit}` : ""}
@@ -253,8 +250,8 @@ export function SharedObservationQuery({
               <TextField
                 {...params}
                 label="Parâmetro"
-                placeholder="Digite o ID, nome, tipo ou unidade"
-                helperText="A pesquisa considera todos os campos do parâmetro."
+                placeholder="Digite o nome, tipo ou unidade"
+                helperText="A pesquisa considera nome, tipo, descrição e unidade."
               />
             )}
           />
@@ -324,5 +321,5 @@ function roomLabel(room: Compartimento) {
 }
 
 function parameterLabel(parameter: ParametroDef) {
-  return `${parameter.id} — ${parameter.nome}`;
+  return parameter.nome;
 }
