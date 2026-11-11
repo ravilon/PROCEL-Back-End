@@ -4,6 +4,7 @@ import {
   DeleteOutlined,
   ExpandMoreOutlined,
   MeetingRoomOutlined,
+  ReplayOutlined,
   SensorsOutlined,
 } from "@mui/icons-material";
 import {
@@ -446,8 +447,21 @@ function RuleGroupTreeNode({
       });
     },
   });
+  const restoreRule = useMutation({
+    mutationFn: (ruleId: string) =>
+      apiRequest<RegraParametro>(
+        `/api/rules/groups/${link.grupoRegraId}/rules/${ruleId}/restore`,
+        { method: "POST" },
+        session,
+      ),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["rules", "groups", link.grupoRegraId],
+      });
+    },
+  });
   const handleRemoveRule = (rule: RegraParametro) => {
-    if (window.confirm(`Remover a regra "${rule.nome}" deste grupo?`)) {
+    if (window.confirm(`Desativar a regra "${rule.nome}"? Ela poderá ser restaurada depois.`)) {
       removeRule.mutate(rule.id);
     }
   };
@@ -548,12 +562,12 @@ function RuleGroupTreeNode({
                 <Stack direction="row" spacing={0.75} alignItems="center">
                   <Chip size="small" label={rule.resultado} />
                   {!rule.ativo && <Chip size="small" label="Inativa" />}
-                  {rule.ativo && (
+                  {rule.ativo ? (
                     <IconButton
                       size="small"
                       color="error"
-                      aria-label={`Remover regra ${rule.nome}`}
-                      title="Remover regra"
+                      aria-label={`Desativar regra ${rule.nome}`}
+                      title="Desativar regra (pode ser restaurada)"
                       disabled={removeRule.isPending}
                       onClick={() => handleRemoveRule(rule)}
                     >
@@ -563,11 +577,27 @@ function RuleGroupTreeNode({
                         <DeleteOutlined fontSize="small" />
                       )}
                     </IconButton>
+                  ) : (
+                    <IconButton
+                      size="small"
+                      color="primary"
+                      aria-label={`Restaurar regra ${rule.nome}`}
+                      title="Restaurar regra"
+                      disabled={restoreRule.isPending}
+                      onClick={() => restoreRule.mutate(rule.id)}
+                    >
+                      <ReplayOutlined fontSize="small" />
+                    </IconButton>
                   )}
                 </Stack>
               </Stack>
             </Box>
           ))}
+          {(removeRule.isError || restoreRule.isError) && (
+            <Alert severity="error">
+              {(removeRule.error ?? restoreRule.error)?.message}
+            </Alert>
+          )}
         </Stack>
       </AccordionDetails>
     </Accordion>

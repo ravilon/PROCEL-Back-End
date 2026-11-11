@@ -25,6 +25,18 @@ public final class CatalogoDTOs {
             String unidadeNome
     ) {}
 
+    public record CompartimentoCreateRequest(
+            String id,
+            String nome,
+            String tipo,
+            String campusNome,
+            String predioNome,
+            String unidadeNome,
+            Integer pavimento,
+            Integer capacidade,
+            BigDecimal area
+    ) {}
+
     public record CompartimentoFilterOptionsResponse(
             List<String> tipos,
             List<String> predios,

@@ -17,6 +17,29 @@ export interface CompartimentoFilters {
   campus?: string;
 }
 
+export interface CompartimentoCreateRequest {
+  id: string;
+  nome: string;
+  tipo: string;
+  campusNome: string;
+  predioNome: string;
+  unidadeNome: string;
+  pavimento?: number | null;
+  capacidade?: number | null;
+  area?: number | null;
+}
+
+export function createCompartimento(
+  payload: CompartimentoCreateRequest,
+  session?: Session | null,
+) {
+  return apiRequest<Compartimento>(
+    "/api/catalog/compartimentos",
+    { method: "POST", body: JSON.stringify(payload) },
+    session,
+  );
+}
+
 export function listCompartimentos(
   filters: CompartimentoFilters,
   session?: Session | null,

@@ -1,4 +1,11 @@
-import { AddOutlined, DeleteOutlined } from "@mui/icons-material";
+import {
+  AddOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlayArrowOutlined,
+  PowerSettingsNewOutlined,
+  SearchOutlined,
+} from "@mui/icons-material";
 import {
   Alert,
   Box,
@@ -7,9 +14,14 @@ import {
   CardContent,
   Checkbox,
   Chip,
+  FormControl,
   FormControlLabel,
+  IconButton,
+  InputAdornment,
+  InputLabel,
   MenuItem,
   Paper,
+  Select,
   Stack,
   Tab,
   Table,
@@ -20,6 +32,7 @@ import {
   TableRow,
   Tabs,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
@@ -43,6 +56,7 @@ import { useAuth } from "../../auth/AuthContext";
 import type { ParametroDef, Sensor } from "../../types";
 
 type Pair = { key: string; value: string };
+type StatusFilter = "all" | "active" | "inactive";
 const emptyMapping: HttpMapping = {
   parametroDefId: "",
   parameterName: "",
@@ -98,6 +112,8 @@ export function GenericHttpCollectionsPage() {
   const [message, setMessage] = useState("");
   const [testResult, setTestResult] = useState<CollectionTestResult>();
   const [testError, setTestError] = useState("");
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<StatusFilter>("all");
   const reload = async () => {
     const result = await listSharedContexts(session);
     setContexts(result);
@@ -156,6 +172,29 @@ export function GenericHttpCollectionsPage() {
   const availableParameters = parameters.filter(
     (parameter) => parameter.tipoNome === selectedSensor?.tipoNome,
   );
+  const contextNames = useMemo(
+    () => new Map(contexts.map((context) => [context.id, context.nome])),
+    [contexts],
+  );
+  const filteredItems = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return [...items]
+      .filter((item) => {
+        if (status === "active" && !item.ativo) return false;
+        if (status === "inactive" && item.ativo) return false;
+        if (!normalized) return true;
+        return [
+          item.nome,
+          item.descricao ?? "",
+          item.providerName ?? "",
+          contextNames.get(item.contextoId) ?? "",
+          item.endpointUrl,
+        ].some((value) => value.toLowerCase().includes(normalized));
+      })
+      .sort((a, b) =>
+        a.nome.localeCompare(b.nome, undefined, { sensitivity: "base" }),
+      );
+  }, [contextNames, items, query, status]);
   const applyPreset = () => {
     const suggested = availableParameters.find(
       (parameter) => parameter.nome === "temperatura_externa",
@@ -288,6 +327,129 @@ export function GenericHttpCollectionsPage() {
           Configurar WeatherAPI para um contexto
         </Button>
       </Stack>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+          <TextField
+            label="Buscar"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchOutlined />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl sx={{ minWidth: 180 }}>
+            <InputLabel id="output-profile-status-label">Status</InputLabel>
+            <Select
+              id="output-profile-status"
+              labelId="output-profile-status-label"
+              label="Status"
+              value={status}
+              onChange={(event) =>
+                setStatus(event.target.value as StatusFilter)
+              }
+            >
+              <MenuItem value="all">Todos</MenuItem>
+              <MenuItem value="active">Ativos</MenuItem>
+              <MenuItem value="inactive">Inativos</MenuItem>
+            </Select>
+          </FormControl>
+        </Stack>
+      </Paper>
+      <TableContainer component={Paper} variant="outlined">
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Nome</TableCell>
+              <TableCell>Contexto</TableCell>
+              <TableCell>Provedor</TableCell>
+              <TableCell>Método</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Último resultado</TableCell>
+              <TableCell>Próxima execução</TableCell>
+              <TableCell>Automática</TableCell>
+              <TableCell align="right">Ações</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredItems.map((item) => (
+              <TableRow key={item.id} hover>
+                <TableCell>{item.nome}</TableCell>
+                <TableCell>
+                  {contextNames.get(item.contextoId) ?? item.contextoId}
+                </TableCell>
+                <TableCell>{item.providerName ?? "—"}</TableCell>
+                <TableCell>{item.metodo}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={item.ativo ? "Ativo" : "Inativo"}
+                    color={item.ativo ? "success" : "default"}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>{item.lastOutcome ?? "—"}</TableCell>
+                <TableCell>
+                  {item.nextRunAt
+                    ? new Date(item.nextRunAt).toLocaleString()
+                    : "—"}
+                </TableCell>
+                <TableCell>{item.automaticCollection ? "Sim" : "Não"}</TableCell>
+                <TableCell align="right">
+                  <Tooltip title="Editar perfil">
+                    <IconButton
+                      onClick={() => edit(item)}
+                      aria-label={`Editar perfil ${item.nome}`}
+                    >
+                      <EditOutlined />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip
+                    title={item.ativo ? "Desativar perfil" : "Ativar perfil"}
+                  >
+                    <IconButton
+                      onClick={() =>
+                        void setSharedIntegrationActive(
+                          item.id,
+                          !item.ativo,
+                          session,
+                        ).then(reload)
+                      }
+                      aria-label={
+                        item.ativo ? "Desativar perfil" : "Ativar perfil"
+                      }
+                    >
+                      <PowerSettingsNewOutlined />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Executar coleta agora">
+                    <IconButton
+                      onClick={() =>
+                        void collectSharedIntegration(item.id, session).then(
+                          reload,
+                        )
+                      }
+                      aria-label={`Coletar perfil ${item.nome} agora`}
+                    >
+                      <PlayArrowOutlined />
+                    </IconButton>
+                  </Tooltip>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filteredItems.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} align="center">
+                  Nenhum perfil encontrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
       <Card>
         <CardContent>
           <Stack spacing={2}>
@@ -790,49 +952,6 @@ export function GenericHttpCollectionsPage() {
           </Stack>
         </CardContent>
       </Card>
-      {items.map((item) => (
-        <Card key={item.id}>
-          <CardContent>
-            <Stack spacing={1}>
-              <Typography variant="h6">{item.nome}</Typography>
-              <Typography>
-                {item.metodo} · {item.ativo ? "Ativa" : "Inativa"} · automática:{" "}
-                {item.automaticCollection ? "sim" : "não"}
-              </Typography>
-              <Typography>
-                Último resultado: {item.lastOutcome ?? "—"} · próxima execução:{" "}
-                {item.nextRunAt
-                  ? new Date(item.nextRunAt).toLocaleString()
-                  : "—"}
-              </Typography>
-              {item.lastError && (
-                <Alert severity="warning">{item.lastError}</Alert>
-              )}
-              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                <Button onClick={() => edit(item)}>Editar</Button>
-                <Button
-                  onClick={() =>
-                    void collectSharedIntegration(item.id, session).then(reload)
-                  }
-                >
-                  Coletar manualmente
-                </Button>
-                <Button
-                  onClick={() =>
-                    void setSharedIntegrationActive(
-                      item.id,
-                      !item.ativo,
-                      session,
-                    ).then(reload)
-                  }
-                >
-                  {item.ativo ? "Desativar" : "Ativar"}
-                </Button>
-              </Stack>
-            </Stack>
-          </CardContent>
-        </Card>
-      ))}
     </Stack>
   );
 }

@@ -139,8 +139,18 @@ public class RegrasService {
     @Transactional
     public void removerRegra(UUID grupoId, UUID regraId) {
         RegraParametro regra = findRegraDoGrupo(grupoId, regraId);
-        if (avaliacaoRepo != null) avaliacaoRepo.deleteByRegraParametro_Id(regra.getId());
-        regraRepo.delete(regra);
+        regra.setAtivo(false);
+        regraRepo.save(regra);
+    }
+
+    @Transactional
+    public RegraDTOs.RegraParametroResponse restaurarRegra(UUID grupoId, UUID regraId) {
+        RegraParametro regra = findRegraDoGrupo(grupoId, regraId);
+        if (!regra.getParametroDef().isAtivo()) {
+            throw new IllegalArgumentException("Cannot restore rule with hidden parameter definition");
+        }
+        regra.setAtivo(true);
+        return toRegraResponse(regraRepo.save(regra));
     }
 
     @Transactional

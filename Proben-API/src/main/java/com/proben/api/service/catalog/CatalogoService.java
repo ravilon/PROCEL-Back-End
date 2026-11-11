@@ -3,13 +3,19 @@ package com.proben.api.service.catalog;
 import com.proben.api.dto.catalog.CatalogoDTOs;
 import com.proben.api.entity.people.Pessoa;
 import com.proben.api.entity.rooms.Compartimento;
+import com.proben.api.entity.rooms.Campus;
 import com.proben.api.entity.rooms.Disciplina;
+import com.proben.api.entity.rooms.Predio;
 import com.proben.api.entity.rooms.PeriodoAula;
+import com.proben.api.entity.rooms.Unidade;
 import com.proben.api.entity.sensors.Sensor;
 import com.proben.api.repository.people.PessoaRepository;
 import com.proben.api.repository.rooms.CompartimentoRepository;
+import com.proben.api.repository.rooms.CampusRepository;
 import com.proben.api.repository.rooms.DisciplinaRepository;
+import com.proben.api.repository.rooms.PredioRepository;
 import com.proben.api.repository.rooms.PeriodoAulaRepository;
+import com.proben.api.repository.rooms.UnidadeRepository;
 import com.proben.api.repository.sensors.SensorRepository;
 import com.proben.api.repository.sensors.TipoDeSensorRepository;
 import org.springframework.stereotype.Service;
@@ -27,6 +33,9 @@ public class CatalogoService {
     private static final int MAX_RESULTS = 200;
 
     private final CompartimentoRepository compartimentoRepo;
+    private final CampusRepository campusRepo;
+    private final PredioRepository predioRepo;
+    private final UnidadeRepository unidadeRepo;
     private final SensorRepository sensorRepo;
     private final DisciplinaRepository disciplinaRepo;
     private final PeriodoAulaRepository periodoAulaRepo;
@@ -35,6 +44,9 @@ public class CatalogoService {
 
     public CatalogoService(
             CompartimentoRepository compartimentoRepo,
+            CampusRepository campusRepo,
+            PredioRepository predioRepo,
+            UnidadeRepository unidadeRepo,
             SensorRepository sensorRepo,
             DisciplinaRepository disciplinaRepo,
             PeriodoAulaRepository periodoAulaRepo,
@@ -42,11 +54,53 @@ public class CatalogoService {
             PessoaRepository pessoaRepo
     ) {
         this.compartimentoRepo = compartimentoRepo;
+        this.campusRepo = campusRepo;
+        this.predioRepo = predioRepo;
+        this.unidadeRepo = unidadeRepo;
         this.sensorRepo = sensorRepo;
         this.disciplinaRepo = disciplinaRepo;
         this.periodoAulaRepo = periodoAulaRepo;
         this.tipoDeSensorRepo = tipoDeSensorRepo;
         this.pessoaRepo = pessoaRepo;
+    }
+
+    @Transactional
+    public CatalogoDTOs.CompartimentoResponse criarCompartimento(
+            CatalogoDTOs.CompartimentoCreateRequest request
+    ) {
+        if (request == null) throw new IllegalArgumentException("body is required");
+        String id = required(request.id(), "id");
+        String nome = required(request.nome(), "nome");
+        String tipo = required(request.tipo(), "tipo");
+        String campusNome = required(request.campusNome(), "campusNome");
+        String predioNome = required(request.predioNome(), "predioNome");
+        String unidadeNome = required(request.unidadeNome(), "unidadeNome");
+        if (compartimentoRepo.existsById(id)) {
+            throw new IllegalArgumentException("Compartimento already exists id=" + id);
+        }
+        if (request.capacidade() != null && request.capacidade() < 0) {
+            throw new IllegalArgumentException("capacidade must be non-negative");
+        }
+        if (request.area() != null && request.area().signum() < 0) {
+            throw new IllegalArgumentException("area must be non-negative");
+        }
+
+        Campus campus = campusRepo.findById(campusNome)
+                .orElseGet(() -> campusRepo.save(new Campus(campusNome)));
+        Predio predio = predioRepo.findByCampus_NomeAndNome(campusNome, predioNome)
+                .orElseGet(() -> predioRepo.save(new Predio(campus, predioNome)));
+        Unidade unidade = unidadeRepo.findById(unidadeNome)
+                .orElseGet(() -> unidadeRepo.save(new Unidade(unidadeNome)));
+        Compartimento compartimento = new Compartimento(id, predio, unidade, nome, tipo);
+        compartimento.setPavimento(request.pavimento());
+        compartimento.setCapacidade(request.capacidade());
+        compartimento.setArea(request.area());
+        return toCompartimento(compartimentoRepo.save(compartimento));
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) throw new IllegalArgumentException(field + " is required");
+        return value.trim();
     }
 
     @Transactional(readOnly = true)

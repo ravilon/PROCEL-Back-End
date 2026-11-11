@@ -9,6 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { CampusCoordinatesPage } from "../../pages/CampusCoordinatesPage";
 import { CompartimentosTree } from "./CompartimentosTree";
+import { RoomRegistrationPage } from "./RoomRegistrationPage";
 import { CursosTree } from "./CursosTree";
 import { DisciplinasTree } from "./DisciplinasTree";
 import { PessoasTree } from "./PessoasTree";
@@ -20,6 +21,7 @@ export function CatalogPage() {
   const requestedSection = searchParams.get("secao");
   const allowedSections = [
     "compartimentos",
+    ...(managerial ? ["cadastro-salas"] : []),
     "disciplinas",
     "cursos",
     ...(managerial ? ["pessoas"] : []),
@@ -57,6 +59,14 @@ export function CatalogPage() {
             iconPosition="start"
             label="Compartimentos"
           />
+          {managerial && (
+            <Tab
+              value="cadastro-salas"
+              icon={<ApartmentOutlined />}
+              iconPosition="start"
+              label="Cadastrar sala"
+            />
+          )}
           <Tab
             value="disciplinas"
             icon={<MenuBookOutlined />}
@@ -88,6 +98,7 @@ export function CatalogPage() {
         </Tabs>
       </Paper>
       {section === "compartimentos" && <CompartimentosTree />}
+      {section === "cadastro-salas" && managerial && <RoomRegistrationPage />}
       {section === "disciplinas" && <DisciplinasTree />}
       {section === "cursos" && <CursosTree />}
       {section === "pessoas" && managerial && <PessoasTree />}

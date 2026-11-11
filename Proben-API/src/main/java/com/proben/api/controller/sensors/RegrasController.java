@@ -72,9 +72,18 @@ public class RegrasController {
     }
 
     @DeleteMapping("/groups/{grupoId}/rules/{regraId}")
-    @Operation(summary = "Exclui regra e suas avaliacoes")
+    @Operation(summary = "Desativa logicamente regra, preservando avaliacoes historicas")
     public void removerRegra(@PathVariable UUID grupoId, @PathVariable UUID regraId) {
         service.removerRegra(grupoId, regraId);
+    }
+
+    @PostMapping("/groups/{grupoId}/rules/{regraId}/restore")
+    @Operation(summary = "Restaura regra desativada logicamente")
+    public RegraDTOs.RegraParametroResponse restaurarRegra(
+            @PathVariable UUID grupoId,
+            @PathVariable UUID regraId
+    ) {
+        return service.restaurarRegra(grupoId, regraId);
     }
 
     @PostMapping("/sensors/{sensorExternalId}/groups")
