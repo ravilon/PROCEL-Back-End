@@ -145,17 +145,19 @@ export function MissionsAdminPage() {
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab value="catalog" label="Catalogo" />
-          <Tab value="events" label="Eventos e condicoes" />
+          <Tab value="catalog" label="Catálogo de missões" />
+          <Tab value="events" label="Gatilhos e condições" />
           <Tab value="requests" label="Requests" />
-          <Tab value="windows" label="Janelas" />
+          <Tab value="windows" label="Janelas temporais" />
           <Tab value="occurrences" label="Ocorrencias" />
           <Tab value="workers" label="Workers" />
         </Tabs>
       </Paper>
 
       {tab === "catalog" && <MissionCatalogPanel />}
-      {tab === "events" && <MissionEventsPanel />}
+      {tab === "events" && (
+        <MissionEventsPanel canConfigure={hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")} />
+      )}
       {tab === "requests" && <EvaluationRequestsPanel />}
       {tab === "windows" && <MissionWindowsPanel canOperate={canOperate} />}
       {tab === "occurrences" && (
@@ -337,7 +339,6 @@ function MissionCatalogPanel() {
             onUpdated={() =>
               queryClient.invalidateQueries({ queryKey: ["missions"] })
             }
-            canConfigure={hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")}
           />
         ))}
         {!missions.isLoading && roots.length === 0 && (
@@ -355,8 +356,10 @@ function MissionCatalogPanel() {
   );
 }
 
-function MissionEventsPanel() {
-  const { session } = useAuth();
+function MissionEventsPanel({ canConfigure }: { canConfigure: boolean }) {
+  const { session, hasAnyRole } = useAuth();
+  const [configureMissionId, setConfigureMissionId] = useState("");
+  const [configuratorMissionId, setConfiguratorMissionId] = useState<string | null>(null);
   const [missionId, setMissionId] = useState("");
   const [active, setActive] = useState<boolean | "">("");
   const [tipoDisparo, setTipoDisparo] = useState<EventoTipoDisparo | "">("");
@@ -380,6 +383,12 @@ function MissionEventsPanel() {
     queryKey: ["missions", "admin-events", filters],
     queryFn: () => listMissionEvents(filters, session),
   });
+  const missionCatalog = useQuery({
+    queryKey: ["missions", "catalog-for-triggers"],
+    queryFn: () => apiRequest<Missao[]>("/api/missoes", {}, session),
+    enabled: canConfigure,
+  });
+  const selectedMission = missionCatalog.data?.find((item) => item.id === configuratorMissionId);
   const details = useQuery({
     queryKey: ["missions", "event-detail", selectedEventId],
     queryFn: () => getMissionEvent(selectedEventId ?? "", session),
@@ -388,6 +397,48 @@ function MissionEventsPanel() {
 
   return (
     <Stack spacing={2}>
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Stack spacing={1.5}>
+          <Box>
+            <Typography variant="h6">Configurar gatilhos por missão</Typography>
+            <Typography variant="body2" color="text.secondary">
+              O catálogo define as missões e seus pontos. Nesta área, cada gatilho associa condições e regras a uma missão.
+            </Typography>
+          </Box>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+            <FormControl fullWidth sx={{ maxWidth: 560 }}>
+              <InputLabel id="trigger-mission-label">Missão</InputLabel>
+              <Select
+                labelId="trigger-mission-label"
+                label="Missão"
+                value={configureMissionId}
+                onChange={(event) => setConfigureMissionId(event.target.value)}
+              >
+                {(missionCatalog.data ?? []).map((item) => (
+                  <MenuItem key={item.id} value={item.id}>{item.titulo}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              startIcon={<AddOutlined />}
+              disabled={!canConfigure || !configureMissionId}
+              onClick={() => setConfiguratorMissionId(configureMissionId)}
+            >
+              Abrir configuração
+            </Button>
+          </Stack>
+          {missionCatalog.isError && <Alert severity="error">{formatError(missionCatalog.error)}</Alert>}
+        </Stack>
+      </Paper>
+      {selectedMission && (
+        <MissionTriggerConfigurator
+          mission={selectedMission}
+          readOnly={!hasAnyRole("ADMIN")}
+          open
+          onClose={() => setConfiguratorMissionId(null)}
+        />
+      )}
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction={{ xs: "column", lg: "row" }} spacing={2}>
           <FilterText
@@ -640,6 +691,12 @@ function MissionWindowsPanel({ canOperate }: { canOperate: boolean }) {
 
   return (
     <Stack spacing={2}>
+      <Alert severity="info">
+        Janelas temporais guardam a avaliação de um gatilho ao longo de um
+        intervalo (duração, transição ou encerramento da janela), incluindo
+        evidências e estado de processamento. Este painel permite consultar e,
+        quando autorizado, reavaliar ou operar essas janelas.
+      </Alert>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction={{ xs: "column", xl: "row" }} spacing={2}>
           <EnumSelect
@@ -1021,6 +1078,11 @@ function MissionWorkersPanel({ canOperate }: { canOperate: boolean }) {
       )}
       {status.data && (
         <>
+          <Alert severity="info">
+            O worker instantâneo processa avaliações enfileiradas para cada
+            medição recebida. O worker temporal processa as janelas que precisam
+            acumular evidências ou aguardar o fim de um intervalo.
+          </Alert>
           <Box
             sx={{
               display: "grid",
@@ -1122,18 +1184,15 @@ function MissionNode({
   mission,
   missions,
   onUpdated,
-  canConfigure,
   depth = 0,
 }: {
   mission: Missao;
   missions: Missao[];
   onUpdated: () => Promise<unknown>;
-  canConfigure: boolean;
   depth?: number;
 }) {
   const { session, hasAnyRole } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [configuringTriggers, setConfiguringTriggers] = useState(false);
   const [form, setForm] = useState({
     titulo: mission.titulo,
     descricao: mission.descricao ?? "",
@@ -1195,15 +1254,6 @@ function MissionNode({
           >
             <Chip label={`${mission.pontos} pontos`} size="small" />
             <ActiveChip active={mission.ativo} />
-            {canConfigure && (
-              <Button
-                size="small"
-                startIcon={<PlayArrowOutlined />}
-                onClick={() => setConfiguringTriggers(true)}
-              >
-                Configurar gatilhos
-              </Button>
-            )}
             <Button
               size="small"
               startIcon={<EditOutlined />}
@@ -1225,7 +1275,6 @@ function MissionNode({
               mission={child}
               missions={missions}
               onUpdated={onUpdated}
-              canConfigure={canConfigure}
               depth={depth + 1}
             />
           ))}
@@ -1321,12 +1370,6 @@ function MissionNode({
           </Button>
         </DialogActions>
       </Dialog>
-      <MissionTriggerConfigurator
-        mission={mission}
-        readOnly={!hasAnyRole("ADMIN")}
-        open={configuringTriggers}
-        onClose={() => setConfiguringTriggers(false)}
-      />
     </Box>
   );
 }

@@ -338,7 +338,7 @@ describe("MissionsAdminPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole("tab", { name: "Eventos e condicoes" }));
+    await user.click(screen.getByRole("tab", { name: "Gatilhos e condições" }));
     expect(await screen.findByText("AC inteligente")).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Ver condicoes de AC inteligente" }),
@@ -371,7 +371,7 @@ describe("MissionsAdminPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole("tab", { name: "Janelas" }));
+    await user.click(screen.getByRole("tab", { name: "Janelas temporais" }));
     expect(await screen.findByText("AC inteligente")).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Ver evidencias da janela window-1" }),
@@ -383,7 +383,7 @@ describe("MissionsAdminPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.click(screen.getByRole("tab", { name: "Janelas" }));
+    await user.click(screen.getByRole("tab", { name: "Janelas temporais" }));
     expect(await screen.findByText("AC inteligente")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Invalidar" }));
     const dialog = await screen.findByRole("dialog", { name: /invalidate/i });
@@ -441,10 +441,10 @@ describe("MissionsAdminPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Economia de energia");
-    await user.click(
-      screen.getByRole("button", { name: "Configurar gatilhos" }),
-    );
+    await user.click(screen.getByRole("tab", { name: "Gatilhos e condições" }));
+    await user.click(screen.getByRole("combobox", { name: "Missão" }));
+    await user.click(await screen.findByRole("option", { name: "Economia de energia" }));
+    await user.click(screen.getByRole("button", { name: "Abrir configuração" }));
     const dialog = await screen.findByRole("dialog", {
       name: /Configurar gatilhos/,
     });
@@ -475,10 +475,10 @@ describe("MissionsAdminPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Economia de energia");
-    await user.click(
-      screen.getByRole("button", { name: "Configurar gatilhos" }),
-    );
+    await user.click(screen.getByRole("tab", { name: "Gatilhos e condições" }));
+    await user.click(screen.getByRole("combobox", { name: "Missão" }));
+    await user.click(await screen.findByRole("option", { name: "Economia de energia" }));
+    await user.click(screen.getByRole("button", { name: "Abrir configuração" }));
     const dialog = await screen.findByRole("dialog", {
       name: /Configurar gatilhos/,
     });
@@ -494,10 +494,10 @@ describe("MissionsAdminPage", () => {
     const user = userEvent.setup();
     renderPage();
 
-    await screen.findByText("Economia de energia");
-    await user.click(
-      screen.getByRole("button", { name: "Configurar gatilhos" }),
-    );
+    await user.click(screen.getByRole("tab", { name: "Gatilhos e condições" }));
+    await user.click(screen.getByRole("combobox", { name: "Missão" }));
+    await user.click(await screen.findByRole("option", { name: "Economia de energia" }));
+    await user.click(screen.getByRole("button", { name: "Abrir configuração" }));
     const dialog = await screen.findByRole("dialog", {
       name: /Configurar gatilhos/,
     });

@@ -347,9 +347,18 @@ function SensorTypesPanel() {
                 key={item.nome}
                 onClick={() => setSelectedType(item.nome)}
                 variant={selectedType === item.nome ? "contained" : "text"}
-                sx={{ justifyContent: "space-between" }}
+                sx={{
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 1,
+                  minWidth: 0,
+                  textAlign: "left",
+                  overflowWrap: "anywhere",
+                }}
               >
-                {item.nome}
+                <Typography component="span" sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
+                  {item.nome}
+                </Typography>
                 <Typography component="span" variant="caption">
                   {item.parametros.length} parâmetros
                 </Typography>
@@ -410,9 +419,11 @@ function SensorTypesPanel() {
                       alignItems: "center",
                       justifyContent: "space-between",
                       gap: 2,
+                      minWidth: 0,
+                      flexWrap: { xs: "wrap", sm: "nowrap" },
                     }}
                   >
-                    <Box>
+                    <Box sx={{ minWidth: 0, flex: "1 1 240px", overflowWrap: "anywhere" }}>
                       <Stack direction="row" spacing={1} alignItems="center">
                         <Typography fontWeight={600}>{item.nome}</Typography>
                         {!item.ativo && <Chip label="Inativo" size="small" />}
@@ -423,7 +434,7 @@ function SensorTypesPanel() {
                         {item.descricao ? ` · ${item.descricao}` : ""}
                       </Typography>
                     </Box>
-                    <Stack direction="row" spacing={1}>
+                    <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
                       {item.ativo ? (
                         <>
                           <Button

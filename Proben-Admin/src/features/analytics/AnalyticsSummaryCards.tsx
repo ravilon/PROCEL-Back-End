@@ -28,7 +28,9 @@ export function AnalyticsSummaryCards({
             <Typography variant="body2" color="text.secondary">
               Um conjunto de cards por grupo retornado pelo backend; grupos com
               sensores, parametros, unidades ou versoes diferentes nao sao
-              misturados.
+              misturados. Cada bucket resume as medicoes de um intervalo
+              temporal com media, minimo e maximo. A contagem de buckets indica
+              quantos intervalos existem; amostras conta as medicoes.
             </Typography>
           </Box>
         </Stack>
@@ -76,7 +78,8 @@ export function AnalyticsSummaryCards({
                     />
                     <Chip
                       size="small"
-                      label={`${summary.bucketCount} buckets`}
+                      label={`${summary.bucketCount} intervalos`}
+                      title="Quantidade de intervalos de agregacao presentes no periodo. Cada intervalo resume suas medicoes."
                     />
                     <Chip
                       size="small"

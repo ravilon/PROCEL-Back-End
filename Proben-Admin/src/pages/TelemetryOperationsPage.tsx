@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  Drawer,
   FormControl,
   IconButton,
   InputAdornment,
@@ -389,21 +388,13 @@ export function TelemetryOperationsPage() {
         </Paper>
       )}
 
-      <Drawer
-        anchor="right"
+      <Dialog
         open={Boolean(selectedId)}
         onClose={() => setSelectedId(null)}
-        sx={{
-          zIndex: (theme) => theme.zIndex.appBar + 1,
-          "& .MuiDrawer-paper": {
-            width: { xs: "100vw", sm: "min(760px, 68vw)" },
-            maxWidth: "100vw",
-            top: { xs: "56px", sm: "64px" },
-            height: { xs: "calc(100dvh - 56px)", sm: "calc(100dvh - 64px)" },
-            boxSizing: "border-box",
-            overflowX: "hidden",
-          },
-        }}
+        fullWidth
+        maxWidth="lg"
+        scroll="paper"
+        PaperProps={{ sx: { m: { xs: 1, sm: 3 }, maxHeight: "calc(100% - 48px)" } }}
       >
         <Box
           sx={{
@@ -411,6 +402,7 @@ export function TelemetryOperationsPage() {
             minWidth: 0,
             boxSizing: "border-box",
             p: { xs: 2, sm: 3 },
+            overflowX: "hidden",
           }}
         >
           {details.isLoading && <CircularProgress size={24} />}
@@ -424,7 +416,7 @@ export function TelemetryOperationsPage() {
             />
           )}
         </Box>
-      </Drawer>
+      </Dialog>
 
       <Dialog
         open={Boolean(reprocessTarget)}

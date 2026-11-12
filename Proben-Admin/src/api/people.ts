@@ -66,6 +66,54 @@ export function getPessoa(pessoaId: string, session?: Session | null) {
   );
 }
 
+export interface PessoaPontosSaldo {
+  pessoaId: string;
+  saldoTotalPontos: number;
+  totalConcedidoPontos: number;
+  totalEstornadoPontos: number;
+  totalAjustadoPontos: number;
+}
+
+export interface PessoaPontosLancamento {
+  id: string;
+  atividadeId?: string | null;
+  missaoId?: string | null;
+  missaoTitulo?: string | null;
+  tipo: "CONCESSAO" | "ESTORNO" | "AJUSTE";
+  pontos: number;
+  descricao?: string | null;
+  createdAt: string;
+}
+
+export interface PessoaPontosLancamentosPage {
+  content: PessoaPontosLancamento[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
+
+export function getPessoaPontos(pessoaId: string, session?: Session | null) {
+  return apiRequest<PessoaPontosSaldo>(
+    `/api/pessoas/${encodeURIComponent(pessoaId)}/pontos`,
+    {},
+    session,
+  );
+}
+
+export function listPessoaPontosLancamentos(
+  pessoaId: string,
+  page = 0,
+  size = 20,
+  session?: Session | null,
+) {
+  return apiRequest<PessoaPontosLancamentosPage>(
+    `/api/pessoas/${encodeURIComponent(pessoaId)}/pontos/lancamentos?${new URLSearchParams({ page: String(page), size: String(size) })}`,
+    {},
+    session,
+  );
+}
+
 export function updatePessoa(
   pessoaId: string,
   payload: {

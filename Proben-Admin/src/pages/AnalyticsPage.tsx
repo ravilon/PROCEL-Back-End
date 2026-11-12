@@ -36,6 +36,7 @@ import {
 } from "../features/analytics/AnalyticsFilters";
 import { AnalyticsSummaryCards } from "../features/analytics/AnalyticsSummaryCards";
 import { AnalyticsTimeSeriesChart } from "../features/analytics/AnalyticsTimeSeriesChart";
+import { PeoplePointsPanel } from "../features/analytics/PeoplePointsPanel";
 import { SharedObservationQuery } from "../features/analytics/SharedObservationQuery";
 import {
   analyticsErrorMessage,
@@ -203,6 +204,10 @@ export function AnalyticsPage() {
         parameters={parametros}
         loadingCatalogs={rooms.isLoading || sensorTypes.isLoading}
       />
+
+      {session?.roles.some((role) => role === "ADMIN" || role === "OPERADOR") && (
+        <PeoplePointsPanel />
+      )}
 
       <AnalyticsFilters
         value={draftFilters}
