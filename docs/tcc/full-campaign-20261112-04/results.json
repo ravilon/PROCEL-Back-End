@@ -1,0 +1,4188 @@
+{
+  "experimentId": "TCC-PROBEN-FULL-20261112-04",
+  "baseUrl": "https://procel.servehttp.com",
+  "startedAt": "2026-11-12T21:46:44.1731367+00:00",
+  "finishedAt": "2026-11-12T21:59:03.8629131+00:00",
+  "workerStatus": {
+    "evaluation": {
+      "enabled": true,
+      "fixedDelay": "PT5S",
+      "batchSize": 20,
+      "leaseDuration": "PT1M",
+      "maxAttempts": 5,
+      "backlog": 0
+    },
+    "temporalWindows": {
+      "enabled": true,
+      "fixedDelay": "PT5S",
+      "batchSize": 20,
+      "leaseDuration": "PT1M",
+      "maxAttempts": 5,
+      "backlog": 0
+    },
+    "drools": {
+      "selectedRuleEngine": "SIMPLE",
+      "temporalDroolsEnabled": true,
+      "temporalActivitiesEnabled": true,
+      "maxFactsPerEvaluation": 5000,
+      "maxCacheEntries": 200,
+      "cacheExpiration": "PT30M",
+      "evaluationTimeout": "PT5S",
+      "maximumSampleGap": "PT5M"
+    }
+  },
+  "selectedRuleEngine": "SIMPLE",
+  "temporalDroolsEnabled": true,
+  "temporalActivitiesEnabled": true,
+  "roomCount": 10,
+  "sensorCount": 10,
+  "studentCount": 20,
+  "pointsAwardPerMission": 5,
+  "modes": [
+    "instantaneo",
+    "transicao",
+    "duracao",
+    "janela-encerrada"
+  ],
+  "repetitionsPerMode": 3,
+  "runs": [
+    {
+      "runId": "20261112-04-duracao-r1",
+      "mode": "duracao",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.0318441657340474,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 38.363099999999996,
+        "sampleStandardDeviation": 14.896982975973378,
+        "standardError": 1.9231922324893431,
+        "p50": 34.58,
+        "p90": 42.924,
+        "p95": 49.789,
+        "p99": 141.072
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:40.093Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3557.45,
+          "p50": 3539,
+          "p95": 6289,
+          "p99": 7345
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 5,
+      "occurrenceStatuses": {
+        "PROCESSADO": 5
+      },
+      "windowCount": 20,
+      "windowStatuses": {
+        "INVALIDADA": 15,
+        "SATISFEITA": 5
+      },
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 5,
+        "mean": 10000,
+        "p50": 10000,
+        "p95": 10000,
+        "p99": 10000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-duracao-r2",
+      "mode": "duracao",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.031348638904324,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 36.460633333333334,
+        "sampleStandardDeviation": 12.215370080446187,
+        "standardError": 1.5769974963109479,
+        "p50": 34.387,
+        "p90": 37.603,
+        "p95": 39.568,
+        "p99": 125.7
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:40.328Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3447.633333333333,
+          "p50": 3391,
+          "p95": 6197,
+          "p99": 7087
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 4,
+      "occurrenceStatuses": {
+        "PROCESSADO": 4
+      },
+      "windowCount": 20,
+      "windowStatuses": {
+        "INVALIDADA": 16,
+        "SATISFEITA": 4
+      },
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 4,
+        "mean": 10000,
+        "p50": 10000,
+        "p95": 10000,
+        "p99": 10000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-duracao-r3",
+      "mode": "duracao",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.0314062929086965,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 36.52331666666668,
+        "sampleStandardDeviation": 11.47498861044694,
+        "standardError": 1.4814146595393596,
+        "p50": 34.075,
+        "p90": 39.507,
+        "p95": 45.33,
+        "p99": 118.593
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:40.577Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3727.0833333333335,
+          "p50": 3772,
+          "p95": 6752,
+          "p99": 7653
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 0,
+          "missionSpecificPoints": 0,
+          "ledgerEntriesByType": {}
+        }
+      },
+      "occurrenceCount": 0,
+      "occurrenceStatuses": {},
+      "windowCount": 25,
+      "windowStatuses": {
+        "INVALIDADA": 25
+      },
+      "assignedStudents": 20,
+      "completedActivities": 0,
+      "missionSpecificPoints": 0,
+      "eventDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-instantaneo-r1",
+      "mode": "instantaneo",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.0312296274015966,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 44.592666666666645,
+        "sampleStandardDeviation": 17.946983405147304,
+        "standardError": 2.3169455947598796,
+        "p50": 39.167,
+        "p90": 51.051,
+        "p95": 70.441,
+        "p99": 152.767
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:40.793Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 5824.7,
+          "p50": 6168,
+          "p95": 9933,
+          "p99": 10803
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 30,
+      "occurrenceStatuses": {
+        "PROCESSADO": 30
+      },
+      "windowCount": 0,
+      "windowStatuses": {},
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 30,
+        "mean": 11289.833333333334,
+        "p50": 11124,
+        "p95": 14786,
+        "p99": 15050
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-instantaneo-r2",
+      "mode": "instantaneo",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.0313167562628576,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 41.49993333333334,
+        "sampleStandardDeviation": 16.804572585819923,
+        "standardError": 2.169460992167142,
+        "p50": 36.004,
+        "p90": 46.684,
+        "p95": 75.721,
+        "p99": 131.522
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:41.002Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3400.95,
+          "p50": 3342,
+          "p95": 6063,
+          "p99": 7684
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 30,
+      "occurrenceStatuses": {
+        "PROCESSADO": 30
+      },
+      "windowCount": 0,
+      "windowStatuses": {},
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 30,
+        "mean": 8051.733333333334,
+        "p50": 7896,
+        "p95": 11421,
+        "p99": 11874
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-instantaneo-r3",
+      "mode": "instantaneo",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.031166743850439,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 39.773383333333335,
+        "sampleStandardDeviation": 20.149741138171247,
+        "standardError": 2.601320395284257,
+        "p50": 34.638,
+        "p90": 43.784,
+        "p95": 46.772,
+        "p99": 166.951
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:41.173Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 4125.85,
+          "p50": 4078,
+          "p95": 6837,
+          "p99": 7764
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 28,
+      "occurrenceStatuses": {
+        "PROCESSADO": 28
+      },
+      "windowCount": 0,
+      "windowStatuses": {},
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 28,
+        "mean": 7831.857142857143,
+        "p50": 7898,
+        "p95": 10371,
+        "p99": 10585
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-janela-encerrada-r1",
+      "mode": "janela-encerrada",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.031638819693152,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 37.50376666666667,
+        "sampleStandardDeviation": 17.64548838325581,
+        "standardError": 2.2780227548015395,
+        "p50": 33.537,
+        "p90": 43.128,
+        "p95": 44.638,
+        "p99": 167.724
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:41.387Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3745.1833333333334,
+          "p50": 3730,
+          "p95": 6435,
+          "p99": 7336
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 20,
+      "occurrenceStatuses": {
+        "PROCESSADO": 20
+      },
+      "windowCount": 20,
+      "windowStatuses": {
+        "SATISFEITA": 20
+      },
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 20,
+        "mean": 10000,
+        "p50": 10000,
+        "p95": 10000,
+        "p99": 10000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-janela-encerrada-r2",
+      "mode": "janela-encerrada",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.031747517824216,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 38.58891666666666,
+        "sampleStandardDeviation": 15.705108093014735,
+        "standardError": 2.0275207364877796,
+        "p50": 35.21,
+        "p90": 40.529,
+        "p95": 50.233,
+        "p99": 132.229
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:41.588Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 4000.9166666666665,
+          "p50": 3962,
+          "p95": 6366,
+          "p99": 7242
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 28,
+      "occurrenceStatuses": {
+        "PROCESSADO": 28
+      },
+      "windowCount": 28,
+      "windowStatuses": {
+        "SATISFEITA": 28
+      },
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 28,
+        "mean": 10000,
+        "p50": 10000,
+        "p95": 10000,
+        "p99": 10000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-janela-encerrada-r3",
+      "mode": "janela-encerrada",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.031766149025929,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 38.6345,
+        "sampleStandardDeviation": 17.783866562568846,
+        "standardError": 2.2958873009334693,
+        "p50": 33.359,
+        "p90": 42.465,
+        "p95": 49.808,
+        "p99": 126.662
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:41.845Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3562.133333333333,
+          "p50": 3439,
+          "p95": 6359,
+          "p99": 7203
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 22,
+      "occurrenceStatuses": {
+        "PROCESSADO": 22
+      },
+      "windowCount": 22,
+      "windowStatuses": {
+        "SATISFEITA": 22
+      },
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 22,
+        "mean": 10000,
+        "p50": 10000,
+        "p95": 10000,
+        "p99": 10000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-transicao-r1",
+      "mode": "transicao",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.0315992991104315,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 39.080866666666665,
+        "sampleStandardDeviation": 23.118214752394984,
+        "standardError": 2.984548691002413,
+        "p50": 34.733,
+        "p90": 43.693,
+        "p95": 50.293,
+        "p99": 210.766
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:42.077Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 4308.983333333334,
+          "p50": 4385,
+          "p95": 7041,
+          "p99": 7969
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 10,
+      "occurrenceStatuses": {
+        "PROCESSADO": 10
+      },
+      "windowCount": 0,
+      "windowStatuses": {},
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 10,
+        "mean": 5000,
+        "p50": 5000,
+        "p95": 5000,
+        "p99": 5000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-transicao-r2",
+      "mode": "transicao",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.0307753787073697,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 41.025150000000004,
+        "sampleStandardDeviation": 17.730326104073207,
+        "standardError": 2.2889752574634055,
+        "p50": 35.729,
+        "p90": 48.149,
+        "p95": 53.602,
+        "p99": 140.044
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:42.370Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 3994.5666666666666,
+          "p50": 4072,
+          "p95": 7133,
+          "p99": 8470
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 10,
+      "occurrenceStatuses": {
+        "PROCESSADO": 10
+      },
+      "windowCount": 0,
+      "windowStatuses": {},
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 10,
+        "mean": 5000,
+        "p50": 5000,
+        "p95": 5000,
+        "p99": 5000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    },
+    {
+      "runId": "20261112-04-transicao-r3",
+      "mode": "transicao",
+      "attempted": 60,
+      "brokerAcknowledged": 60,
+      "failed": 0,
+      "brokerAckRate": 1,
+      "achievedRatePerSecond": 2.031662580936781,
+      "clientLatencyMs": {
+        "n": 60,
+        "mean": 38.85948333333334,
+        "sampleStandardDeviation": 13.62371277513507,
+        "standardError": 1.7588137563870452,
+        "p50": 35.837,
+        "p90": 41.452,
+        "p95": 49.802,
+        "p99": 118.531
+      },
+      "serverMetrics": {
+        "collectedAt": "2026-11-12T21:59:42.827Z",
+        "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+        "expectedCanonicalMeasurements": 60,
+        "canonicalMeasurementsReturned": 60,
+        "expectedParameterValues": 780,
+        "observedParameterValues": 780,
+        "expectedQualifications": 780,
+        "observedQualifications": 780,
+        "reconciliationComplete": true,
+        "resultsByStatus": {
+          "NORMAL": 774,
+          "ALERTA": 6
+        },
+        "evaluationsByParameter": {
+          "temperature": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "presence": {
+            "NORMAL": 60
+          },
+          "light": {
+            "NORMAL": 60
+          },
+          "ac_status": {
+            "NORMAL": 60
+          },
+          "energy_ac": {
+            "NORMAL": 60
+          },
+          "energy_lighting": {
+            "NORMAL": 60
+          },
+          "energy_room_circuit": {
+            "NORMAL": 60
+          },
+          "energy_total_room": {
+            "NORMAL": 60
+          },
+          "ac_setpoint_c": {
+            "NORMAL": 60
+          },
+          "humidity_pct": {
+            "NORMAL": 58,
+            "ALERTA": 2
+          },
+          "noise_db": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "co2_ppm": {
+            "NORMAL": 59,
+            "ALERTA": 1
+          },
+          "window_open": {
+            "NORMAL": 60
+          }
+        },
+        "sourceToCanonicalDelayMs": {
+          "n": 60,
+          "mean": 4080.2,
+          "p50": 3973,
+          "p95": 6709,
+          "p99": 7629
+        },
+        "syntheticAnomaliesExpectedByParameter": {
+          "temperature": 2,
+          "humidity_pct": 2,
+          "noise_db": 1,
+          "co2_ppm": 1
+        },
+        "expectedSyntheticAlertEvaluations": 6,
+        "pointsLedger": {
+          "students": 20,
+          "missionSpecificEntries": 20,
+          "missionSpecificPoints": 100,
+          "ledgerEntriesByType": {
+            "CONCESSAO": 20
+          }
+        }
+      },
+      "occurrenceCount": 10,
+      "occurrenceStatuses": {
+        "PROCESSADO": 10
+      },
+      "windowCount": 0,
+      "windowStatuses": {},
+      "assignedStudents": 20,
+      "completedActivities": 20,
+      "missionSpecificPoints": 100,
+      "eventDetectionDelayMs": {
+        "n": 10,
+        "mean": 5000,
+        "p50": 5000,
+        "p95": 5000,
+        "p99": 5000
+      },
+      "windowDetectionDelayMs": {
+        "n": 0,
+        "mean": null,
+        "p50": null,
+        "p95": null,
+        "p99": null
+      }
+    }
+  ],
+  "missionsAndEvents": [
+    {
+      "mode": "instantaneo",
+      "repetition": 1,
+      "missionId": "72f9b93c-8328-42ec-a671-4ddcc7711f80",
+      "eventId": "1dc588f7-cf6a-42b0-92d4-94345be81bc7",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "instantaneo",
+      "repetition": 2,
+      "missionId": "765d591a-edc5-4e11-844a-092829ad1ccd",
+      "eventId": "e259ad18-38ef-499e-916f-14c0a2f874e5",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "instantaneo",
+      "repetition": 3,
+      "missionId": "8c9d8623-e2eb-4033-acf8-778060ba10f4",
+      "eventId": "040101ae-da68-4e4a-a4a6-1ecd0b3434ce",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "transicao",
+      "repetition": 1,
+      "missionId": "55852d2a-7e0d-4047-b5b1-f5a145cf6613",
+      "eventId": "a0803c4f-8d6e-4528-b9a2-efd5dc4165b7",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "transicao",
+      "repetition": 2,
+      "missionId": "103db379-53a3-4ac0-8ea1-6e2e03975232",
+      "eventId": "a0b1cfc4-876d-466c-8a81-52ac06ab6cdf",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "transicao",
+      "repetition": 3,
+      "missionId": "c94f9651-71c6-4bc0-b9a3-6ad9da02945f",
+      "eventId": "d85ba85b-9c2b-4655-999d-61ba8cc6ae4e",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "duracao",
+      "repetition": 1,
+      "missionId": "5438d700-88ca-4f4d-a10f-a0b43410b42d",
+      "eventId": "9aae0efd-98c6-473f-accb-a837f9b86dc8",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "duracao",
+      "repetition": 2,
+      "missionId": "c08d9d30-7c0a-465f-b87f-9d7078e467ba",
+      "eventId": "55de1299-efd0-4322-8146-e86c8248b963",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "duracao",
+      "repetition": 3,
+      "missionId": "3827f828-2912-4fdb-a98e-49e359493c62",
+      "eventId": "93466466-462d-46d4-bf31-4c07fff5a1d5",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "janela-encerrada",
+      "repetition": 1,
+      "missionId": "b99ce75c-f81a-41a3-8b07-c656e26c404d",
+      "eventId": "3dc368c5-5d8d-4be5-b1c4-36e10c6fa693",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "janela-encerrada",
+      "repetition": 2,
+      "missionId": "b4a4358f-8792-4d4e-912f-7c703d25c993",
+      "eventId": "35076e24-dee6-4098-b2fb-5fa4d6abc252",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    },
+    {
+      "mode": "janela-encerrada",
+      "repetition": 3,
+      "missionId": "1067210e-dad4-4d78-aec2-5e34a334d7d5",
+      "eventId": "ecedc2ee-0dc2-4a4c-b9a2-ea54f1fe7672",
+      "students": [
+        "tcc-demo-20261112-02-01",
+        "tcc-demo-20261112-02-02",
+        "tcc-demo-20261112-02-03",
+        "tcc-demo-20261112-02-04",
+        "tcc-demo-20261112-02-05",
+        "tcc-demo-20261112-02-06",
+        "tcc-demo-20261112-02-07",
+        "tcc-demo-20261112-02-08",
+        "tcc-demo-20261112-02-09",
+        "tcc-demo-20261112-02-10",
+        "tcc-demo-20261112-02-11",
+        "tcc-demo-20261112-02-12",
+        "tcc-demo-20261112-02-13",
+        "tcc-demo-20261112-02-14",
+        "tcc-demo-20261112-02-15",
+        "tcc-demo-20261112-02-16",
+        "tcc-demo-20261112-02-17",
+        "tcc-demo-20261112-02-18",
+        "tcc-demo-20261112-02-19",
+        "tcc-demo-20261112-02-20"
+      ]
+    }
+  ],
+  "aggregationJob": {
+    "id": "fa2e26d7-47e5-470d-a31b-c8b3cd77c79b",
+    "status": "COMPLETED",
+    "from": "2026-11-12T21:46:44.173137Z",
+    "to": "2026-11-12T22:04:03.862913Z",
+    "windowDuration": "PT1M",
+    "sensorExternalId": null,
+    "compartimentoId": null,
+    "requestedBy": "admin",
+    "createdAt": "2026-11-12T21:59:03.730471Z",
+    "startedAt": "2026-11-12T21:59:04.769610Z",
+    "completedAt": "2026-11-12T21:59:20.127361Z",
+    "error": null,
+    "progress": {
+      "totalWindows": 18,
+      "completedWindows": 18,
+      "failedWindows": 0,
+      "processingWindows": 0
+    },
+    "windows": [
+      {
+        "id": "e51ace23-fe1f-46d3-b954-96f4709a75bc",
+        "index": 0,
+        "from": "2026-11-12T21:46:44.173137Z",
+        "to": "2026-11-12T21:47:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:04.797343Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:04.769610Z",
+        "completedAt": "2026-11-12T21:59:04.797343Z",
+        "error": null
+      },
+      {
+        "id": "1cc61c2b-f74a-4c8d-a363-3cd4168a1cac",
+        "index": 1,
+        "from": "2026-11-12T21:47:44.173137Z",
+        "to": "2026-11-12T21:48:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:04.828711Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:04.803440Z",
+        "completedAt": "2026-11-12T21:59:04.828711Z",
+        "error": null
+      },
+      {
+        "id": "2f651610-cb89-405c-95c0-1930a8f053fb",
+        "index": 2,
+        "from": "2026-11-12T21:48:44.173137Z",
+        "to": "2026-11-12T21:49:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:04.859180Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:04.836434Z",
+        "completedAt": "2026-11-12T21:59:04.859180Z",
+        "error": null
+      },
+      {
+        "id": "c1fecce6-6db9-4a70-a0e8-22ae33242dae",
+        "index": 3,
+        "from": "2026-11-12T21:49:44.173137Z",
+        "to": "2026-11-12T21:50:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:04.886657Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:04.864608Z",
+        "completedAt": "2026-11-12T21:59:04.886657Z",
+        "error": null
+      },
+      {
+        "id": "2183b4a1-6dc0-40f2-ab19-1e84e0026b34",
+        "index": 4,
+        "from": "2026-11-12T21:50:44.173137Z",
+        "to": "2026-11-12T21:51:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:04.919139Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:04.896237Z",
+        "completedAt": "2026-11-12T21:59:04.919139Z",
+        "error": null
+      },
+      {
+        "id": "3acba9a1-679f-4987-a2b7-e3304ddf4708",
+        "index": 5,
+        "from": "2026-11-12T21:51:44.173137Z",
+        "to": "2026-11-12T21:52:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:09.942780Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:09.925141Z",
+        "completedAt": "2026-11-12T21:59:09.942780Z",
+        "error": null
+      },
+      {
+        "id": "aadc3043-0891-4fd2-915e-7e8883a52195",
+        "index": 6,
+        "from": "2026-11-12T21:52:44.173137Z",
+        "to": "2026-11-12T21:53:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:09.970404Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:09.947533Z",
+        "completedAt": "2026-11-12T21:59:09.970404Z",
+        "error": null
+      },
+      {
+        "id": "ac5932ff-90f8-4a98-945f-ccb31b4b57c8",
+        "index": 7,
+        "from": "2026-11-12T21:53:44.173137Z",
+        "to": "2026-11-12T21:54:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:09.988854Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:09.973664Z",
+        "completedAt": "2026-11-12T21:59:09.988854Z",
+        "error": null
+      },
+      {
+        "id": "d4b430a4-29bb-4a29-a545-2b46c32789ee",
+        "index": 8,
+        "from": "2026-11-12T21:54:44.173137Z",
+        "to": "2026-11-12T21:55:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:10.017762Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:09.994386Z",
+        "completedAt": "2026-11-12T21:59:10.017762Z",
+        "error": null
+      },
+      {
+        "id": "c5d05f61-c61a-494a-b30b-3f5475050801",
+        "index": 9,
+        "from": "2026-11-12T21:55:44.173137Z",
+        "to": "2026-11-12T21:56:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:10.045055Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:10.023001Z",
+        "completedAt": "2026-11-12T21:59:10.045055Z",
+        "error": null
+      },
+      {
+        "id": "5fdf491b-a0d0-417a-ace5-6892bc26213b",
+        "index": 10,
+        "from": "2026-11-12T21:56:44.173137Z",
+        "to": "2026-11-12T21:57:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:15.062878Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:15.049949Z",
+        "completedAt": "2026-11-12T21:59:15.062878Z",
+        "error": null
+      },
+      {
+        "id": "8da8c4c3-f938-45bc-bf9a-0803ad92aae7",
+        "index": 11,
+        "from": "2026-11-12T21:57:44.173137Z",
+        "to": "2026-11-12T21:58:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:15.083198Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:15.065865Z",
+        "completedAt": "2026-11-12T21:59:15.083198Z",
+        "error": null
+      },
+      {
+        "id": "e1b13601-e36c-4ae4-b692-0541e9283ce1",
+        "index": 12,
+        "from": "2026-11-12T21:58:44.173137Z",
+        "to": "2026-11-12T21:59:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:15.089994Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:15.085745Z",
+        "completedAt": "2026-11-12T21:59:15.089994Z",
+        "error": null
+      },
+      {
+        "id": "88cb5000-53c6-483d-b031-4829e23d058e",
+        "index": 13,
+        "from": "2026-11-12T21:59:44.173137Z",
+        "to": "2026-11-12T22:00:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:15.097576Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:15.093982Z",
+        "completedAt": "2026-11-12T21:59:15.097576Z",
+        "error": null
+      },
+      {
+        "id": "3a904627-f4c9-4582-988f-ed06b938f2b0",
+        "index": 14,
+        "from": "2026-11-12T22:00:44.173137Z",
+        "to": "2026-11-12T22:01:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:15.104299Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:15.100552Z",
+        "completedAt": "2026-11-12T21:59:15.104299Z",
+        "error": null
+      },
+      {
+        "id": "c07b3e01-a66b-4b7d-975a-0a0b67c15546",
+        "index": 15,
+        "from": "2026-11-12T22:01:44.173137Z",
+        "to": "2026-11-12T22:02:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:20.114835Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:20.107965Z",
+        "completedAt": "2026-11-12T21:59:20.114835Z",
+        "error": null
+      },
+      {
+        "id": "04ba2e06-1d47-4da3-a7ab-e2c981542149",
+        "index": 16,
+        "from": "2026-11-12T22:02:44.173137Z",
+        "to": "2026-11-12T22:03:44.173137Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:20.120642Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:20.117910Z",
+        "completedAt": "2026-11-12T21:59:20.120642Z",
+        "error": null
+      },
+      {
+        "id": "c199decc-b98e-44b2-823e-3a1ce6820c9a",
+        "index": 17,
+        "from": "2026-11-12T22:03:44.173137Z",
+        "to": "2026-11-12T22:04:03.862913Z",
+        "status": "COMPLETED",
+        "attempts": 1,
+        "nextAttemptAt": "2026-11-12T21:59:20.125225Z",
+        "lockedAt": null,
+        "lockedBy": null,
+        "startedAt": "2026-11-12T21:59:20.122802Z",
+        "completedAt": "2026-11-12T21:59:20.125225Z",
+        "error": null
+      }
+    ]
+  },
+  "restoredPreexistingEventIds": [
+    "f8ce7356-fd61-4747-be90-c97fffbd3994",
+    "728f5f2e-1f55-402e-a29b-acf836b9ba45",
+    "ea2107b0-eee6-44b5-84bb-da4690b2c033",
+    "10549c4e-760d-40ba-bfed-c7c178d6a40f"
+  ],
+  "externalWeatherContextC": {
+    "provenance": "WeatherAPI observations previously fetched and stored in staging; reused as fixed context for deterministic runs.",
+    "currentObservation": 25.6,
+    "sevenDayMean": 18.23
+  },
+  "measurementDataClassification": "All room sensor readings are synthetic; publisher HTTP acknowledgment is not proof of canonical ingestion or downstream processing.",
+  "statisticalSummary": {
+    "method": "Per-mode mean, sample standard deviation and two-sided 95% Student t interval (df=2) across three independent repetitions. Per-run ACK success also retains the harness Wilson interval.",
+    "modeStats": {
+      "duracao": {
+        "repetitions": 3,
+        "publisherAcknowledgements": {
+          "n": 3,
+          "mean": 1,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            1,
+            1
+          ]
+        },
+        "achievedMessagesPerSecond": {
+          "n": 3,
+          "mean": 2.0315330325156893,
+          "sampleStandardDeviation": 0.00027098691062380235,
+          "ci95": [
+            2.030859863711594,
+            2.0322062013197844
+          ]
+        },
+        "publisherAckMeanMs": {
+          "n": 3,
+          "mean": 37.115683333333344,
+          "sampleStandardDeviation": 1.0807490713749255,
+          "ci95": [
+            34.43095380809781,
+            39.800412858568876
+          ]
+        },
+        "publisherAckP95Ms": {
+          "n": 3,
+          "mean": 44.89566666666667,
+          "sampleStandardDeviation": 5.124323792788015,
+          "ci95": [
+            32.166140685337105,
+            57.625192647996236
+          ]
+        },
+        "publisherAckP99Ms": {
+          "n": 3,
+          "mean": 128.455,
+          "sampleStandardDeviation": 11.48994686671788,
+          "ci95": [
+            99.91238968137995,
+            156.99761031862008
+          ]
+        },
+        "sourceToCanonicalMeanMs": {
+          "n": 3,
+          "mean": 3577.3888888888887,
+          "sampleStandardDeviation": 140.78794370468174,
+          "ci95": [
+            3227.65224856007,
+            3927.1255292177075
+          ]
+        },
+        "canonicalMeasurements": {
+          "n": 3,
+          "mean": 60,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            60,
+            60
+          ]
+        },
+        "qualificationEvaluations": {
+          "n": 3,
+          "mean": 780,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            780,
+            780
+          ]
+        },
+        "qualificationAlerts": {
+          "n": 3,
+          "mean": 6,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            6,
+            6
+          ]
+        },
+        "occurrences": {
+          "n": 3,
+          "mean": 3,
+          "sampleStandardDeviation": 2.6457513110645907,
+          "ci95": [
+            -3.5724106079583784,
+            9.572410607958378
+          ]
+        },
+        "temporalWindows": {
+          "n": 3,
+          "mean": 21.666666666666668,
+          "sampleStandardDeviation": 2.886751345948129,
+          "ci95": [
+            14.495578783500001,
+            28.837754549833335
+          ]
+        },
+        "completedActivities": {
+          "n": 3,
+          "mean": 13.333333333333334,
+          "sampleStandardDeviation": 11.547005383792516,
+          "ci95": [
+            -15.351018199333337,
+            42.017684866
+          ]
+        },
+        "awardedMissionPoints": {
+          "n": 3,
+          "mean": 66.66666666666667,
+          "sampleStandardDeviation": 57.735026918962575,
+          "ci95": [
+            -76.75509099666668,
+            210.08842433
+          ]
+        }
+      },
+      "instantaneo": {
+        "repetitions": 3,
+        "publisherAcknowledgements": {
+          "n": 3,
+          "mean": 1,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            1,
+            1
+          ]
+        },
+        "achievedMessagesPerSecond": {
+          "n": 3,
+          "mean": 2.031237709171631,
+          "sampleStandardDeviation": 0.00007533204646821447,
+          "ci95": [
+            2.0310505739940896,
+            2.0314248443491727
+          ]
+        },
+        "publisherAckMeanMs": {
+          "n": 3,
+          "mean": 41.95532777777777,
+          "sampleStandardDeviation": 2.4417024873557374,
+          "ci95": [
+            35.88980254785058,
+            48.02085300770496
+          ]
+        },
+        "publisherAckP95Ms": {
+          "n": 3,
+          "mean": 64.31133333333334,
+          "sampleStandardDeviation": 15.4172228476251,
+          "ci95": [
+            26.012828645749053,
+            102.60983802091762
+          ]
+        },
+        "publisherAckP99Ms": {
+          "n": 3,
+          "mean": 150.41333333333333,
+          "sampleStandardDeviation": 17.831385822008716,
+          "ci95": [
+            106.11771535856153,
+            194.70895130810513
+          ]
+        },
+        "sourceToCanonicalMeanMs": {
+          "n": 3,
+          "mean": 4450.5,
+          "sampleStandardDeviation": 1244.0615871008958,
+          "ci95": [
+            1360.0796956345712,
+            7540.920304365429
+          ]
+        },
+        "canonicalMeasurements": {
+          "n": 3,
+          "mean": 60,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            60,
+            60
+          ]
+        },
+        "qualificationEvaluations": {
+          "n": 3,
+          "mean": 780,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            780,
+            780
+          ]
+        },
+        "qualificationAlerts": {
+          "n": 3,
+          "mean": 6,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            6,
+            6
+          ]
+        },
+        "occurrences": {
+          "n": 3,
+          "mean": 29.333333333333332,
+          "sampleStandardDeviation": 1.1547005383792515,
+          "ci95": [
+            26.464898180066665,
+            32.2017684866
+          ]
+        },
+        "temporalWindows": {
+          "n": 3,
+          "mean": 0,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        },
+        "completedActivities": {
+          "n": 3,
+          "mean": 20,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            20,
+            20
+          ]
+        },
+        "awardedMissionPoints": {
+          "n": 3,
+          "mean": 100,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            100,
+            100
+          ]
+        }
+      },
+      "janela-encerrada": {
+        "repetitions": 3,
+        "publisherAcknowledgements": {
+          "n": 3,
+          "mean": 1,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            1,
+            1
+          ]
+        },
+        "achievedMessagesPerSecond": {
+          "n": 3,
+          "mean": 2.031717495514432,
+          "sampleStandardDeviation": 0.00006876913595445754,
+          "ci95": [
+            2.0315466635103974,
+            2.031888327518467
+          ]
+        },
+        "publisherAckMeanMs": {
+          "n": 3,
+          "mean": 38.24239444444444,
+          "sampleStandardDeviation": 0.6400763279860806,
+          "ci95": [
+            36.65235669963992,
+            39.83243218924897
+          ]
+        },
+        "publisherAckP95Ms": {
+          "n": 3,
+          "mean": 48.226333333333336,
+          "sampleStandardDeviation": 3.114844832946472,
+          "ci95": [
+            40.48862981728963,
+            55.964036849377045
+          ]
+        },
+        "publisherAckP99Ms": {
+          "n": 3,
+          "mean": 142.205,
+          "sampleStandardDeviation": 22.27470298342942,
+          "ci95": [
+            86.87157029888944,
+            197.5384297011106
+          ]
+        },
+        "sourceToCanonicalMeanMs": {
+          "n": 3,
+          "mean": 3769.411111111111,
+          "sampleStandardDeviation": 220.39270023032705,
+          "ci95": [
+            3221.925293055315,
+            4316.896929166907
+          ]
+        },
+        "canonicalMeasurements": {
+          "n": 3,
+          "mean": 60,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            60,
+            60
+          ]
+        },
+        "qualificationEvaluations": {
+          "n": 3,
+          "mean": 780,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            780,
+            780
+          ]
+        },
+        "qualificationAlerts": {
+          "n": 3,
+          "mean": 6,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            6,
+            6
+          ]
+        },
+        "occurrences": {
+          "n": 3,
+          "mean": 23.333333333333332,
+          "sampleStandardDeviation": 4.163331998932265,
+          "ci95": [
+            12.991043307886958,
+            33.6756233587797
+          ]
+        },
+        "temporalWindows": {
+          "n": 3,
+          "mean": 23.333333333333332,
+          "sampleStandardDeviation": 4.163331998932265,
+          "ci95": [
+            12.991043307886958,
+            33.6756233587797
+          ]
+        },
+        "completedActivities": {
+          "n": 3,
+          "mean": 20,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            20,
+            20
+          ]
+        },
+        "awardedMissionPoints": {
+          "n": 3,
+          "mean": 100,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            100,
+            100
+          ]
+        }
+      },
+      "transicao": {
+        "repetitions": 3,
+        "publisherAcknowledgements": {
+          "n": 3,
+          "mean": 1,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            1,
+            1
+          ]
+        },
+        "achievedMessagesPerSecond": {
+          "n": 3,
+          "mean": 2.031345752918194,
+          "sampleStandardDeviation": 0.000494970910929862,
+          "ci95": [
+            2.030116177012091,
+            2.032575328824297
+          ]
+        },
+        "publisherAckMeanMs": {
+          "n": 3,
+          "mean": 39.65516666666667,
+          "sampleStandardDeviation": 1.1915927975939518,
+          "ci95": [
+            36.695086061009896,
+            42.61524727232345
+          ]
+        },
+        "publisherAckP95Ms": {
+          "n": 3,
+          "mean": 51.23233333333334,
+          "sampleStandardDeviation": 2.0668237305908135,
+          "ci95": [
+            46.09805856045256,
+            56.366608106214116
+          ]
+        },
+        "publisherAckP99Ms": {
+          "n": 3,
+          "mean": 156.447,
+          "sampleStandardDeviation": 48.25575212345155,
+          "ci95": [
+            36.57306633706388,
+            276.3209336629361
+          ]
+        },
+        "sourceToCanonicalMeanMs": {
+          "n": 3,
+          "mean": 4127.916666666667,
+          "sampleStandardDeviation": 162.54882428912808,
+          "ci95": [
+            3724.1230022352383,
+            4531.710331098096
+          ]
+        },
+        "canonicalMeasurements": {
+          "n": 3,
+          "mean": 60,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            60,
+            60
+          ]
+        },
+        "qualificationEvaluations": {
+          "n": 3,
+          "mean": 780,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            780,
+            780
+          ]
+        },
+        "qualificationAlerts": {
+          "n": 3,
+          "mean": 6,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            6,
+            6
+          ]
+        },
+        "occurrences": {
+          "n": 3,
+          "mean": 10,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            10,
+            10
+          ]
+        },
+        "temporalWindows": {
+          "n": 3,
+          "mean": 0,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            0,
+            0
+          ]
+        },
+        "completedActivities": {
+          "n": 3,
+          "mean": 20,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            20,
+            20
+          ]
+        },
+        "awardedMissionPoints": {
+          "n": 3,
+          "mean": 100,
+          "sampleStandardDeviation": 0,
+          "ci95": [
+            100,
+            100
+          ]
+        }
+      }
+    }
+  },
+  "reconciliations": {
+    "runCount": 12,
+    "expectedMessages": 720,
+    "canonicalMessages": 720,
+    "expectedParameterValues": 9360,
+    "observedParameterValues": 9360,
+    "expectedQualifications": 9360,
+    "observedQualifications": 9360,
+    "acknowledgements": 720,
+    "failures": 0,
+    "pointsLedgerEntries": 220,
+    "allMeasurementsAndQualificationsReconciled": true
+  },
+  "bucketQuery": {
+    "filters": {
+      "from": "2026-11-12T21:50:56.187Z",
+      "to": "2026-11-12T21:58:09.832Z",
+      "sensorTypeName": "TCC_DEMO_SENSOR_20261112-02",
+      "page": "0",
+      "size": "100"
+    },
+    "page": {
+      "content": [
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.0001,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 57.1,
+          "minimumValue": 50.7,
+          "maximumValue": 67.6,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 57.16,
+          "minimumValue": 50.4,
+          "maximumValue": 70.2,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001461,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00135,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 738,
+          "minimumValue": 584,
+          "maximumValue": 891,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.78,
+          "minimumValue": 23.46,
+          "maximumValue": 25.76,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000134,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 55.72,
+          "minimumValue": 46.1,
+          "maximumValue": 63,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 56.28,
+          "minimumValue": 49.2,
+          "maximumValue": 68.9,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001494,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001383,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 640.2,
+          "minimumValue": 510,
+          "maximumValue": 864,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.742,
+          "minimumValue": 23.3,
+          "maximumValue": 25.5,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000134,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 59.74,
+          "minimumValue": 48.9,
+          "maximumValue": 68.3,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 60.74,
+          "minimumValue": 48.2,
+          "maximumValue": 71.7,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001494,
+          "minimumValue": 0.000278,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001383,
+          "minimumValue": 0.000167,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 665.2,
+          "minimumValue": 491,
+          "maximumValue": 787,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S03",
+          "sensorNome": "Sensor virtual TCC 03",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R03",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.832,
+          "minimumValue": 23.79,
+          "maximumValue": 25.72,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.0001,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 58.92,
+          "minimumValue": 54.5,
+          "maximumValue": 64,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 66,
+          "minimumValue": 52.8,
+          "maximumValue": 71.7,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001461,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00135,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 623.6,
+          "minimumValue": 485,
+          "maximumValue": 817,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S04",
+          "sensorNome": "Sensor virtual TCC 04",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R04",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.88,
+          "minimumValue": 23.44,
+          "maximumValue": 25.49,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000167,
+          "minimumValue": 0.000167,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 58.18,
+          "minimumValue": 52,
+          "maximumValue": 67.5,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 59,
+          "minimumValue": 48.1,
+          "maximumValue": 71.8,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001528,
+          "minimumValue": 0.000278,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001417,
+          "minimumValue": 0.000167,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 711,
+          "minimumValue": 463,
+          "maximumValue": 900,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S05",
+          "sensorNome": "Sensor virtual TCC 05",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R05",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.78,
+          "minimumValue": 23.68,
+          "maximumValue": 25.4,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000134,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 62.1,
+          "minimumValue": 53.9,
+          "maximumValue": 68.6,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 62.64,
+          "minimumValue": 53.1,
+          "maximumValue": 69.2,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001494,
+          "minimumValue": 0.000278,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001383,
+          "minimumValue": 0.000167,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 682.8,
+          "minimumValue": 494,
+          "maximumValue": 789,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S06",
+          "sensorNome": "Sensor virtual TCC 06",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R06",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.886,
+          "minimumValue": 23.72,
+          "maximumValue": 25.7,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000134,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 57.46,
+          "minimumValue": 46.6,
+          "maximumValue": 66,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 58.64,
+          "minimumValue": 48.3,
+          "maximumValue": 70.3,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001494,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001383,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 22.4,
+          "minimumValue": 20,
+          "maximumValue": 25,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.00125,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 717.2,
+          "minimumValue": 505,
+          "maximumValue": 862,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S07",
+          "sensorNome": "Sensor virtual TCC 07",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R07",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.744,
+          "minimumValue": 23.34,
+          "maximumValue": 25.45,
+          "sampleCount": 5,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000084,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 59.275,
+          "minimumValue": 51.6,
+          "maximumValue": 68.9,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 64.15,
+          "minimumValue": 55.4,
+          "maximumValue": 71,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001757,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001646,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 21.75,
+          "minimumValue": 20,
+          "maximumValue": 24,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001562,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 687.5,
+          "minimumValue": 541,
+          "maximumValue": 898,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S08",
+          "sensorNome": "Sensor virtual TCC 08",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R08",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.5025,
+          "minimumValue": 23.31,
+          "maximumValue": 25.42,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000084,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 52.875,
+          "minimumValue": 47.9,
+          "maximumValue": 61.3,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 58.05,
+          "minimumValue": 51.1,
+          "maximumValue": 63.5,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001757,
+          "minimumValue": 0.000278,
+          "maximumValue": 0.002361,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001646,
+          "minimumValue": 0.000167,
+          "maximumValue": 0.00225,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 21.75,
+          "minimumValue": 20,
+          "maximumValue": 24,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001562,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 766.5,
+          "minimumValue": 613,
+          "maximumValue": 882,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S09",
+          "sensorNome": "Sensor virtual TCC 09",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R09",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 24.5025,
+          "minimumValue": 23.27,
+          "maximumValue": 25.48,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.000084,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 63.875,
+          "minimumValue": 47.3,
+          "maximumValue": 91,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 67.55,
+          "minimumValue": 48.9,
+          "maximumValue": 86,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001757,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001646,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 21.75,
+          "minimumValue": 20,
+          "maximumValue": 24,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 0.001562,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 1042.5,
+          "minimumValue": 627,
+          "maximumValue": 2001,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S10",
+          "sensorNome": "Sensor virtual TCC 10",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R10",
+          "bucketStart": "2026-11-12T21:51:44.173137Z",
+          "bucketEnd": "2026-11-12T21:52:44.173137Z",
+          "averageValue": 26.5125,
+          "minimumValue": 24.21,
+          "maximumValue": 31,
+          "sampleCount": 4,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 0.000084,
+          "minimumValue": 0,
+          "maximumValue": 0.000167,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "41eb9f0e-8abc-4018-b402-43950aa249bd",
+          "parametroNome": "humidity_pct",
+          "unidade": "%",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 68.55,
+          "minimumValue": 67.4,
+          "maximumValue": 69.7,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "4d035199-6173-4931-9b63-fc593b2ca128",
+          "parametroNome": "noise_db",
+          "unidade": "dB",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 55.3,
+          "minimumValue": 48.3,
+          "maximumValue": 62.3,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "4d4a2a85-dd41-43ad-909e-bfdadac6d660",
+          "parametroNome": "energy_total_room",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 0.001236,
+          "minimumValue": 0.000111,
+          "maximumValue": 0.002361,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "510dd168-07b8-4ea8-b621-b802f72bd3ca",
+          "parametroNome": "energy_room_circuit",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 0.001125,
+          "minimumValue": 0,
+          "maximumValue": 0.00225,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "aa5fb5bc-7f24-4e9b-9745-19d5e3e2f6fc",
+          "parametroNome": "ac_setpoint_c",
+          "unidade": "C",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 23,
+          "minimumValue": 20,
+          "maximumValue": 26,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "c14d201f-ad59-412a-a387-fa2cae7faa8d",
+          "parametroNome": "energy_ac",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 0.001042,
+          "minimumValue": 0,
+          "maximumValue": 0.002083,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "cda36c40-1d29-47dc-bbb8-05fa110865ad",
+          "parametroNome": "co2_ppm",
+          "unidade": "ppm",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 561.5,
+          "minimumValue": 457,
+          "maximumValue": 666,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S01",
+          "sensorNome": "Sensor virtual TCC 01",
+          "parametroDefId": "ebc0f250-82e7-4546-898c-17eaa65478fe",
+          "parametroNome": "temperature",
+          "unidade": "Celsius",
+          "compartimentoId": "TCCDEMO-20261112-02-R01",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 23.945,
+          "minimumValue": 23.51,
+          "maximumValue": 24.38,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        },
+        {
+          "sensorExternalId": "TCCDEMO-20261112-02-S02",
+          "sensorNome": "Sensor virtual TCC 02",
+          "parametroDefId": "0a4780fb-752e-45e2-8139-70bf1dfb33be",
+          "parametroNome": "energy_lighting",
+          "unidade": "kWh",
+          "compartimentoId": "TCCDEMO-20261112-02-R02",
+          "bucketStart": "2026-11-12T21:52:44.173137Z",
+          "bucketEnd": "2026-11-12T21:53:44.173137Z",
+          "averageValue": 0.000167,
+          "minimumValue": 0.000167,
+          "maximumValue": 0.000167,
+          "sampleCount": 2,
+          "aggregationVersion": 1
+        }
+      ],
+      "page": 0,
+      "size": 100,
+      "totalElements": 540,
+      "totalPages": 6
+    },
+    "retrievedAt": "2026-11-12T21:59:42.948Z"
+  }
+}

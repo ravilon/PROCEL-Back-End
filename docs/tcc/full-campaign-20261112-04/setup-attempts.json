@@ -1,0 +1,17 @@
+{
+  "experimentId": "TCC-PROBEN-FULL-20261112-04",
+  "notes": [
+    {
+      "missionId": "c09da269-94b5-41ea-97ae-1cd86a428c17",
+      "title": "TCC 20261112-04 instantaneo repeticao 1",
+      "reason": "Tentativa de setup falhou ao enviar operadorLogico AND (valor inv?lido; esperado ALL/ANY).",
+      "cleanup": "Desativada por DELETE; sem atividade atribu?da."
+    },
+    {
+      "missionId": "3a2f6962-4333-4423-be52-cfa0d9f87461",
+      "title": "TCC 20261112-04 instantaneo repeticao 1",
+      "reason": "Tentativa de setup falhou por chave duplicada no hashtable do script.",
+      "cleanup": "Desativada por DELETE; atividade de setup n?o fez parte da carga medida."
+    }
+  ]
+}

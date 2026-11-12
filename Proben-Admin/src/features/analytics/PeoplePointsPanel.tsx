@@ -1,84 +1,149 @@
-import { Autocomplete, Alert, Box, Chip, Paper, Stack, Table, TableBody, TableCell, TableHead, TableRow, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  LinearProgress,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { listPessoasResumo } from "../../api/catalog";
-import { getPessoaPontos, listPessoaPontosLancamentos } from "../../api/people";
+import {
+  listPessoasPontosAnalytics,
+  listPessoaPontosLancamentos,
+} from "../../api/people";
 import { useAuth } from "../../auth/AuthContext";
-import type { PessoaResumo } from "../../types/people";
 
 export function PeoplePointsPanel() {
   const { session } = useAuth();
   const [query, setQuery] = useState("");
-  const [person, setPerson] = useState<PessoaResumo | null>(null);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const people = useQuery({
-    queryKey: ["analytics", "points-people", query],
-    queryFn: () => listPessoasResumo(query, session),
-    enabled: Boolean(session && query.trim().length >= 2),
-  });
-  const balance = useQuery({
-    queryKey: ["analytics", "person-points", person?.id],
-    queryFn: () => getPessoaPontos(person!.id, session),
-    enabled: Boolean(person && session),
+    queryKey: ["analytics", "people-points", query],
+    queryFn: () => listPessoasPontosAnalytics(query, session),
+    enabled: Boolean(session),
   });
   const ledger = useQuery({
-    queryKey: ["analytics", "person-points-ledger", person?.id],
-    queryFn: () => listPessoaPontosLancamentos(person!.id, 0, 20, session),
-    enabled: Boolean(person && session),
+    queryKey: ["analytics", "person-points-ledger", selectedPersonId],
+    queryFn: () => listPessoaPontosLancamentos(selectedPersonId!, 0, 20, session),
+    enabled: Boolean(session && selectedPersonId),
   });
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Paper variant="outlined" sx={{ p: { xs: 2, md: 3 } }}>
       <Stack spacing={2}>
         <Box>
           <Typography variant="h6">Pontos por usuário</Typography>
           <Typography variant="body2" color="text.secondary">
-            Pesquise uma pessoa para consultar o saldo e os lançamentos auditáveis de pontos.
+            Saldo e totais do ledger de pontos por pessoa. Selecione uma linha
+            para consultar os lançamentos recentes.
           </Typography>
         </Box>
-        <Autocomplete
-          options={people.data ?? []}
-          value={person}
-          loading={people.isFetching}
-          filterOptions={(options) => options}
-          getOptionLabel={(option) => `${option.nome} · ${option.id}`}
-          isOptionEqualToValue={(a, b) => a.id === b.id}
-          onInputChange={(_, value) => setQuery(value)}
-          onChange={(_, value) => setPerson(value)}
-          renderInput={(params) => (
-            <TextField {...params} label="Buscar pessoa por nome, ID ou e-mail" helperText="Digite pelo menos 2 caracteres." />
-          )}
+        <TextField
+          label="Buscar usuário"
+          placeholder="Nome, ID ou e-mail"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          fullWidth
         />
-        {people.isError && <Alert severity="error">Falha ao buscar pessoas: {String(people.error)}</Alert>}
-        {person && balance.data && (
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-            <Chip label={`Saldo: ${balance.data.saldoTotalPontos} pontos`} color="primary" />
-            <Chip label={`Concedidos: ${balance.data.totalConcedidoPontos}`} />
-            <Chip label={`Estornados: ${balance.data.totalEstornadoPontos}`} />
-            <Chip label={`Ajustes: ${balance.data.totalAjustadoPontos}`} />
-          </Stack>
+        {people.isFetching && <LinearProgress />}
+        {people.isError && (
+          <Alert severity="error">
+            Falha ao carregar pontos por usuário: {String(people.error)}
+          </Alert>
         )}
-        {person && balance.isError && <Alert severity="error">Falha ao carregar saldo: {String(balance.error)}</Alert>}
-        {person && ledger.data && (
-          <Box sx={{ overflowX: "auto" }}>
-            <Table size="small">
-              <TableHead><TableRow><TableCell>Data</TableCell><TableCell>Missão</TableCell><TableCell>Tipo</TableCell><TableCell align="right">Pontos</TableCell><TableCell>Descrição</TableCell></TableRow></TableHead>
-              <TableBody>
-                {ledger.data.content.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell>{new Date(entry.createdAt).toLocaleString("pt-BR")}</TableCell>
-                    <TableCell>{entry.missaoTitulo ?? "—"}</TableCell>
-                    <TableCell>{entry.tipo}</TableCell>
-                    <TableCell align="right">{entry.pontos}</TableCell>
-                    <TableCell sx={{ overflowWrap: "anywhere" }}>{entry.descricao ?? "—"}</TableCell>
+        <Box sx={{ overflowX: "auto" }}>
+          <Table size="small" aria-label="Pontos por usuário">
+            <TableHead>
+              <TableRow>
+                <TableCell>Usuário</TableCell>
+                <TableCell>ID</TableCell>
+                <TableCell align="right">Saldo</TableCell>
+                <TableCell align="right">Concedidos</TableCell>
+                <TableCell align="right">Estornados</TableCell>
+                <TableCell align="right">Ajustes</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(people.data ?? []).map((person) => (
+                <TableRow
+                  key={person.pessoaId}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  selected={selectedPersonId === person.pessoaId}
+                  onClick={() => setSelectedPersonId(person.pessoaId)}
+                >
+                  <TableCell>
+                    <Stack>
+                      <Typography variant="body2">{person.nome}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {person.email}
+                      </Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{person.pessoaId}</TableCell>
+                  <TableCell align="right">{person.saldoTotalPontos}</TableCell>
+                  <TableCell align="right">{person.totalConcedidoPontos}</TableCell>
+                  <TableCell align="right">{person.totalEstornadoPontos}</TableCell>
+                  <TableCell align="right">{person.totalAjustadoPontos}</TableCell>
+                </TableRow>
+              ))}
+              {!people.isFetching && people.data?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">
+                    Nenhum usuário encontrado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Box>
+        <Typography variant="caption" color="text.secondary">
+          A consulta retorna até 200 pessoas, ordenadas pelo saldo.
+        </Typography>
+        {selectedPersonId && (
+          <Box>
+            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+              Lançamentos recentes: {selectedPersonId}
+            </Typography>
+            {ledger.isError && (
+              <Alert severity="error">Falha ao carregar lançamentos: {String(ledger.error)}</Alert>
+            )}
+            <Box sx={{ overflowX: "auto" }}>
+              <Table size="small" aria-label="Lançamentos recentes de pontos">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Data</TableCell>
+                    <TableCell>Missão</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell align="right">Pontos</TableCell>
+                    <TableCell>Descrição</TableCell>
                   </TableRow>
-                ))}
-                {ledger.data.content.length === 0 && <TableRow><TableCell colSpan={5} align="center">Nenhum lançamento para esta pessoa.</TableCell></TableRow>}
-              </TableBody>
-            </Table>
-            <Typography variant="caption" color="text.secondary">Exibindo até 20 lançamentos mais recentes de {ledger.data.totalElements}.</Typography>
+                </TableHead>
+                <TableBody>
+                  {(ledger.data?.content ?? []).map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>{new Date(entry.createdAt).toLocaleString("pt-BR")}</TableCell>
+                      <TableCell>{entry.missaoTitulo ?? "—"}</TableCell>
+                      <TableCell>{entry.tipo}</TableCell>
+                      <TableCell align="right">{entry.pontos}</TableCell>
+                      <TableCell sx={{ overflowWrap: "anywhere" }}>{entry.descricao ?? "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                  {!ledger.isFetching && ledger.data?.content.length === 0 && (
+                    <TableRow><TableCell colSpan={5} align="center">Nenhum lançamento para esta pessoa.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Box>
           </Box>
         )}
-        {person && ledger.isError && <Alert severity="error">Falha ao carregar lançamentos: {String(ledger.error)}</Alert>}
       </Stack>
     </Paper>
   );

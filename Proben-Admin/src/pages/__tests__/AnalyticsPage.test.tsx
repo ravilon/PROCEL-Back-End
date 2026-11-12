@@ -42,6 +42,16 @@ vi.mock("../../api/sensorIntegrations", () => ({
   searchCatalogSensors: vi.fn(),
 }));
 vi.mock("../../api/sensors", () => ({ listSensorTypes: vi.fn() }));
+vi.mock("../../api/people", () => ({
+  listPessoasPontosAnalytics: vi.fn().mockResolvedValue([]),
+  listPessoaPontosLancamentos: vi.fn().mockResolvedValue({
+    content: [],
+    page: 0,
+    size: 20,
+    totalElements: 0,
+    totalPages: 0,
+  }),
+}));
 
 let currentSession: Session | null;
 const logout = vi.fn();
@@ -283,13 +293,46 @@ describe("AnalyticsPage", () => {
     expect(await screen.findByText("Catalogo page")).toBeInTheDocument();
   });
 
-  it("preenche periodo padrao das ultimas 24 horas", async () => {
+  it("preenche o periodo padrao de 30 dias", async () => {
     renderAnalytics();
     const from = screen.getByLabelText("Inicio") as HTMLInputElement;
     const to = screen.getByLabelText("Fim") as HTMLInputElement;
     await waitFor(() => expect(listNumericBuckets).toHaveBeenCalled());
     const diff = new Date(to.value).getTime() - new Date(from.value).getTime();
-    expect(diff).toBe(24 * 60 * 60 * 1000);
+    expect(diff).toBe(30 * 24 * 60 * 60 * 1000);
+  });
+
+  it("distingue parâmetros de mesmo nome pertencentes a modelos diferentes", async () => {
+    vi.mocked(listSensorTypes).mockResolvedValue([
+      ...sensorTypes,
+      {
+        nome: "agua",
+        parametros: [
+          {
+            id: "water-temp",
+            tipoNome: "agua",
+            nome: "Temperatura",
+            dataType: "NUMERIC" as const,
+            numericUnit: "C",
+            ativo: true,
+          },
+        ],
+      },
+    ]);
+    const user = userEvent.setup();
+    renderAnalytics();
+    await user.click(screen.getByLabelText("Parametro"));
+    const listbox = await screen.findByRole("listbox");
+    expect(
+      within(listbox).getByRole("option", {
+        name: "energia · Temperatura (C)",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      within(listbox).getByRole("option", {
+        name: "agua · Temperatura (C)",
+      }),
+    ).toBeInTheDocument();
   });
 
   it("valida from anterior a to antes de consultar", async () => {

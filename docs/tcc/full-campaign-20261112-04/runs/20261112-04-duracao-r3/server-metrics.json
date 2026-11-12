@@ -1,0 +1,80 @@
+{
+  "collectedAt": "2026-11-12T21:59:40.577Z",
+  "source": "Authenticated canonical measurement API; qualification counts are restricted to the run's linked rule IDs.",
+  "expectedCanonicalMeasurements": 60,
+  "canonicalMeasurementsReturned": 60,
+  "expectedParameterValues": 780,
+  "observedParameterValues": 780,
+  "expectedQualifications": 780,
+  "observedQualifications": 780,
+  "reconciliationComplete": true,
+  "resultsByStatus": {
+    "NORMAL": 774,
+    "ALERTA": 6
+  },
+  "evaluationsByParameter": {
+    "temperature": {
+      "NORMAL": 58,
+      "ALERTA": 2
+    },
+    "presence": {
+      "NORMAL": 60
+    },
+    "light": {
+      "NORMAL": 60
+    },
+    "ac_status": {
+      "NORMAL": 60
+    },
+    "energy_ac": {
+      "NORMAL": 60
+    },
+    "energy_lighting": {
+      "NORMAL": 60
+    },
+    "energy_room_circuit": {
+      "NORMAL": 60
+    },
+    "energy_total_room": {
+      "NORMAL": 60
+    },
+    "ac_setpoint_c": {
+      "NORMAL": 60
+    },
+    "humidity_pct": {
+      "NORMAL": 58,
+      "ALERTA": 2
+    },
+    "noise_db": {
+      "NORMAL": 59,
+      "ALERTA": 1
+    },
+    "co2_ppm": {
+      "NORMAL": 59,
+      "ALERTA": 1
+    },
+    "window_open": {
+      "NORMAL": 60
+    }
+  },
+  "sourceToCanonicalDelayMs": {
+    "n": 60,
+    "mean": 3727.0833333333335,
+    "p50": 3772,
+    "p95": 6752,
+    "p99": 7653
+  },
+  "syntheticAnomaliesExpectedByParameter": {
+    "temperature": 2,
+    "humidity_pct": 2,
+    "noise_db": 1,
+    "co2_ppm": 1
+  },
+  "expectedSyntheticAlertEvaluations": 6,
+  "pointsLedger": {
+    "students": 20,
+    "missionSpecificEntries": 0,
+    "missionSpecificPoints": 0,
+    "ledgerEntriesByType": {}
+  }
+}

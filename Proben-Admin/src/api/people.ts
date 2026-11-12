@@ -93,6 +93,19 @@ export interface PessoaPontosLancamentosPage {
   totalPages: number;
 }
 
+export interface PessoaPontosAnalyticsRow extends PessoaPontosSaldo {
+  nome: string;
+  email: string;
+}
+
+export function listPessoasPontosAnalytics(query = "", session?: Session | null) {
+  return apiRequest<PessoaPontosAnalyticsRow[]>(
+    `/api/analytics/people-points?q=${encodeURIComponent(query)}`,
+    {},
+    session,
+  );
+}
+
 export function getPessoaPontos(pessoaId: string, session?: Session | null) {
   return apiRequest<PessoaPontosSaldo>(
     `/api/pessoas/${encodeURIComponent(pessoaId)}/pontos`,

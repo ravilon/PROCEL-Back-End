@@ -87,7 +87,7 @@ export function AnalyticsPage() {
       }
     }
     return Array.from(byId.values()).sort((a, b) =>
-      a.nome.localeCompare(b.nome),
+      `${a.tipoNome} ${a.nome}`.localeCompare(`${b.tipoNome} ${b.nome}`),
     );
   }, [sensorTypes.data]);
 
@@ -205,7 +205,7 @@ export function AnalyticsPage() {
         loadingCatalogs={rooms.isLoading || sensorTypes.isLoading}
       />
 
-      {session?.roles.some((role) => role === "ADMIN" || role === "OPERADOR") && (
+      {session?.roles.some((role) => ["ADMIN", "OPERADOR", "ANALISTA"].includes(role)) && (
         <PeoplePointsPanel />
       )}
 

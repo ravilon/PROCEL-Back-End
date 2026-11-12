@@ -118,7 +118,8 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/analytics/aggregation-jobs/*")
                                                 .hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
                                                 .requestMatchers(HttpMethod.GET, "/api/analytics/numeric-buckets",
-                                                                "/api/analytics/numeric-buckets/summary")
+                                                                "/api/analytics/numeric-buckets/summary",
+                                                                "/api/analytics/people-points")
                                                 .hasAnyRole("ADMIN", "OPERADOR", "ANALISTA")
                                                 .requestMatchers(HttpMethod.POST, "/api/sensors/seed/from-resource")
                                                 .hasRole("ADMIN")

@@ -139,6 +139,7 @@ export function AggregationJobPanel({
             onChange={(event) => setWindowDuration(event.target.value)}
             sx={{ minWidth: { md: 230 } }}
           >
+            <MenuItem value="PT1M">1 minuto</MenuItem>
             <MenuItem value="PT5M">5 minutos</MenuItem>
             <MenuItem value="PT15M">15 minutos</MenuItem>
             <MenuItem value="PT1H">1 hora</MenuItem>

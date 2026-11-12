@@ -33,6 +33,7 @@ Base local: `http://localhost:8080`
 | `/api/analytics/aggregation-jobs/{id}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Estado e progresso |
 | `/api/analytics/numeric-buckets` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista buckets persistidos; filtros por sensor, modelo, parâmetro e compartimento |
 | `/api/analytics/numeric-buckets/summary` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Consolida somente buckets persistidos; media ponderada por `sampleCount` |
+| `/api/analytics/people-points` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista até 200 pessoas e saldos agregados do ledger; aceita busca textual `q` |
 | `/api/shared-contexts` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista contextos compartilhados |
 | `/api/shared-contexts` | POST | `ADMIN` | `201` | Cria contexto e referencia geografica propria ou de campus |
 | `/api/shared-contexts/{id}` | GET/PUT/DELETE | Leitura: `ADMIN`, `OPERADOR`, `ANALISTA`; escrita: `ADMIN` | `200`, `204` | Contexto compartilhado e preview de exclusao em `/{id}/delete-preview` |
@@ -82,6 +83,12 @@ Base local: `http://localhost:8080`
 | `/api/admin/missions/workers/temporal-windows/run` | POST | `ADMIN` | `200` | Execucao manual do worker temporal |
 | `/api/pessoas/{pessoaId}/pontos` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Saldo calculado pelo ledger |
 | `/api/pessoas/{pessoaId}/pontos/lancamentos` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Extrato paginado e ordenado |
+
+`GET /api/analytics/people-points?q=texto` lista ate 200 pessoas, ordenadas por
+saldo decrescente, com nome, identificador, e-mail e totais agregados do ledger.
+O parametro `q` e opcional e pesquisa nome, ID ou e-mail. A tela Analytics usa
+essa resposta para a tabela de pontos e consulta o extrato individual somente
+quando uma pessoa e selecionada.
 
 A resposta de saldo usa `saldoTotalPontos`, `totalConcedidoPontos`,
 `totalEstornadoPontos` e `totalAjustadoPontos`. Cada item do extrato expõe o

@@ -165,7 +165,7 @@ export function AnalyticsFilters({
             value={selectedParametro}
             loading={loadingCatalogs}
             getOptionLabel={(parametro) =>
-              `${parametro.nome}${parametro.numericUnit ? ` (${parametro.numericUnit})` : ""}`
+              `${parametro.tipoNome} · ${parametro.nome}${parametro.numericUnit ? ` (${parametro.numericUnit})` : ""}`
             }
             isOptionEqualToValue={(option, selected) =>
               option.id === selected.id
