@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
+/**
+ * Componente de measurement fact factory usado pelo modulo API.
+ */
 @Component
 public class MeasurementFactFactory {
 

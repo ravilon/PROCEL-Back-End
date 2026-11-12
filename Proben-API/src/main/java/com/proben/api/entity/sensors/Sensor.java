@@ -12,6 +12,9 @@ import jakarta.persistence.*;
         @Index(name = "idx_sensor_tipo_nome", columnList = "tipo_nome")
     }
 )
+/**
+ * Componente de sensor usado pelo modulo API.
+ */
 public class Sensor {
 
     // identificador do mundo real (serial/mac/uid do gateway)

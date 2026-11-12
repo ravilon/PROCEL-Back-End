@@ -29,6 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de mission admin.
+ */
 @Service
 public class MissionAdminService {
     private static final int MAX_PAGE_SIZE = 100;

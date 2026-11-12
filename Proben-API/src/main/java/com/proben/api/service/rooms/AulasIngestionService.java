@@ -15,6 +15,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Servico que implementa as operacoes de negocio de aulas ingestion.
+ */
 @Service
 public class AulasIngestionService {
 

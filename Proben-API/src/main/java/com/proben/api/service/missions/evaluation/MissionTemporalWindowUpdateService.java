@@ -27,6 +27,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de mission temporal window update.
+ */
 @Service
 public class MissionTemporalWindowUpdateService {
     private final EventoDefinicaoRepository eventoDefinicaoRepository;

@@ -31,6 +31,9 @@ import java.util.UUID;
                 @Index(name = "ix_atividade_evento_ocorrencia", columnList = "evento_ocorrencia_id")
         }
 )
+/**
+ * Componente de atividade evento usado pelo modulo API.
+ */
 public class AtividadeEvento {
 
     @Id

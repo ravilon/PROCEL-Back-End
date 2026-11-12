@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controlador REST responsavel pelas operacoes de presencas.
+ */
 @RestController
 @RequestMapping("/api/presencas")
 @Tag(name = "Presencas", description = "Check-in, checkout e consultas de ocupacao.")

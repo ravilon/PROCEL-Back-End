@@ -20,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.util.List;
 
+/**
+ * Configuracao de componentes e infraestrutura de sensors seed.
+ */
 @Configuration
 public class SensorsSeedConfig {
 

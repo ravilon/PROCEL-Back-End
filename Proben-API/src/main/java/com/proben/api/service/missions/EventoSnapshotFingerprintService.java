@@ -18,6 +18,9 @@ import java.util.Collections;
 import java.util.HexFormat;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de evento snapshot fingerprint.
+ */
 @Component
 public class EventoSnapshotFingerprintService {
     private final ObjectMapper objectMapper;

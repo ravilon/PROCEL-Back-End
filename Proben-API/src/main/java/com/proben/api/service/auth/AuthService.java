@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Servico que implementa as operacoes de negocio de auth.
+ */
 @Service
 public class AuthService {
 

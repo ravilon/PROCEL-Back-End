@@ -19,6 +19,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Componente de simple mission rule engine usado pelo modulo API.
+ */
 @Component
 public class SimpleMissionRuleEngine implements MissionRuleEngine {
 

@@ -42,7 +42,7 @@ Dispositivos e produtores podem enviar telemetria bruta por REST ou MQTT para o 
 
 O worker canonico do `Proben-Telemetry`, desabilitado por padrao, faz claim atomico de eventos `RECEIVED`, consulta o snapshot de integracao do `Proben-API`, seleciona o perfil/parser sem resolver ambiguidades silenciosamente e chama a rota interna de ingestao do `Proben-API` com JWT curto de role fixa `TELEMETRY_SERVICE`.
 
-O `Proben-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao, buckets numericos, motor de eventos de missoes, janelas temporais, atividades ciclicas e ledger de XP. O `Proben-Admin` consome `Proben-API` e `Proben-Telemetry` usando o JWT do usuario autenticado.
+O `Proben-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao, buckets numericos, motor de eventos de missoes, janelas temporais, atividades ciclicas e ledger de pontos. O `Proben-Admin` consome `Proben-API` e `Proben-Telemetry` usando o JWT do usuario autenticado.
 
 `Proben-Telemetry` nao acessa diretamente o PostgreSQL.
 
@@ -142,7 +142,7 @@ e `ANALISTA`, com consulta de buckets numericos e observacoes compartilhadas.
 A tela de buckets apresenta resumo, serie da pagina consultada e tabela
 paginada; calculos permanecem no backend.
 
-### Missoes, Eventos e XP
+### Missoes, Eventos e pontos
 
 O catalogo de missoes possui eventos configuraveis por `EventoDefinicao` e
 `EventoCondicao`. O processamento instantaneo usa `SimpleMissionRuleEngine` por
@@ -153,10 +153,10 @@ O motor persiste `EventoAvaliacaoRequest`, `EventoOcorrencia` e evidencias. Para
 eventos temporais, `EventoJanelaAvaliacao` e suas evidencias permitem recuperar
 janelas `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA` depois de reinicio. Quando
 habilitado por flag, ocorrencias confirmadas processam beneficiarios academicos,
-atividades ciclicas, progresso, conclusao automatica e XP de forma idempotente.
+atividades ciclicas, progresso, conclusao automatica e pontos de forma idempotente.
 
-O saldo de XP nao fica salvo em `Pessoa`; ele e calculado pela soma append-only
-de `xp_lancamento`. Conclusoes manuais continuam sem concessao automatica de XP.
+O saldo de pontos nao fica salvo em `Pessoa`; ele e calculado pela soma append-only
+de `pontos_lancamento`. Conclusoes manuais continuam sem concessao automatica de pontos.
 
 Endpoints administrativos de operacao do motor:
 
@@ -180,18 +180,18 @@ POST /api/admin/missions/workers/evaluation/run
 POST /api/admin/missions/workers/temporal-windows/run
 ```
 
-Consulta de XP:
+Consulta de pontos:
 
 ```text
-GET /api/pessoas/{pessoaId}/xp
-GET /api/pessoas/{pessoaId}/xp/lancamentos
+GET /api/pessoas/{pessoaId}/pontos
+GET /api/pessoas/{pessoaId}/pontos/lancamentos
 ```
 
 ## Bancos
 
 ### PostgreSQL
 
-O PostgreSQL armazena dominio canonico: pessoas, cursos, disciplinas, presencas, sensores, medicoes, parametros, regras, perfis de integracao, metadata de ingestao, jobs de agregacao, janelas e buckets numericos, missoes, eventos, janelas temporais, ocorrencias, atividades e ledger de XP.
+O PostgreSQL armazena dominio canonico: pessoas, cursos, disciplinas, presencas, sensores, medicoes, parametros, regras, perfis de integracao, metadata de ingestao, jobs de agregacao, janelas e buckets numericos, missoes, eventos, janelas temporais, ocorrencias, atividades e ledger de pontos.
 
 Flyway e a fonte de verdade do schema. Migrations antigas nao devem ser alteradas.
 
@@ -234,7 +234,7 @@ O JWT de servico usado pelo worker e curto, assinado com segredo configurado e n
 | `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita infraestrutura de janelas temporais |
 | `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |
 | `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED` | Habilita Drools no fluxo temporal |
-| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita efeitos de atividades/XP para ocorrencias temporais satisfeitas |
+| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita efeitos de atividades/pontos para ocorrencias temporais satisfeitas |
 
 ### Proben-Telemetry
 

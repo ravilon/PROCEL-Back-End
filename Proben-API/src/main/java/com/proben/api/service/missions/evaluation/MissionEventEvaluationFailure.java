@@ -1,5 +1,9 @@
 package com.proben.api.service.missions.evaluation;
 
+/**
+ * Componente de mission event evaluation failure usado pelo modulo API.
+ */
+
 public class MissionEventEvaluationFailure extends RuntimeException {
     private final boolean permanent;
 

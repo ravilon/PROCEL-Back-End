@@ -55,4 +55,4 @@ select 'atividade', count(*) from atividade
 union all
 select 'evento_ocorrencia', count(*) from evento_ocorrencia
 union all
-select 'xp_lancamento', count(*) from xp_lancamento;
+select 'pontos_lancamento', count(*) from pontos_lancamento;

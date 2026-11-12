@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensor integration admin.
+ */
 @RestController
 @RequestMapping("/api/sensor-integrations")
 @PreAuthorize("hasRole('ADMIN')")

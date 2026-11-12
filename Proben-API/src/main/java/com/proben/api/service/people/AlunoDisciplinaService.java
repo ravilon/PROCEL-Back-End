@@ -16,6 +16,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+/**
+ * Servico que implementa as operacoes de negocio de aluno disciplina.
+ */
 @Service
 public class AlunoDisciplinaService {
 

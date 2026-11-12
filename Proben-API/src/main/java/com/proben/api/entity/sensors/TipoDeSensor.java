@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * Componente de tipo de sensor usado pelo modulo API.
+ */
 @Entity
 @Table(name = "tipo_de_sensor")
 public class TipoDeSensor {

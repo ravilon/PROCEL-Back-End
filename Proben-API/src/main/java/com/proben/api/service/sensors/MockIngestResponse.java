@@ -2,6 +2,9 @@ package com.proben.api.service.sensors;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * Componente de mock ingest response usado pelo modulo API.
+ */
 @Schema(description = "Resumo da ingestao mockada executada.")
 public record MockIngestResponse(
         @Schema(description = "Sensor usado para gerar medicoes.", example = "SII-001")

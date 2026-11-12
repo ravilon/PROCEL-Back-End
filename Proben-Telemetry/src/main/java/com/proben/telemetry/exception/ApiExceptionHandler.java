@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.time.Instant;
 import java.util.stream.Collectors;
 
+/**
+ * Componente de api exception handler usado pelo modulo Telemetry.
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
     public record ErrorResponse(String message, String error, Instant timestamp) {}

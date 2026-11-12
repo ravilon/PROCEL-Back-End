@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de medicao.
+ */
+
 public class MedicaoDTOs {
 
     @Schema(description = "Medicao registrada por um sensor, com valores parametrizados por nome.")

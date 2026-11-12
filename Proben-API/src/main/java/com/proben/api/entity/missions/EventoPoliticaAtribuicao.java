@@ -1,5 +1,9 @@
 package com.proben.api.entity.missions;
 
+/**
+ * Componente de evento politica atribuicao usado pelo modulo API.
+ */
+
 public enum EventoPoliticaAtribuicao {
     ALUNOS_VINCULADOS,
     ALUNOS_VINCULADOS_COM_OCUPACAO,

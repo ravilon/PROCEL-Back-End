@@ -18,6 +18,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Servico que implementa as operacoes de negocio de jwt.
+ */
 @Service
 public class JwtService {
     private static final Base64.Encoder BASE64_URL_ENCODER = Base64.getUrlEncoder().withoutPadding();

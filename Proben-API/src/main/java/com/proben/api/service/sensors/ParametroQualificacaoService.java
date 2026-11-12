@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de parametro qualificacao.
+ */
 @Service
 public class ParametroQualificacaoService {
 

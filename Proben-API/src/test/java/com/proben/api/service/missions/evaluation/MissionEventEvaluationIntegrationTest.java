@@ -250,7 +250,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'ANTES'")).isEqualTo(1);
         assertThat(countWhere("evento_ocorrencia_evidencia", "papel = 'DEPOIS'")).isEqualTo(1);
         assertThat(count("atividade")).isZero();
-        assertThat(count("xp_lancamento")).isZero();
+        assertThat(count("pontos_lancamento")).isZero();
     }
 
     @Test
@@ -284,7 +284,7 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     @Test
-    void transitionRetryDoesNotDuplicateOccurrenceEvidenceActivitiesOrXp() {
+    void transitionRetryDoesNotDuplicateOccurrenceEvidenceActivitiesOrPoints() {
         enableTemporal(false);
         properties.getTemporalWindows().setActivitiesEnabled(true);
         seedAcademicContext("student-transition");
@@ -311,8 +311,8 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(count("atividade")).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isEqualTo(1);
-        assertThat(count("xp_lancamento")).isEqualTo(1);
-        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(10L);
+        assertThat(count("pontos_lancamento")).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(pontos), 0) from pontos_lancamento", Long.class)).isEqualTo(10L);
     }
 
     @Test
@@ -374,11 +374,11 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("CONFIRMADO");
         assertThat(count("evento_ocorrencia_evidencia")).isGreaterThanOrEqualTo(1);
         assertThat(count("atividade")).isZero();
-        assertThat(count("xp_lancamento")).isZero();
+        assertThat(count("pontos_lancamento")).isZero();
     }
 
     @Test
-    void temporalActivitiesEnabledCreatesStudentActivitiesProgressCompletionAndXp() {
+    void temporalActivitiesEnabledCreatesStudentActivitiesProgressCompletionAndPoints() {
         enableTemporal(true);
         properties.getTemporalWindows().setActivitiesEnabled(true);
         seedAcademicContext("student-temporal-a", "student-temporal-b");
@@ -392,8 +392,8 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(countWhere("atividade", "status = 'CONCLUIDA' and progresso_atual = 1 and progresso_necessario = 1")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO' and progresso_adicionado = 1")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO' and progresso_adicionado = 0")).isEqualTo(2);
-        assertThat(count("xp_lancamento")).isEqualTo(2);
-        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(20L);
+        assertThat(count("pontos_lancamento")).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(pontos), 0) from pontos_lancamento", Long.class)).isEqualTo(20L);
     }
 
     @Test
@@ -454,7 +454,7 @@ class MissionEventEvaluationIntegrationTest {
     }
 
     @Test
-    void janelaEncerradaComAtividadesFlagCriaProgressoConclusaoEXp() {
+    void janelaEncerradaComAtividadesFlagCriaProgressoConclusaoEPoints() {
         enableTemporal(false);
         properties.getTemporalWindows().setActivitiesEnabled(true);
         seedAcademicContext("student-window-closed-a", "student-window-closed-b");
@@ -476,8 +476,8 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(countWhere("atividade", "status = 'CONCLUIDA' and progresso_atual = 1")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isEqualTo(2);
-        assertThat(count("xp_lancamento")).isEqualTo(2);
-        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(20L);
+        assertThat(count("pontos_lancamento")).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(pontos), 0) from pontos_lancamento", Long.class)).isEqualTo(20L);
     }
 
     @Test
@@ -496,7 +496,7 @@ class MissionEventEvaluationIntegrationTest {
 
         assertThat(jdbcTemplate.queryForObject("select status from evento_ocorrencia", String.class)).isEqualTo("PROCESSADO");
         assertThat(count("atividade")).isEqualTo(1);
-        assertThat(count("xp_lancamento")).isEqualTo(1);
+        assertThat(count("pontos_lancamento")).isEqualTo(1);
     }
 
     @Test
@@ -528,7 +528,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(count("atividade")).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isEqualTo(1);
-        assertThat(count("xp_lancamento")).isEqualTo(1);
+        assertThat(count("pontos_lancamento")).isEqualTo(1);
     }
 
     @Test
@@ -653,8 +653,8 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(countWhere("atividade", "started_at is not null and completed_at is not null")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO' and progresso_adicionado = 1")).isEqualTo(2);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO' and progresso_adicionado = 0")).isEqualTo(2);
-        assertThat(count("xp_lancamento")).isEqualTo(2);
-        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(quantidade), 0) from xp_lancamento", Long.class)).isEqualTo(20L);
+        assertThat(count("pontos_lancamento")).isEqualTo(2);
+        assertThat(jdbcTemplate.queryForObject("select coalesce(sum(pontos), 0) from pontos_lancamento", Long.class)).isEqualTo(20L);
     }
 
     @Test
@@ -677,7 +677,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(count("atividade")).isEqualTo(1);
         assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'PROGRESSO'")).isEqualTo(1);
-        assertThat(count("xp_lancamento")).isZero();
+        assertThat(count("pontos_lancamento")).isZero();
     }
 
     @Test
@@ -693,7 +693,7 @@ class MissionEventEvaluationIntegrationTest {
         assertThat(jdbcTemplate.queryForObject("select progresso_atual from atividade", Integer.class)).isEqualTo(1);
         assertThat(countWhere("atividade", "started_at is not null and completed_at is null")).isEqualTo(1);
         assertThat(countWhere("atividade_evento", "tipo = 'CONCLUSAO'")).isZero();
-        assertThat(count("xp_lancamento")).isZero();
+        assertThat(count("pontos_lancamento")).isZero();
     }
 
     @Test
@@ -941,7 +941,7 @@ class MissionEventEvaluationIntegrationTest {
         jdbcTemplate.execute("""
                 truncate table
                     atividade_evento,
-                    xp_lancamento,
+                    pontos_lancamento,
                     atividade,
                     evento_janela_evidencia,
                     evento_janela_avaliacao,
@@ -1018,7 +1018,7 @@ class MissionEventEvaluationIntegrationTest {
         UUID conditionId = UUID.randomUUID();
         jdbcTemplate.update("""
                 insert into missao
-                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                (id, titulo, descricao, tipo, pontos, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
                 values (?, 'Missao', 'Descricao', 'Individual', 10, ?, now(), ?, ?, ?)
                 """, missionId, missionActive, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
         jdbcTemplate.update("""
@@ -1057,7 +1057,7 @@ class MissionEventEvaluationIntegrationTest {
         UUID conditionId = UUID.randomUUID();
         jdbcTemplate.update("""
                 insert into missao
-                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                (id, titulo, descricao, tipo, pontos, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
                 values (?, 'Missao temporal', 'Descricao', 'Individual', ?, true, now(), ?, ?, ?)
                 """, missionId, value, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
         jdbcTemplate.update("""
@@ -1107,7 +1107,7 @@ class MissionEventEvaluationIntegrationTest {
         UUID conditionId = UUID.randomUUID();
         jdbcTemplate.update("""
                 insert into missao
-                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                (id, titulo, descricao, tipo, pontos, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
                 values (?, 'Missao transicao', 'Descricao', 'Individual', ?, true, now(), ?, ?, ?)
                 """, missionId, value, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
         jdbcTemplate.update("""
@@ -1138,7 +1138,7 @@ class MissionEventEvaluationIntegrationTest {
         UUID conditionId = UUID.randomUUID();
         jdbcTemplate.update("""
                 insert into missao
-                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                (id, titulo, descricao, tipo, pontos, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
                 values (?, 'Missao janela encerrada', 'Descricao', 'Individual', ?, true, now(), ?, ?, ?)
                 """, missionId, value, cicloTipo.name(), progressoNecessario, conclusaoAutomatica);
         jdbcTemplate.update("""

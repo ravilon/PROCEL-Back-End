@@ -7,6 +7,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de aggregation job.
+ */
+
 public final class AggregationJobDTOs {
     private AggregationJobDTOs() {
     }

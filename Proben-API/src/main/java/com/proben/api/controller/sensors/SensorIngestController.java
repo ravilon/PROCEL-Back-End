@@ -11,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensor ingest.
+ */
 @RestController
 @RequestMapping("/api/sensors")
 @Tag(name = "Sensors", description = "Ingestao canonica de medicoes de sensores.")

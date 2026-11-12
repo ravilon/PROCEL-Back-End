@@ -17,6 +17,9 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de telemetry query.
+ */
 @Service
 public class TelemetryQueryService {
     private static final int MAX_PAGE_SIZE = 100;

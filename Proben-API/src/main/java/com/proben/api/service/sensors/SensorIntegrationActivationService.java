@@ -13,6 +13,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensor integration activation.
+ */
 @Service
 public class SensorIntegrationActivationService {
     private final SensorIntegrationProfileRepository profileRepo;

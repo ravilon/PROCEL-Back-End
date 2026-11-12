@@ -31,6 +31,9 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de evento janela avaliacao.
+ */
 @Service
 public class EventoJanelaAvaliacaoService {
     private static final String WINDOW_KEY_CONSTRAINT = "ux_evento_janela_chave_idempotencia";

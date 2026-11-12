@@ -14,6 +14,9 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Servico que implementa as operacoes de negocio de jwt.
+ */
 @Service
 public class JwtService {
 

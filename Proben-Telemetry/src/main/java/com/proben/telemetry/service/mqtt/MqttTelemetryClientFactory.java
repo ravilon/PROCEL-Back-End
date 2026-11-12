@@ -11,6 +11,9 @@ import org.springframework.stereotype.Component;
 import javax.net.ssl.SSLSocketFactory;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Componente de mqtt telemetry client factory usado pelo modulo Telemetry.
+ */
 @Component
 public class MqttTelemetryClientFactory {
     public MqttAsyncClient createClient(TelemetryProperties.Mqtt properties) throws MqttException {

@@ -9,6 +9,9 @@ import jakarta.persistence.*;
         @UniqueConstraint(name = "ux_unidade_nome", columnNames = {"nome"})
     }
 )
+/**
+ * Componente de unidade usado pelo modulo API.
+ */
 public class Unidade {
 
     @Id

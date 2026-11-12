@@ -14,19 +14,22 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de mission activity progress.
+ */
 @Service
 public class MissionActivityProgressService {
 
     private final AtividadeRepository atividadeRepository;
     private final MissionActivityCycleService cycleService;
-    private final XpRewardService xpRewardService;
+    private final PontosRewardService xpRewardService;
     private final JdbcTemplate jdbcTemplate;
     private final ApiObservabilityMetrics metrics;
 
     public MissionActivityProgressService(
             AtividadeRepository atividadeRepository,
             MissionActivityCycleService cycleService,
-            XpRewardService xpRewardService,
+            PontosRewardService xpRewardService,
             JdbcTemplate jdbcTemplate,
             ApiObservabilityMetrics metrics
     ) {

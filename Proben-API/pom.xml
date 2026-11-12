@@ -236,6 +236,9 @@
   <profiles>
     <profile>
       <id>drools-benchmark</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
 
       <properties>
         <jmh.include>com.proben.api.benchmark.DroolsMissionRuleEngineBenchmark.(simpleInstant|droolsInstantCold|droolsInstantWarm|droolsDuration)</jmh.include>

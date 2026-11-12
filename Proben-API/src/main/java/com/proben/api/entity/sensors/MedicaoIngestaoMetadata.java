@@ -19,6 +19,9 @@ import java.util.UUID;
                 @Index(name = "idx_medicao_ingestao_status_created", columnList = "status,created_at")
         }
 )
+/**
+ * Componente de medicao ingestao metadata usado pelo modulo API.
+ */
 public class MedicaoIngestaoMetadata {
 
     @Id

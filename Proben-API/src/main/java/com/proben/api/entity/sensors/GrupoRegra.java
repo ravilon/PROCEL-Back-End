@@ -12,6 +12,9 @@ import java.util.UUID;
                 @Index(name = "idx_grupo_regra_ativo", columnList = "ativo")
         }
 )
+/**
+ * Componente de grupo regra usado pelo modulo API.
+ */
 public class GrupoRegra {
 
     @Id

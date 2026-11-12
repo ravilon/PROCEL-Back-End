@@ -22,6 +22,9 @@ import java.util.List;
         @CompoundIndex(name = "idx_raw_telemetry_claim", def = "{'status': 1, 'processing.nextAttemptAt': 1, 'receivedAt': 1}"),
         @CompoundIndex(name = "idx_raw_telemetry_processing_lock", def = "{'status': 1, 'processing.lockedAt': 1}")
 })
+/**
+ * Componente de raw telemetry event usado pelo modulo Telemetry.
+ */
 public class RawTelemetryEvent {
     @Id
     private String id;

@@ -15,6 +15,9 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * Componente de sensor external payload parser usado pelo modulo API.
+ */
 @Service
 public class SensorExternalPayloadParser {
     private final SensorIntegrationParserProperties properties;

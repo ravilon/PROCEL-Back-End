@@ -12,6 +12,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de payload hash.
+ */
 @Service
 public class PayloadHashService {
     private final ObjectMapper objectMapper;

@@ -6,7 +6,7 @@ Este documento descreve como provisionar um staging seguro do PROBEN no Coolify 
 
 Validar, em ambiente isolado, o caminho `Medicao -> EventoAvaliacaoRequest -> EventoJanelaAvaliacao DURACAO/TRANSICAO/JANELA_ENCERRADA -> avaliacao temporal, com Drools quando habilitado -> EventoOcorrencia`.
 
-Atividades, beneficiarios e XP so devem ser conectados quando
+Atividades, beneficiarios e pontos so devem ser conectados quando
 `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true` estiver
 habilitada explicitamente em staging.
 
@@ -51,7 +51,7 @@ Flags temporais da API para a validacao:
 - `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED=true`
 - `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED=true`
 - `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED=true`
-- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true`, somente quando a validacao incluir atividades/XP
+- `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED=true`, somente quando a validacao incluir atividades/pontos
 
 Para validacao rapida, use duracoes curtas:
 
@@ -129,7 +129,7 @@ GO para conectar atividades temporais de forma controlada:
 - duas salas mantem isolamento;
 - backlog volta para zero apos lote controlado;
 - cache Drools apresenta hits depois do prewarm;
-- se atividades/XP estiverem habilitados, atividade, progresso, conclusao automatica e `xp_lancamento` sao criados uma unica vez;
+- se atividades/pontos estiverem habilitados, atividade, progresso, conclusao automatica e `pontos_lancamento` sao criados uma unica vez;
 - sem erros persistentes nos contadores de falha;
 - memoria e latencia dentro dos thresholds provisorios.
 

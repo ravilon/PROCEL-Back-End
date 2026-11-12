@@ -16,4 +16,4 @@ Documentacao tecnica complementar do PROBEN.
 | `Staging.md` | Provisionamento e validacao segura de staging |
 | `Organizacao-do-Codigo.md` | Estrutura dos modulos e avaliacao de organizacao |
 
-`Arquitetura-PROBEN-atual.drawio` e a referencia atual; o diagrama anterior e mantido como historico. `DER-Salas.drawio` conserva a pagina original e inclui uma segunda pagina expandida com entidades e relacoes das migrations V29-V33, usando a mesma notacao visual. `Proben-Telemetry` nao acessa diretamente PostgreSQL. Migrations Flyway em `Proben-API/src/main/resources/db/migration` definem o schema completo.
+`Arquitetura-PROBEN-atual.drawio` e a referencia atual; o diagrama anterior e mantido como historico. `DER-Salas.drawio` conserva a pagina original e inclui uma segunda pagina expandida com entidades e relacoes das migrations V29-V34, usando a mesma notacao visual. `Proben-Telemetry` nao acessa diretamente PostgreSQL. Migrations Flyway em `Proben-API/src/main/resources/db/migration` definem o schema completo.

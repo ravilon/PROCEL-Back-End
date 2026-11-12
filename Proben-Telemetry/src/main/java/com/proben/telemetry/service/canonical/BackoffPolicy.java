@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.List;
 
+/**
+ * Componente de backoff policy usado pelo modulo Telemetry.
+ */
 @Component
 public class BackoffPolicy {
     private final TelemetryProperties properties;

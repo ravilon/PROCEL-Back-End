@@ -9,6 +9,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+/**
+ * Componente de mission rule engine configuration usado pelo modulo API.
+ */
 @Configuration
 public class MissionRuleEngineConfiguration {
 

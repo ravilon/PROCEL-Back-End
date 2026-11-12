@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de presenca.
+ */
 @Service
 public class PresencaService {
 

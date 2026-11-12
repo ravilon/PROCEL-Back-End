@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de regras.
+ */
 @Service
 public class RegrasService {
 

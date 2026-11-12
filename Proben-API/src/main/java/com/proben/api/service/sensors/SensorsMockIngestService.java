@@ -13,6 +13,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensors mock ingest.
+ */
 @Service
 public class SensorsMockIngestService {
 

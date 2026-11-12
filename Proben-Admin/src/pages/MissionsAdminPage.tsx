@@ -174,7 +174,7 @@ function MissionCatalogPanel() {
     titulo: "",
     descricao: "",
     tipo: "Individual",
-    value: "0",
+    pontos: "0",
     ativo: true,
     parentId: "",
   });
@@ -199,7 +199,7 @@ function MissionCatalogPanel() {
           method: "POST",
           body: JSON.stringify({
             ...form,
-            value: Number(form.value),
+            pontos: Number(form.pontos),
             parentId: form.parentId || null,
           }),
         },
@@ -210,7 +210,7 @@ function MissionCatalogPanel() {
         titulo: "",
         descricao: "",
         tipo: "Individual",
-        value: "0",
+        pontos: "0",
         ativo: true,
         parentId: "",
       });
@@ -277,11 +277,11 @@ function MissionCatalogPanel() {
             onChange={(event) => setForm({ ...form, tipo: event.target.value })}
           />
           <TextField
-            label="XP"
+            label="Pontos"
             type="number"
-            value={form.value}
+            value={form.pontos}
             onChange={(event) =>
-              setForm({ ...form, value: event.target.value })
+              setForm({ ...form, pontos: event.target.value })
             }
             inputProps={{ min: 0 }}
           />
@@ -1138,7 +1138,7 @@ function MissionNode({
     titulo: mission.titulo,
     descricao: mission.descricao ?? "",
     tipo: mission.tipo,
-    value: String(mission.value),
+    pontos: String(mission.pontos),
     ativo: mission.ativo,
     parentId: mission.parentId ?? "",
   });
@@ -1157,7 +1157,7 @@ function MissionNode({
             titulo: form.titulo,
             descricao: form.descricao,
             tipo: form.tipo,
-            value: Number(form.value),
+            pontos: Number(form.pontos),
             ativo: form.ativo,
             parentId: form.parentId || null,
           }),
@@ -1193,7 +1193,7 @@ function MissionNode({
             alignItems="flex-start"
             flexWrap="wrap"
           >
-            <Chip label={`${mission.value} XP`} size="small" />
+            <Chip label={`${mission.pontos} pontos`} size="small" />
             <ActiveChip active={mission.ativo} />
             {canConfigure && (
               <Button
@@ -1284,11 +1284,11 @@ function MissionNode({
               }
             />
             <TextField
-              label="XP"
+              label="Pontos"
               type="number"
-              value={form.value}
+              value={form.pontos}
               onChange={(event) =>
-                setForm({ ...form, value: event.target.value })
+                setForm({ ...form, pontos: event.target.value })
               }
               inputProps={{ min: 0 }}
             />

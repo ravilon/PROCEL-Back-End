@@ -6,6 +6,13 @@ import org.springframework.data.jpa.domain.Specification;
 
 import com.proben.api.entity.sensors.Medicao;
 
+/**
+
+ * Componente de acesso aos dados de medicao specs.
+
+ */
+
+
 public final class MedicaoSpecs {
   private MedicaoSpecs() {}
 

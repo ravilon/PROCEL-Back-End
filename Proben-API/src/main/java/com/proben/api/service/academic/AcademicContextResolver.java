@@ -21,6 +21,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Componente de academic context resolver usado pelo modulo API.
+ */
 @Service
 public class AcademicContextResolver {
 

@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de parametro def.
+ */
+
 public interface ParametroDefRepository extends JpaRepository<ParametroDef, UUID> {
 
     Optional<ParametroDef> findByTipo_NomeAndNome(String tipoNome, String nome);

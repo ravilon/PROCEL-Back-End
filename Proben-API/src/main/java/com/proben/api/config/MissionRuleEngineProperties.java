@@ -10,6 +10,9 @@ import org.springframework.validation.annotation.Validated;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Propriedades de configuracao de mission rule engine.
+ */
 @Validated
 @ConfigurationProperties(prefix = "proben.missions")
 public record MissionRuleEngineProperties(

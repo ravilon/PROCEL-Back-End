@@ -589,7 +589,7 @@ $missao = TryCall "POST /api/missoes" {
     titulo="API smoke test mission $MissionRunId"
     descricao="Mission model created by ApiSmokeTest.ps1 run $MissionRunId"
     tipo="Individual"
-    value=20
+    pontos=20
     ativo=$true
   }
 }
@@ -599,14 +599,14 @@ $missaoId = $missao.id
 if (-not $missaoId) { throw "No missao.id returned from create." }
 AssertSmoke "POST /api/missoes returns active mission" ($missao.ativo -eq $true -and $missao.titulo -like "*$MissionRunId") "created mission does not match request."
 AssertSmoke "POST /api/missoes returns Individual type" ($missao.tipo -eq "Individual") "created mission type should be Individual."
-AssertSmoke "POST /api/missoes returns numeric XP value" ($missao.value -eq 20) "created mission value should be 20."
+AssertSmoke "POST /api/missoes returns numeric pontos value" ($missao.pontos -eq 20) "created mission pontos should be 20."
 
 $missaoInativa = TryCall "POST /api/missoes (inactive)" {
   InvokeApi "/api/missoes" -Method POST -Body @{
     titulo="API smoke test inactive mission $MissionRunId"
     descricao="Inactive mission used to validate assignment conflict."
     tipo="Individual"
-    value=15
+    pontos=15
     ativo=$false
   }
 }
@@ -615,7 +615,7 @@ PrintJson "Missao inactive create" $missaoInativa
 $missaoInativaId = $missaoInativa.id
 if (-not $missaoInativaId) { throw "No inactive missao.id returned from create." }
 AssertSmoke "POST /api/missoes inactive returns Individual type" ($missaoInativa.tipo -eq "Individual") "inactive mission type should be Individual."
-AssertSmoke "POST /api/missoes inactive returns numeric XP value" ($missaoInativa.value -eq 15) "inactive mission value should be 15."
+AssertSmoke "POST /api/missoes inactive returns numeric pontos value" ($missaoInativa.pontos -eq 15) "inactive mission value should be 15."
 
 $missoes = TryCall "GET /api/missoes?ativo=true" {
   InvokeApi "/api/missoes?ativo=true" -Method GET
@@ -643,21 +643,21 @@ $missaoGet = TryCall "GET /api/missoes/$missaoId" {
 PrintJson "Missao catalog get" $missaoGet
 AssertSmoke "GET /api/missoes/{missaoId} returns requested mission" ("$($missaoGet.id)" -eq "$missaoId") "GET returned a different mission id."
 AssertSmoke "GET /api/missoes/{missaoId} returns Individual type" ($missaoGet.tipo -eq "Individual") "mission type should be Individual."
-AssertSmoke "GET /api/missoes/{missaoId} returns numeric XP value" ($missaoGet.value -eq 20) "mission value should be 20."
+AssertSmoke "GET /api/missoes/{missaoId} returns numeric pontos value" ($missaoGet.pontos -eq 20) "mission pontos should be 20."
 
 $missaoUpd = TryCall "PUT /api/missoes/$missaoId" {
   InvokeApi "/api/missoes/$missaoId" -Method PUT -Body @{
     titulo="API smoke test mission updated $MissionRunId"
     descricao="Mission model updated by ApiSmokeTest.ps1 run $MissionRunId"
     tipo="Individual"
-    value=25
+    pontos=25
     ativo=$true
   }
 }
 PrintJson "Missao catalog update" $missaoUpd
 AssertSmoke "PUT /api/missoes/{missaoId} updates title" ($missaoUpd.titulo -eq "API smoke test mission updated $MissionRunId") "updated title was not returned."
 AssertSmoke "PUT /api/missoes/{missaoId} keeps Individual type" ($missaoUpd.tipo -eq "Individual") "updated mission type should be Individual."
-AssertSmoke "PUT /api/missoes/{missaoId} updates numeric XP value" ($missaoUpd.value -eq 25) "updated mission value should be 25."
+AssertSmoke "PUT /api/missoes/{missaoId} updates numeric pontos value" ($missaoUpd.pontos -eq 25) "updated mission value should be 25."
 
 ExpectFailure "POST /api/pessoas/$PessoaId/atividades rejects inactive missao" {
   InvokeApi "/api/pessoas/$PessoaId/atividades" -Method POST -Body @{

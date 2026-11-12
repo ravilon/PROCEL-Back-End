@@ -5,6 +5,10 @@ import com.proben.telemetry.entity.TelemetrySource;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de canonical api.
+ */
+
 public final class CanonicalApiDTOs {
     private CanonicalApiDTOs() {}
 

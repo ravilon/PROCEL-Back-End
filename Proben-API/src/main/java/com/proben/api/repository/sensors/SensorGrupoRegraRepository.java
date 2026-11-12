@@ -10,6 +10,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de sensor grupo regra.
+ */
+
 public interface SensorGrupoRegraRepository extends JpaRepository<SensorGrupoRegra, UUID> {
 
     List<SensorGrupoRegra> findAllBySensor_ExternalIdOrderByCreatedAtDesc(String sensorExternalId);

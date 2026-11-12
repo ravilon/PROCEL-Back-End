@@ -5,6 +5,10 @@ import com.proben.api.entity.sensors.DataType;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de sensor admin.
+ */
+
 public final class SensorAdminDTOs {
 
     private SensorAdminDTOs() {}

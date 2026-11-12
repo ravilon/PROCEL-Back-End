@@ -8,6 +8,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de environment rule.
+ */
+
 public final class EnvironmentRuleDTOs {
     private EnvironmentRuleDTOs() {}
 

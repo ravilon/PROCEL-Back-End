@@ -5,6 +5,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
+/**
+ * Controlador REST responsavel pelas operacoes de campus admin.
+ */
 @RestController @RequestMapping("/api/campuses")
 public class CampusAdminController {
     private final CampusAdminService service; public CampusAdminController(CampusAdminService service){this.service=service;}

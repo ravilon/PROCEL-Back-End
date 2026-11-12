@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Configuration;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Configuracao de componentes e infraestrutura de security bootstrap.
+ */
 @Configuration
 public class SecurityBootstrapConfig {
 

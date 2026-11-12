@@ -1,5 +1,9 @@
 package com.proben.telemetry.service.canonical;
 
+/**
+ * Excecao que representa falhas relacionadas a canonical http.
+ */
+
 public class CanonicalHttpException extends RuntimeException {
     private final int statusCode;
     private final String errorCode;

@@ -13,6 +13,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+/**
+ * Componente de drools kie base cache usado pelo modulo API.
+ */
+
 final class DroolsKieBaseCache {
     private final int maxEntries;
     private final long expirationNanos;

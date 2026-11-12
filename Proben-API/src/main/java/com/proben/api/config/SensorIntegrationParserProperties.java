@@ -3,6 +3,9 @@ package com.proben.api.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Propriedades de configuracao de sensor integration parser.
+ */
 @Configuration
 @ConfigurationProperties(prefix = "proben.integrations.parser")
 public class SensorIntegrationParserProperties {

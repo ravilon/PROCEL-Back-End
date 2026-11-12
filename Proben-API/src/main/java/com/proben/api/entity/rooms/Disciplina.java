@@ -5,6 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+/**
+ * Componente de disciplina usado pelo modulo API.
+ */
 @Entity
 @Table(name = "disciplina")
 public class Disciplina {

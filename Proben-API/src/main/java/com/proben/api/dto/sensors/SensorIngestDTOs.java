@@ -10,6 +10,10 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de sensor ingest.
+ */
+
 public final class SensorIngestDTOs {
     private SensorIngestDTOs() {}
 

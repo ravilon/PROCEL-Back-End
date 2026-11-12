@@ -41,6 +41,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Componente de mission event evaluation processor usado pelo modulo API.
+ */
 @Service
 public class MissionEventEvaluationProcessor {
     private static final String EVALUATOR_VERSION = "SIMPLE_V1";

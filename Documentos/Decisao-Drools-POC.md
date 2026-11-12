@@ -11,7 +11,7 @@ O PROBEN precisa decidir se vale evoluir a prova de conceito do Drools para uma 
 - O worker instantaneo de missoes nao chama Drools.
 - O worker temporal pode chamar Drools somente quando `proben.missions.evaluation.temporal-windows.drools-enabled=true`.
 - Nao ha DRL fornecido por usuario; as regras sao geradas a partir de `EventoDefinicao` e `EventoCondicao`.
-- Nao ha acesso a repositories, entidades JPA, persistencia, atividades ou XP dentro do engine.
+- Nao ha acesso a repositories, entidades JPA, persistencia, atividades ou pontos dentro do engine.
 
 ## Dependencias e custo
 
@@ -164,4 +164,4 @@ Justificativa:
 - O custo de compilacao fria e a alocacao ainda exigem governanca operacional.
 - O benchmark forkado confirmou viabilidade tecnica com cache quente, mas o ambiente ainda nao representa producao nem ha SLO operacional aprovado.
 
-Recomendacao objetiva: usar Drools apenas para cenarios temporais/CEP que o engine simples nao cobre bem, mantendo `SimpleMissionRuleEngine` como padrao e mantendo o worker temporal, atividades e XP atras de flags ate os criterios acima serem cumpridos em staging.
+Recomendacao objetiva: usar Drools apenas para cenarios temporais/CEP que o engine simples nao cobre bem, mantendo `SimpleMissionRuleEngine` como padrao e mantendo o worker temporal, atividades e pontos atras de flags ate os criterios acima serem cumpridos em staging.

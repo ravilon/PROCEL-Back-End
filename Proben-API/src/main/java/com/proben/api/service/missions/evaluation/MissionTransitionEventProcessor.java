@@ -37,6 +37,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Componente de mission transition event processor usado pelo modulo API.
+ */
 @Service
 public class MissionTransitionEventProcessor {
     private static final String EVALUATOR_VERSION = "TRANSITION_V1";

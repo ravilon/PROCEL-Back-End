@@ -18,7 +18,7 @@ Telemetry, MongoDB, MQTT ou do Compose integrado.
 - Persistencia de buckets numericos em `analytics_numeric_bucket`.
 - Catalogo, avaliacao e operacao de eventos de missoes.
 - Janelas temporais persistentes para eventos `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA`.
-- Beneficiarios academicos, atividades ciclicas, progresso e ledger append-only de XP quando as flags correspondentes estao habilitadas.
+- Beneficiarios academicos, atividades ciclicas, progresso e ledger append-only de pontos quando as flags correspondentes estao habilitadas.
 
 ## PostgreSQL e Flyway
 
@@ -31,12 +31,13 @@ O schema e criado por migrations em `src/main/resources/db/migration`. Migration
 - `V20`: catalogo persistente de definicoes de eventos de missoes.
 - `V21`: requests, ocorrencias e evidencias de eventos.
 - `V22`: atividades ciclicas e vinculos `atividade_evento`.
-- `V23`: ledger append-only de XP.
+- `V23`: ledger append-only de pontos.
 - `V24`: janelas temporais de avaliacao e evidencias.
 - `V25`: evidencias `ANTES`/`DEPOIS` para transicoes.
 - `V26`-`V28`: catalogo oficial de missoes e contratos de estado/expiracao de eventos.
 - `V29`-`V32`: observacoes externas compartilhadas, localizacao e coletores HTTP com credenciais gerenciadas.
 - `V33`: regras ambientais.
+- `V34`: renomeia o ledger de XP para pontos e migra os nomes dos campos sem perder lancamentos existentes.
 
 `spring.jpa.hibernate.ddl-auto=validate`; Flyway e a fonte de verdade do schema.
 
@@ -89,7 +90,7 @@ Eventos `MEDICAO_RECEBIDA + INSTANTANEO` geram requests idempotentes e
 ocorrencias confirmadas quando suas condicoes sao satisfeitas. Eventos
 `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA` usam janelas temporais persistidas,
 lease e evidencias. Ocorrencias confirmadas podem gerar atividades, progresso,
-conclusao automatica e XP, respeitando as flags do fluxo temporal.
+conclusao automatica e pontos, respeitando as flags do fluxo temporal.
 
 Endpoints administrativos:
 
@@ -123,7 +124,7 @@ Flags principais:
 | `proben.missions.evaluation.temporal-windows.enabled` | `false` | Habilita criacao/atualizacao de janelas temporais |
 | `proben.missions.evaluation.temporal-windows.worker-enabled` | `false` | Habilita worker temporal |
 | `proben.missions.evaluation.temporal-windows.drools-enabled` | `false` | Usa Drools no fluxo temporal |
-| `proben.missions.evaluation.temporal-windows.activities-enabled` | `false` | Aplica atividades/progresso/XP para ocorrencias temporais satisfeitas |
+| `proben.missions.evaluation.temporal-windows.activities-enabled` | `false` | Aplica atividades/progresso/pontos para ocorrencias temporais satisfeitas |
 
 `DURACAO` abre janela quando todas as condicoes obrigatorias estao satisfeitas,
 mantem evidencias enquanto continuam satisfeitas, invalida interrupcoes e expira
@@ -138,7 +139,7 @@ sensor/parametro, para `NUMERIC`, `BOOLEAN` e `TEXT`, persistindo evidencias
 usando os fatos/evidencias do intervalo. A semantica detalhada fica em
 `Documentos/MissionEventWindowClosedSemantics.md`.
 
-## Atividades E XP
+## Atividades e Pontos
 
 As atividades sao instancias por pessoa, missao e `chave_ciclo`. A missao define
 `ciclo_tipo`, `progresso_necessario` e `conclusao_automatica`; a atividade copia
@@ -148,16 +149,16 @@ essa configuracao ao ser criada.
 atividade e ocorrencia. Uma mesma ocorrencia nao adiciona progresso duas vezes.
 
 Quando uma atividade e concluida automaticamente pela primeira vez por uma
-ocorrencia confirmada, `XpRewardService` cria uma concessao append-only em
-`xp_lancamento` com chave `xp:activity:{atividadeId}:completion`. Valor zero de
-`Missao.value` nao cria lancamento. Conclusao manual por endpoint de atividade
-nao concede XP automaticamente.
+ocorrencia confirmada, `PontosRewardService` cria uma concessao append-only em
+`pontos_lancamento` com chave `pontos:atividade:{atividadeId}:completion`. Valor zero de
+`Missao.pontos` nao cria lancamento. Conclusao manual por endpoint de atividade
+nao concede pontos automaticamente.
 
 Consulta:
 
 ```text
-GET /api/pessoas/{pessoaId}/xp
-GET /api/pessoas/{pessoaId}/xp/lancamentos
+GET /api/pessoas/{pessoaId}/pontos
+GET /api/pessoas/{pessoaId}/pontos/lancamentos
 ```
 
 `ADMIN` e `OPERADOR` consultam qualquer pessoa; usuario comum consulta apenas o
@@ -382,7 +383,7 @@ Principais permissoes:
 | `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ENABLED` | Habilita janelas temporais |
 | `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_WORKER_ENABLED` | Habilita worker temporal |
 | `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_DROOLS_ENABLED` | Habilita Drools temporal |
-| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita atividades/XP a partir de ocorrencias temporais |
+| `PROBEN_MISSIONS_EVALUATION_TEMPORAL_WINDOWS_ACTIVITIES_ENABLED` | Habilita atividades/pontos a partir de ocorrencias temporais |
 
 ## Execucao
 
@@ -428,7 +429,7 @@ http://localhost:8080/v3/api-docs
 
 ## Testes
 
-Os testes cobrem ingestao, idempotencia, seguranca, migrations, integracoes, rotas internas, jobs de agregacao, claim concorrente, lease, retry, buckets numericos, motor de missoes, Drools opt-in, janelas temporais, atividades, XP e administracao operacional com PostgreSQL via Testcontainers.
+Os testes cobrem ingestao, idempotencia, seguranca, migrations, integracoes, rotas internas, jobs de agregacao, claim concorrente, lease, retry, buckets numericos, motor de missoes, Drools opt-in, janelas temporais, atividades, pontos e administracao operacional com PostgreSQL via Testcontainers.
 
 ### Credenciais gerenciadas das coletas HTTP
 

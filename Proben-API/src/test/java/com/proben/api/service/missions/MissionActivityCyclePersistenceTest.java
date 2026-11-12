@@ -68,7 +68,7 @@ class MissionActivityCyclePersistenceTest {
                 """, pessoaId, pessoaId + "@example.com");
         jdbcTemplate.update("""
                 insert into missao
-                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                (id, titulo, descricao, tipo, pontos, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
                 values (?, 'Missao diaria', 'Descricao', 'Individual', 10, true, now(), 'DIARIA', 3, true)
                 """, missaoId);
         seedOccurrence();
@@ -239,7 +239,7 @@ class MissionActivityCyclePersistenceTest {
     private void cleanDatabase() {
         jdbcTemplate.execute("""
                 truncate table
-                    xp_lancamento,
+                    pontos_lancamento,
                     atividade_evento,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,

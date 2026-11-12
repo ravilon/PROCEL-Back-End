@@ -6,6 +6,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de aluno disciplina.
+ */
+
 public class AlunoDisciplinaDTOs {
 
     @Schema(description = "Dados para vincular uma disciplina ao aluno.")

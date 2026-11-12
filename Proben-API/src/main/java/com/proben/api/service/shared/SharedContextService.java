@@ -14,6 +14,9 @@ import java.sql.Timestamp;
 import java.time.*;
 import java.util.*;
 
+/**
+ * Servico que implementa as operacoes de negocio de shared context.
+ */
 @Service
 public class SharedContextService {
     private static final String EXTERNAL_TEMPERATURE = "temperatura_externa";

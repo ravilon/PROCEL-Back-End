@@ -5,6 +5,10 @@ import com.proben.api.config.MissionRuleEngineProperties;
 import java.time.Duration;
 import java.util.Objects;
 
+/**
+ * Componente de drools rule engine settings usado pelo modulo API.
+ */
+
 public record DroolsRuleEngineSettings(
         int maxFactsPerEvaluation,
         int maxCacheEntries,

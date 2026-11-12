@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de shared context.
+ */
+
 public final class SharedContextDTOs {
     private SharedContextDTOs() {}
     public record ContextRequest(String nome, String descricao, Boolean ativo, String locationMode, String campusNome,

@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de evento condicao.
+ */
+
 public interface EventoCondicaoRepository extends JpaRepository<EventoCondicao, UUID> {
     List<EventoCondicao> findByEventoDefinicaoIdAndAtivoTrueOrderByOrdemAscCreatedAtAsc(UUID eventoDefinicaoId);
     List<EventoCondicao> findByEventoDefinicaoIdOrderByOrdemAscCreatedAtAsc(UUID eventoDefinicaoId);

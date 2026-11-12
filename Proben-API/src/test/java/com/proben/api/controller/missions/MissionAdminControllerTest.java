@@ -205,7 +205,7 @@ class MissionAdminControllerTest {
 
     private void seedMissionEventRequestWindowAndOccurrence() {
         jdbcTemplate.update("""
-                insert into missao (id, titulo, descricao, tipo, value, ativo, created_at)
+                insert into missao (id, titulo, descricao, tipo, pontos, ativo, created_at)
                 values (?, 'Missao admin', 'Descricao', 'Individual', 10, true, now())
                 """, missionId);
         jdbcTemplate.update("""
@@ -265,7 +265,7 @@ class MissionAdminControllerTest {
     private void cleanDatabase() {
         jdbcTemplate.execute("""
                 truncate table
-                    xp_lancamento,
+                    pontos_lancamento,
                     atividade_evento,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,

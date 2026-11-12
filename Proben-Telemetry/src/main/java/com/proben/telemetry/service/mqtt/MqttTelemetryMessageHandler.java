@@ -17,6 +17,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * Componente de mqtt telemetry message handler usado pelo modulo Telemetry.
+ */
 @Service
 public class MqttTelemetryMessageHandler {
     private static final Logger log = LoggerFactory.getLogger(MqttTelemetryMessageHandler.class);

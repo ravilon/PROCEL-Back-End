@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de missoes.
+ */
 @RequestMapping("/api")
 @RestController
 @Tag(name = "Missoes", description = "Catalogo de missoes e atividades.")

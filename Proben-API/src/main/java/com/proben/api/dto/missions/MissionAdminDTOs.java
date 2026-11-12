@@ -14,6 +14,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de mission admin.
+ */
+
 public final class MissionAdminDTOs {
     private MissionAdminDTOs() {}
 

@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de evento definicao.
+ */
+
 public interface EventoDefinicaoRepository extends JpaRepository<EventoDefinicao, UUID>, JpaSpecificationExecutor<EventoDefinicao> {
     List<EventoDefinicao> findByMissaoIdOrderByOrdemAscCreatedAtAsc(UUID missaoId);
 

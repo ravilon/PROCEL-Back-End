@@ -14,6 +14,9 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de credential encryption.
+ */
 @Service
 public class CredentialEncryptionService {
     static final String MASTER_KEY_NAME = "PROBEN_CREDENTIAL_ENCRYPTION_KEY";

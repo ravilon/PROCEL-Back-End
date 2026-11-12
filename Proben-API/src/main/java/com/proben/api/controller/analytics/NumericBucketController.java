@@ -17,6 +17,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de numeric bucket.
+ */
 @RestController
 @RequestMapping("/api/analytics/numeric-buckets")
 @Tag(name = "Analytics", description = "Consulta de buckets numericos persistidos.")

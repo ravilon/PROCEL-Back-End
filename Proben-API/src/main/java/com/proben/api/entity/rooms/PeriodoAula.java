@@ -36,6 +36,9 @@ import java.util.UUID;
                 )
         }
 )
+/**
+ * Componente de periodo aula usado pelo modulo API.
+ */
 public class PeriodoAula {
 
     @Id

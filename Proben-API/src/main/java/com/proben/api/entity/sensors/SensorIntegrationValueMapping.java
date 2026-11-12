@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Componente de sensor integration value mapping usado pelo modulo API.
+ */
 @Entity
 @Table(name = "sensor_integration_value_mapping")
 public class SensorIntegrationValueMapping {

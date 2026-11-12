@@ -28,6 +28,9 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
 
+/**
+ * Componente de mission event activity processor usado pelo modulo API.
+ */
 @Service
 public class MissionEventActivityProcessor {
 

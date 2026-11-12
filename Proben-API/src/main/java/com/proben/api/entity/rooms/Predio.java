@@ -12,6 +12,9 @@ import jakarta.persistence.*;
         @Index(name = "idx_predio_campus_id", columnList = "campus_id")
     }
 )
+/**
+ * Componente de predio usado pelo modulo API.
+ */
 public class Predio {
 
     @Id

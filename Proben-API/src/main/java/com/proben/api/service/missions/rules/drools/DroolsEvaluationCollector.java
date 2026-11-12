@@ -4,6 +4,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Componente de drools evaluation collector usado pelo modulo API.
+ */
+
 public class DroolsEvaluationCollector {
     private final List<DroolsConditionMatch> matches = new ArrayList<>();
 

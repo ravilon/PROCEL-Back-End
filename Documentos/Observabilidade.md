@@ -59,10 +59,10 @@ Proben-API:
 - `proben.missions.beneficiaries.resolved`
 - `proben.missions.beneficiaries.empty`
 - `proben.missions.activity.processing.failures`
-- `proben.missions.xp.granted`
-- `proben.missions.xp.amount`
-- `proben.missions.xp.duplicates`
-- `proben.missions.xp.failures`
+- `proben.missions.pontos.granted`
+- `proben.missions.pontos.amount`
+- `proben.missions.pontos.duplicates`
+- `proben.missions.pontos.failures`
 - `proben.missions.drools.compilations`
 - `proben.missions.drools.compilation.duration`
 - `proben.missions.drools.compilation.failures`

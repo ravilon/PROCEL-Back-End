@@ -15,6 +15,9 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensor telemetry internal ingest.
+ */
 @RestController
 @RequestMapping("/api/sensors/internal/telemetry-events")
 public class SensorTelemetryInternalIngestController {

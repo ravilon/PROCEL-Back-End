@@ -7,6 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Componente de sensor integration parser version usado pelo modulo API.
+ */
 @Entity
 @Table(name = "sensor_integration_parser_version")
 public class SensorIntegrationParserVersion {

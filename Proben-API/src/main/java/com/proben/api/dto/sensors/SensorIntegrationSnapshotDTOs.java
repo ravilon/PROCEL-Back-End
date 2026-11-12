@@ -7,6 +7,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de sensor integration snapshot.
+ */
+
 public final class SensorIntegrationSnapshotDTOs {
     private SensorIntegrationSnapshotDTOs() {}
 

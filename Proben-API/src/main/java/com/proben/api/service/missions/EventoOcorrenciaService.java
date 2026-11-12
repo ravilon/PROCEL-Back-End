@@ -28,6 +28,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de evento ocorrencia.
+ */
 @Service
 public class EventoOcorrenciaService {
     private static final String EVIDENCE_VALUE_CONSTRAINT = "ux_evento_evidencia_parametro_valor";

@@ -4,6 +4,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Componente de aulas sync job response usado pelo modulo API.
+ */
+
 public record AulasSyncJobResponse(
         UUID jobId,
         AulasSyncJobStatus status,

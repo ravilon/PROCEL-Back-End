@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Controlador REST responsavel pelas operacoes de medicoes.
+ */
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Medicoes", description = "Consulta de medicoes por sensor ou compartimento.")

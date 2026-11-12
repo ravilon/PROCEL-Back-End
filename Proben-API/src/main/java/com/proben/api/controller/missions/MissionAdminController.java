@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de mission admin.
+ */
 @RestController
 @RequestMapping("/api/admin/missions")
 @Tag(name = "Mission Admin", description = "Consulta e operacao administrativa do motor persistente de eventos de missoes.")

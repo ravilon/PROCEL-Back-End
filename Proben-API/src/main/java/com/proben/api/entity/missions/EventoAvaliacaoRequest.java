@@ -33,6 +33,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_avaliacao_request_lease", columnList = "status,lease_until")
         }
 )
+/**
+ * Componente de evento avaliacao request usado pelo modulo API.
+ */
 public class EventoAvaliacaoRequest {
 
     @Id

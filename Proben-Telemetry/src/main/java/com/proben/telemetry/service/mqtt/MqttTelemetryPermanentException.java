@@ -1,5 +1,9 @@
 package com.proben.telemetry.service.mqtt;
 
+/**
+ * Excecao que representa falhas relacionadas a mqtt telemetry permanent.
+ */
+
 public class MqttTelemetryPermanentException extends RuntimeException {
     private final String code;
 

@@ -57,9 +57,9 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
 
     @BeforeEach
     void setup() {
-        jdbc.execute("drop trigger if exists test_reject_partial_environment_xp on xp_lancamento");
+        jdbc.execute("drop trigger if exists test_reject_partial_environment_xp on pontos_lancamento");
         jdbc.execute("drop function if exists test_reject_partial_environment_xp()");
-        jdbc.update("delete from xp_lancamento where origem='ENVIRONMENT_RULE'");
+        jdbc.update("delete from pontos_lancamento where origem='ENVIRONMENT_RULE'");
         jdbc.update("delete from regra_ambiente_execucao");
         jdbc.update("delete from regra_ambiente");
         String suffix = UUID.randomUUID().toString();
@@ -129,7 +129,7 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
     }
 
     @Test
-    void confirmedOpenCheckinReceivesCanonicalXpLaunch() {
+    void confirmedOpenCheckinReceivesCanonicalPointsLaunch() {
         period(room, at.minusSeconds(600), at.plusSeconds(600), "T1");
         student("student-present", "T1", "2026-2");
         presence("student-present", room, at.minusSeconds(60), null);
@@ -138,23 +138,23 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
         assertThat(execution.beneficiarios()).hasSize(1);
         assertThat(execution.beneficiarios().get(0).asText()).isEqualTo("student-present");
         assertThat(execution.lancamentos()).hasSize(1);
-        var ledger = jdbc.queryForMap("select * from xp_lancamento where regra_ambiente_execucao_id=?", execution.id());
+        var ledger = jdbc.queryForMap("select * from pontos_lancamento where regra_ambiente_execucao_id=?", execution.id());
         assertThat(ledger.get("pessoa_id")).isEqualTo("student-present");
-        assertThat(ledger.get("quantidade")).isEqualTo(7);
+        assertThat(ledger.get("pontos")).isEqualTo(7);
         assertThat(ledger.get("origem")).isEqualTo("ENVIRONMENT_RULE");
         assertThat(ledger.get("compartimento_id")).isEqualTo(room);
         assertThat(ledger.get("created_at")).isNotNull();
     }
 
     @Test
-    void presenceFromAnotherRoomOrOutsideExecutionInstantNeverAwardsXp() {
+    void presenceFromAnotherRoomOrOutsideExecutionInstantNeverAwardsPoints() {
         period(room, at.minusSeconds(600), at.plusSeconds(600), "T1");
         student("wrong-presence", "T1", "2026-2");
         presence("wrong-presence", otherRoom, at.minusSeconds(60), null);
         presence("wrong-presence", room, at.minusSeconds(600), at.minusSeconds(300));
         var execution = execute(rule("IGNORE", "CONFIRMED_PRESENCE", false, 7));
         assertThat(execution.resultado()).isEqualTo("SKIPPED_NO_BENEFICIARY");
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isZero();
     }
 
     @Test
@@ -168,16 +168,16 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
         assertThat(execution.contextoAcademico().path("pessoaElegivelIds")).hasSize(1);
         assertThat(execution.contextoAcademico().path("pessoaElegivelIds").get(0).asText()).isEqualTo("linked-student");
         assertThat(jdbc.queryForObject("select count(*) from presenca where pessoa_id='linked-student'", Integer.class)).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isEqualTo(1);
     }
 
     @Test
-    void monitoringWithoutBeneficiariesPersistsExecutionWithoutXp() {
+    void monitoringWithoutBeneficiariesPersistsExecutionWithoutPoints() {
         var execution = execute(rule("IGNORE", "NONE", true, 10));
         assertThat(execution.status()).isEqualTo("COMPLETED");
         assertThat(execution.resultado()).isEqualTo("SATISFIED");
         assertThat(execution.pontosCalculados()).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isZero();
     }
 
     @Test
@@ -188,10 +188,10 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
             presence(person, room, at.minusSeconds(60), null);
         }
         var execution = execute(rule("IGNORE", "CONFIRMED_PRESENCE", false, 8));
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isEqualTo(2);
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isEqualTo(2);
         assertThat(worker.processAvailable()).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isEqualTo(2);
-        assertThatThrownBy(() -> jdbc.update("insert into xp_lancamento(pessoa_id,tipo,quantidade,chave_idempotencia,origem,regra_ambiente_execucao_id,compartimento_id) values ('student-a','CONCESSAO',8,?,'ENVIRONMENT_RULE',?,?)", "duplicate-key", execution.id(), room))
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isEqualTo(2);
+        assertThatThrownBy(() -> jdbc.update("insert into pontos_lancamento(pessoa_id,tipo,pontos,chave_idempotencia,origem,regra_ambiente_execucao_id,compartimento_id) values ('student-a','CONCESSAO',8,?,'ENVIRONMENT_RULE',?,?)", "duplicate-key", execution.id(), room))
                 .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 
@@ -203,7 +203,7 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
             presence(person, room, at.minusSeconds(60), null);
         }
         jdbc.execute("create function test_reject_partial_environment_xp() returns trigger language plpgsql as $$ begin if new.pessoa_id='rollback-b' then raise exception 'injected ledger failure'; end if; return new; end $$");
-        jdbc.execute("create trigger test_reject_partial_environment_xp before insert on xp_lancamento for each row execute function test_reject_partial_environment_xp()");
+        jdbc.execute("create trigger test_reject_partial_environment_xp before insert on pontos_lancamento for each row execute function test_reject_partial_environment_xp()");
 
         var rule = rule("IGNORE", "CONFIRMED_PRESENCE", false, 8);
         var pending = service.manual(rule.id(), room, at);
@@ -212,7 +212,7 @@ class EnvironmentRuleAcademicLedgerIntegrationTest {
         var execution = service.execution(pending.id());
         assertThat(execution.status()).isEqualTo("RETRY");
         assertThat(execution.attempts()).isEqualTo(1);
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, pending.id())).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, pending.id())).isZero();
     }
 
     @Test

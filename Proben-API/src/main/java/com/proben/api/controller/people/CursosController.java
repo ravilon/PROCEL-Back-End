@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Controlador REST responsavel pelas operacoes de cursos.
+ */
 @RestController
 @RequestMapping("/api")
 @Tag(name = "Cursos", description = "Gestao de cursos e vinculo principal da pessoa.")

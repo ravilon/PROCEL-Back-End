@@ -5,6 +5,10 @@ import com.proben.api.entity.rooms.PeriodoAulaTipo;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+/**
+ * Componente de aula record usado pelo modulo API.
+ */
+
 public record AulaRecord(
         Long disciplinaId,
         String disciplinaNome,

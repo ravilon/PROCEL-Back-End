@@ -10,6 +10,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de shared context.
+ */
 @RestController
 @RequestMapping("/api/shared-contexts")
 public class SharedContextController {

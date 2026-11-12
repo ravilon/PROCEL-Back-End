@@ -11,6 +11,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de medicao.
+ */
+
 public interface MedicaoRepository extends JpaRepository<Medicao, UUID>, JpaSpecificationExecutor<Medicao> {
 
     @Query("""

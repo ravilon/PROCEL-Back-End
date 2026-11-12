@@ -3,7 +3,7 @@ export interface Missao {
   titulo: string;
   descricao?: string | null;
   tipo: string;
-  value: number;
+  pontos: number;
   ativo: boolean;
   createdAt: string;
   parentId?: string | null;
@@ -21,7 +21,7 @@ export interface Atividade {
   missaoTitulo: string;
   missaoDescricao?: string | null;
   missaoTipo: string;
-  missaoValue: number;
+  missaoPontos: number;
   missaoParentId?: string | null;
   status: AtividadeStatus;
   totalFilhas: number;

@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de evento ocorrencia evidencia.
+ */
+
 public interface EventoOcorrenciaEvidenciaRepository extends JpaRepository<EventoOcorrenciaEvidencia, UUID> {
     Page<EventoOcorrenciaEvidencia> findByEventoOcorrenciaId(UUID eventoOcorrenciaId, Pageable pageable);
 

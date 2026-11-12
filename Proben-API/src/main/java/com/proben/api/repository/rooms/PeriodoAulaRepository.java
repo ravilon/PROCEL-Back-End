@@ -8,6 +8,10 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de periodo aula.
+ */
+
 public interface PeriodoAulaRepository extends JpaRepository<PeriodoAula, UUID> {
 
     List<PeriodoAula> findByCompartimentoIdAndDataOrderByTurnoAscPeriodoAulaAsc(

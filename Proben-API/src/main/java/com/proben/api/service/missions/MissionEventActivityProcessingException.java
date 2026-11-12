@@ -1,5 +1,9 @@
 package com.proben.api.service.missions;
 
+/**
+ * Excecao que representa falhas relacionadas a mission event activity processing.
+ */
+
 public class MissionEventActivityProcessingException extends RuntimeException {
     private final boolean permanent;
 

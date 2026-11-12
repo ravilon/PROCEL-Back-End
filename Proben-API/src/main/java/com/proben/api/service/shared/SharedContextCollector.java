@@ -18,6 +18,9 @@ import java.net.*; import java.net.http.*;
 import java.nio.charset.StandardCharsets; import java.security.MessageDigest;
 import java.sql.Timestamp; import java.time.*; import java.util.*;
 
+/**
+ * Componente de shared context collector usado pelo modulo API.
+ */
 @Service
 public class SharedContextCollector {
     private static final Logger log=LoggerFactory.getLogger(SharedContextCollector.class);

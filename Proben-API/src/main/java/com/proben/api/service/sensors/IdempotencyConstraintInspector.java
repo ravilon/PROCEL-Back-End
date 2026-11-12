@@ -2,6 +2,9 @@ package com.proben.api.service.sensors;
 
 import org.springframework.stereotype.Component;
 
+/**
+ * Componente de idempotency constraint inspector usado pelo modulo API.
+ */
 @Component
 public class IdempotencyConstraintInspector {
     static final String DIRECT_IDEMPOTENCY_CONSTRAINT = "ux_metadata_direct_idempotency";

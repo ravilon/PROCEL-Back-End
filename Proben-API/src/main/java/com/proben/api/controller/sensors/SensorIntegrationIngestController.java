@@ -13,6 +13,9 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensor integration ingest.
+ */
 @RestController
 @RequestMapping("/api/sensors")
 public class SensorIntegrationIngestController {

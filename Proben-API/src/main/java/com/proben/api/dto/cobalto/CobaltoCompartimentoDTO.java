@@ -1,5 +1,9 @@
 package com.proben.api.dto.cobalto;
 
+/**
+ * Objeto de transferencia de dados usado em cobalto compartimento.
+ */
+
 public record CobaltoCompartimentoDTO(
         Long compartimento_id,
         String compartimento_nome,

@@ -8,6 +8,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST responsavel pelas operacoes de rooms sync.
+ */
 @RestController
 @RequestMapping("/api/rooms")
 @Tag(name = "Rooms", description = "Sincronizacao de campus, predios, unidades e compartimentos.")

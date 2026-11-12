@@ -7,6 +7,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
+/**
+ * Componente de mqtt payload adapter usado pelo modulo Telemetry.
+ */
 @Component
 public class MqttPayloadAdapter {
     private final ObjectMapper objectMapper;

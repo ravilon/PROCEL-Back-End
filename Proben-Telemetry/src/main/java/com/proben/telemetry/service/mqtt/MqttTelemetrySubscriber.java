@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 
+/**
+ * Componente de mqtt telemetry subscriber usado pelo modulo Telemetry.
+ */
 @Service
 @ConditionalOnProperty(prefix = "proben.telemetry.mqtt", name = "enabled", havingValue = "true")
 public class MqttTelemetrySubscriber implements SmartLifecycle {

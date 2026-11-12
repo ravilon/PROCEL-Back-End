@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de atividade.
+ */
+
 public interface AtividadeRepository extends JpaRepository<Atividade, UUID> {
     boolean existsByPessoaIdAndMissaoId(String pessoaId, UUID missaoId);
     boolean existsByMissaoId(UUID missaoId);

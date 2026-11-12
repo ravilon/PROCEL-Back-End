@@ -8,6 +8,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.List;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de catalogo.
+ */
+
 public final class CatalogoDTOs {
 
     private CatalogoDTOs() {}

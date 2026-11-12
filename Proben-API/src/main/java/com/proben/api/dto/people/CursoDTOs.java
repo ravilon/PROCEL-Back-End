@@ -1,5 +1,9 @@
 package com.proben.api.dto.people;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de curso.
+ */
+
 public final class CursoDTOs {
 
     private CursoDTOs() {}

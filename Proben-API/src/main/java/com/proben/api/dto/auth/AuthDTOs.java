@@ -7,6 +7,10 @@ import com.proben.api.dto.people.PessoaDTOs;
 import java.time.Instant;
 import java.util.Set;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de auth.
+ */
+
 public class AuthDTOs {
 
     @Schema(description = "Credenciais para autenticacao e emissao de JWT.")

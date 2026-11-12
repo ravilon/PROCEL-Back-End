@@ -19,6 +19,9 @@ import java.util.UUID;
                 @Index(name = "ix_atividade_assigned_at", columnList = "assigned_at")
         }
 )
+/**
+ * Componente de atividade usado pelo modulo API.
+ */
 public class Atividade {
 
     @Id

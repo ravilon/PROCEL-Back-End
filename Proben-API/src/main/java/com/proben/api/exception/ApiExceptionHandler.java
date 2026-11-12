@@ -13,6 +13,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import java.time.Instant;
 import java.util.stream.Collectors;
 
+/**
+ * Componente de api exception handler usado pelo modulo API.
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 

@@ -6,6 +6,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Componente de measurement fact usado pelo modulo API.
+ */
+
 public record MeasurementFact(
         UUID medicaoId,
         UUID parametroValorId,

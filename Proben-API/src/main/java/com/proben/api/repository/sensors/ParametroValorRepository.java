@@ -12,6 +12,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de parametro valor.
+ */
+
 public interface ParametroValorRepository extends JpaRepository<ParametroValor, UUID> {
     Optional<ParametroValor> findByMedicao_IdAndParametroDef_Id(UUID medicaoId, UUID parametroDefId);
      List<ParametroValor> findAllByMedicao_IdIn(Collection<UUID> medicaoIds);

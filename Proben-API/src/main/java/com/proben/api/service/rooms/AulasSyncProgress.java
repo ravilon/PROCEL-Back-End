@@ -1,5 +1,9 @@
 package com.proben.api.service.rooms;
 
+/**
+ * Componente de aulas sync progress usado pelo modulo API.
+ */
+
 public record AulasSyncProgress(
         int roomsTotal,
         int roomsProcessed,

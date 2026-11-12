@@ -26,6 +26,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Configuracao de componentes e infraestrutura de security.
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -98,7 +101,7 @@ public class SecurityConfig {
                                                 .hasRole("ADMIN")
                                                 .requestMatchers(HttpMethod.DELETE, "/api/mission-events/**")
                                                 .hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.GET, "/api/pessoas/*/xp", "/api/pessoas/*/xp/lancamentos")
+                                                .requestMatchers(HttpMethod.GET, "/api/pessoas/*/pontos", "/api/pessoas/*/pontos/lancamentos")
                                                 .hasAnyRole("ADMIN", "OPERADOR", "USUARIO")
                                                 .requestMatchers("/api/pessoas/*/atividades/**")
                                                 .hasAnyRole("ADMIN", "OPERADOR", "USUARIO")

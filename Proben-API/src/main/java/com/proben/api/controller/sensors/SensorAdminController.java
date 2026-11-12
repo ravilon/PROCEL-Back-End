@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensor admin.
+ */
 @RestController
 @RequestMapping("/api/sensor-admin")
 @PreAuthorize("hasAnyRole('ADMIN','OPERADOR')")

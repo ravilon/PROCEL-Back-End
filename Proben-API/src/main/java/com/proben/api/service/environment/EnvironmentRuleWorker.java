@@ -16,6 +16,9 @@ import java.net.InetAddress;
 import java.time.*;
 import java.util.*;
 
+/**
+ * Processador em segundo plano responsavel por environment rule.
+ */
 @Component
 public class EnvironmentRuleWorker {
     private static final Logger log = LoggerFactory.getLogger(EnvironmentRuleWorker.class);
@@ -121,10 +124,10 @@ public class EnvironmentRuleWorker {
             var launches=json.createArrayNode();
             if(e.points()>0 && "SATISFIED".equals(e.result())) for(String person:e.beneficiaryIds()) {
                 var ids=jdbc.query("""
-                    insert into xp_lancamento(pessoa_id,tipo,quantidade,chave_idempotencia,descricao,created_at,created_by,origem,regra_ambiente_execucao_id,compartimento_id)
+                    insert into pontos_lancamento(pessoa_id,tipo,pontos,chave_idempotencia,descricao,created_at,created_by,origem,regra_ambiente_execucao_id,compartimento_id)
                     values (?,'CONCESSAO',?,?,'Regra de ambiente',now(),'SYSTEM_ENVIRONMENT_RULE','ENVIRONMENT_RULE',?,?)
                     on conflict(chave_idempotencia) do nothing returning id
-                    """,(rs,n)->rs.getObject(1,UUID.class),person,e.points(),"xp:environment:"+claim.id+":"+person,claim.id,claim.room);
+                    """,(rs,n)->rs.getObject(1,UUID.class),person,e.points(),"pontos:ambiente:"+claim.id+":"+person,claim.id,claim.room);
                 ids.forEach(id->launches.add(id.toString()));
             }
             int changed=jdbc.update("""

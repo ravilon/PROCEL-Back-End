@@ -2,6 +2,9 @@ package com.proben.api.integration.cobalto;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Propriedades de configuracao de cobalto.
+ */
 @ConfigurationProperties(prefix = "proben.cobalto.rooms")
 public class CobaltoProperties {
 

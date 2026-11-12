@@ -17,6 +17,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de evento.
+ */
+
 public final class EventoDTOs {
     private EventoDTOs() {}
 

@@ -16,6 +16,9 @@ import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 
+/**
+ * Servico que implementa as operacoes de negocio de telemetry reprocess.
+ */
 @Service
 public class TelemetryReprocessService {
     private static final int MAX_REASON_LENGTH = 500;

@@ -50,6 +50,9 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+/**
+ * Servico que implementa as operacoes de negocio de mission temporal window evaluation.
+ */
 @Service
 public class MissionTemporalWindowEvaluationService {
     private static final String EVALUATOR_VERSION = "DROOLS_TEMPORAL_V1";

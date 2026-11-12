@@ -13,6 +13,9 @@ import jakarta.persistence.Table;
         name = "curso",
         indexes = @Index(name = "ix_curso_nome", columnList = "nome")
 )
+/**
+ * Componente de curso usado pelo modulo API.
+ */
 public class Curso {
 
     @Id

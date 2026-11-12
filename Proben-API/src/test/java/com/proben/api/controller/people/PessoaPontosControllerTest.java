@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers(disabledWithoutDocker = true)
-class PessoaXpControllerTest {
+class PessoaPontosControllerTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
@@ -51,56 +51,57 @@ class PessoaXpControllerTest {
     @BeforeEach
     void setUp() {
         cleanDatabase();
-        pessoaId = "user-xp";
+        pessoaId = "user-pontos";
         missaoId = UUID.randomUUID();
         atividadeId = UUID.randomUUID();
         seedPessoa(pessoaId);
-        seedPessoa("other-xp");
+        seedPessoa("other-pontos");
         seedMissao();
-        seedActivity(atividadeId, pessoaId, "Missao XP");
+        seedActivity(atividadeId, pessoaId, "Missao de pontos");
         insertLedger(UUID.fromString("00000000-0000-0000-0000-000000000001"), "CONCESSAO", 10, Instant.parse("2026-09-13T10:00:00Z"));
         insertLedger(UUID.fromString("00000000-0000-0000-0000-000000000002"), "AJUSTE", 2, Instant.parse("2026-09-13T11:00:00Z"));
     }
 
     @Test
     void userCanReadOwnBalanceAndStatement() throws Exception {
-        mvc.perform(get("/api/pessoas/{pessoaId}/xp", pessoaId)
+        mvc.perform(get("/api/pessoas/{pessoaId}/pontos", pessoaId)
                         .with(user(pessoaId).roles("USUARIO")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pessoaId").value(pessoaId))
-                .andExpect(jsonPath("$.saldoTotal").value(12))
-                .andExpect(jsonPath("$.totalConcedido").value(10))
-                .andExpect(jsonPath("$.totalAjustado").value(2));
+                .andExpect(jsonPath("$.saldoTotalPontos").value(12))
+                .andExpect(jsonPath("$.totalConcedidoPontos").value(10))
+                .andExpect(jsonPath("$.totalAjustadoPontos").value(2));
 
-        mvc.perform(get("/api/pessoas/{pessoaId}/xp/lancamentos?tipo=CONCESSAO&page=0&size=10", pessoaId)
+        mvc.perform(get("/api/pessoas/{pessoaId}/pontos/lancamentos?tipo=CONCESSAO&page=0&size=10", pessoaId)
                         .with(user(pessoaId).roles("USUARIO")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.content[0].tipo").value("CONCESSAO"))
                 .andExpect(jsonPath("$.content[0].atividadeId").value(atividadeId.toString()))
                 .andExpect(jsonPath("$.content[0].missaoId").value(missaoId.toString()))
-                .andExpect(jsonPath("$.content[0].missaoTitulo").value("Missao XP"));
+                .andExpect(jsonPath("$.content[0].missaoTitulo").value("Missao de pontos"))
+                .andExpect(jsonPath("$.content[0].pontos").value(10));
     }
 
     @Test
-    void userCannotReadAnotherPersonXp() throws Exception {
-        mvc.perform(get("/api/pessoas/{pessoaId}/xp", pessoaId)
-                        .with(user("other-xp").roles("USUARIO")))
+    void userCannotReadAnotherPersonPoints() throws Exception {
+        mvc.perform(get("/api/pessoas/{pessoaId}/pontos", pessoaId)
+                        .with(user("other-pontos").roles("USUARIO")))
                 .andExpect(status().isForbidden());
 
-        mvc.perform(get("/api/pessoas/{pessoaId}/xp/lancamentos", pessoaId)
-                        .with(user("other-xp").roles("USUARIO")))
+        mvc.perform(get("/api/pessoas/{pessoaId}/pontos/lancamentos", pessoaId)
+                        .with(user("other-pontos").roles("USUARIO")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void adminAndOperatorCanReadThirdPartyXp() throws Exception {
-        mvc.perform(get("/api/pessoas/{pessoaId}/xp", pessoaId)
+    void adminAndOperatorCanReadThirdPartyPoints() throws Exception {
+        mvc.perform(get("/api/pessoas/{pessoaId}/pontos", pessoaId)
                         .with(user("admin").roles("ADMIN")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.saldoTotal").value(12));
+                .andExpect(jsonPath("$.saldoTotalPontos").value(12));
 
-        mvc.perform(get("/api/pessoas/{pessoaId}/xp/lancamentos", pessoaId)
+        mvc.perform(get("/api/pessoas/{pessoaId}/pontos/lancamentos", pessoaId)
                         .with(user("operador").roles("OPERADOR")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2));
@@ -115,8 +116,8 @@ class PessoaXpControllerTest {
 
     private void seedMissao() {
         jdbcTemplate.update("""
-                insert into missao (id, titulo, descricao, tipo, value, ativo, created_at)
-                values (?, 'Missao XP', 'Descricao', 'Individual', 10, true, now())
+                insert into missao (id, titulo, descricao, tipo, pontos, ativo, created_at)
+                values (?, 'Missao de pontos', 'Descricao', 'Individual', 10, true, now())
                 """, missaoId);
     }
 
@@ -129,10 +130,10 @@ class PessoaXpControllerTest {
                 """, id, pessoa, missaoId, AtividadeStatus.CONCLUIDA.name());
     }
 
-    private void insertLedger(UUID id, String tipo, int quantidade, Instant createdAt) {
+    private void insertLedger(UUID id, String tipo, int pontos, Instant createdAt) {
         jdbcTemplate.update("""
-                insert into xp_lancamento
-                (id, pessoa_id, atividade_id, missao_id, tipo, quantidade, chave_idempotencia, descricao, created_at, created_by)
+                insert into pontos_lancamento
+                (id, pessoa_id, atividade_id, missao_id, tipo, pontos, chave_idempotencia, descricao, created_at, created_by)
                 values (?, ?, ?, ?, ?, ?, ?, 'Teste', ?, 'TEST')
                 """,
                 id,
@@ -140,7 +141,7 @@ class PessoaXpControllerTest {
                 atividadeId,
                 missaoId,
                 tipo,
-                quantidade,
+                pontos,
                 "controller:" + id,
                 Timestamp.from(createdAt));
     }
@@ -148,7 +149,7 @@ class PessoaXpControllerTest {
     private void cleanDatabase() {
         jdbcTemplate.execute("""
                 truncate table
-                    xp_lancamento,
+                    pontos_lancamento,
                     atividade_evento,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,

@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Controlador REST responsavel pelas operacoes de catalogo.
+ */
 @RestController
 @RequestMapping("/api/catalog")
 @Tag(name = "Catalogo", description = "Consultas de catalogo para navegacao administrativa.")

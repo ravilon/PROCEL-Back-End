@@ -16,6 +16,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 
+/**
+ * Cliente de integracao para comunicacao com canonical ingest.
+ */
 @Service
 public class CanonicalIngestClient {
     private final ObjectMapper objectMapper;

@@ -7,6 +7,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.Optional;
 
+/**
+ * Repositorio de acesso e consulta aos dados de raw telemetry event.
+ */
+
 public interface RawTelemetryEventRepository extends MongoRepository<RawTelemetryEvent, String> {
     long countByStatus(RawTelemetryStatus status);
 

@@ -16,6 +16,9 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * Servico que implementa as operacoes de negocio de telemetry ingest.
+ */
 @Service
 public class TelemetryIngestService {
     private static final String IDEMPOTENCY_INDEX = "ux_raw_telemetry_idempotency";

@@ -14,6 +14,9 @@ import java.util.UUID;
                 @Index(name = "ix_missao_parent_id", columnList = "parent_id")
         }
 )
+/**
+ * Componente de missao usado pelo modulo API.
+ */
 public class Missao {
 
     @Id
@@ -30,8 +33,8 @@ public class Missao {
     @Column(name = "tipo", nullable = false, length = 40)
     private String tipo = "Individual";
 
-    @Column(name = "value", nullable = false)
-    private int value = 0;
+    @Column(name = "pontos", nullable = false)
+    private int pontos = 0;
 
     @Column(name = "ativo", nullable = false)
     private boolean ativo = true;
@@ -55,11 +58,11 @@ public class Missao {
 
     protected Missao() {}
 
-    public Missao(String titulo, String descricao, String tipo, Integer value, boolean ativo) {
+    public Missao(String titulo, String descricao, String tipo, Integer pontos, boolean ativo) {
         this.titulo = titulo;
         this.descricao = descricao;
         this.tipo = normalizeTipo(tipo);
-        this.value = normalizeValue(value);
+        this.pontos = normalizePontos(pontos);
         this.ativo = ativo;
         this.createdAt = Instant.now();
     }
@@ -68,7 +71,7 @@ public class Missao {
     public String getTitulo() { return titulo; }
     public String getDescricao() { return descricao; }
     public String getTipo() { return tipo; }
-    public int getValue() { return value; }
+    public int getPontos() { return pontos; }
     public boolean isAtivo() { return ativo; }
     public MissaoCicloTipo getCicloTipo() { return cicloTipo; }
     public int getProgressoNecessario() { return progressoNecessario; }
@@ -79,7 +82,7 @@ public class Missao {
     public void setTitulo(String titulo) { this.titulo = titulo; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public void setTipo(String tipo) { this.tipo = normalizeTipo(tipo); }
-    public void setValue(Integer value) { this.value = normalizeValue(value); }
+    public void setPontos(Integer pontos) { this.pontos = normalizePontos(pontos); }
     public void setAtivo(boolean ativo) { this.ativo = ativo; }
     public void setCicloTipo(MissaoCicloTipo cicloTipo) {
         this.cicloTipo = cicloTipo == null ? MissaoCicloTipo.UNICA : cicloTipo;
@@ -103,7 +106,7 @@ public class Missao {
         return tipo == null || tipo.isBlank() ? "Individual" : tipo.trim();
     }
 
-    private static int normalizeValue(Integer value) {
-        return value == null ? 0 : Math.max(0, value);
+    private static int normalizePontos(Integer pontos) {
+        return pontos == null ? 0 : Math.max(0, pontos);
     }
 }

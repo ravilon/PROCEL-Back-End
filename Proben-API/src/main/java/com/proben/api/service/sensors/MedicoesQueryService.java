@@ -22,6 +22,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * Servico que implementa as operacoes de negocio de medicoes query.
+ */
 @Service
 public class MedicoesQueryService {
 

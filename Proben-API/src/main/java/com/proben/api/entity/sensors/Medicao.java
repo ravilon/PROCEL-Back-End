@@ -13,6 +13,9 @@ import java.util.UUID;
         @Index(name = "idx_medicao_sensor_ts", columnList = "sensor_external_id,timestamp")
     }
 )
+/**
+ * Componente de medicao usado pelo modulo API.
+ */
 public class Medicao {
 
     @Id

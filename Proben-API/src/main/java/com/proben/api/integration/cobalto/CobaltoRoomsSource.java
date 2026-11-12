@@ -16,6 +16,9 @@ import com.proben.api.dto.cobalto.CobaltoCompartimentoDTO;
 import com.proben.api.service.rooms.RoomRecord;
 import com.proben.api.service.rooms.RoomsSource;
 
+/**
+ * Componente de cobalto rooms source usado pelo modulo API.
+ */
 @Component
 public class CobaltoRoomsSource implements RoomsSource {
 

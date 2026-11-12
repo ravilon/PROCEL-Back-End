@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
+/**
+ * Componente de telemetry observability metrics usado pelo modulo Telemetry.
+ */
 @Component
 public class TelemetryObservabilityMetrics {
     private static final String UNKNOWN = "UNKNOWN";

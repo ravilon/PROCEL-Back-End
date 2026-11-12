@@ -16,6 +16,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Processador em segundo plano responsavel por canonical telemetry.
+ */
 @Service
 @ConditionalOnProperty(prefix = "proben.telemetry.canonical-worker", name = "enabled", havingValue = "true")
 public class CanonicalTelemetryWorker {

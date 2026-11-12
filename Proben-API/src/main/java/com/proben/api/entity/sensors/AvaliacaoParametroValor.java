@@ -20,6 +20,9 @@ import java.util.UUID;
                 @Index(name = "idx_avaliacao_resultado", columnList = "resultado")
         }
 )
+/**
+ * Componente de avaliacao parametro valor usado pelo modulo API.
+ */
 public class AvaliacaoParametroValor {
 
     @Id

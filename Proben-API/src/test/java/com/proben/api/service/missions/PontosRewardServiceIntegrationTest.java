@@ -1,10 +1,10 @@
 package com.proben.api.service.missions;
 
 import com.proben.api.entity.missions.AtividadeStatus;
-import com.proben.api.entity.missions.XpLancamento;
-import com.proben.api.entity.missions.XpLancamentoTipo;
+import com.proben.api.entity.missions.PontosLancamento;
+import com.proben.api.entity.missions.PontosLancamentoTipo;
 import com.proben.api.exception.ConflictException;
-import com.proben.api.repository.missions.XpLancamentoRepository;
+import com.proben.api.repository.missions.PontosLancamentoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @Testcontainers(disabledWithoutDocker = true)
-class XpRewardServiceIntegrationTest {
+class PontosRewardServiceIntegrationTest {
 
     @Container
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16");
@@ -48,9 +48,9 @@ class XpRewardServiceIntegrationTest {
     }
 
     @Autowired JdbcTemplate jdbcTemplate;
-    @Autowired XpRewardService rewardService;
-    @Autowired XpQueryService queryService;
-    @Autowired XpLancamentoRepository lancamentoRepository;
+    @Autowired PontosRewardService rewardService;
+    @Autowired PontosQueryService queryService;
+    @Autowired PontosLancamentoRepository lancamentoRepository;
 
     String pessoaId;
     UUID missaoId;
@@ -62,7 +62,7 @@ class XpRewardServiceIntegrationTest {
     void setUp() {
         cleanDatabase();
         String suffix = UUID.randomUUID().toString();
-        pessoaId = "xp-" + suffix;
+        pessoaId = "pontos-" + suffix;
         missaoId = UUID.randomUUID();
         atividadeId = UUID.randomUUID();
         eventoOcorrenciaId = UUID.randomUUID();
@@ -82,7 +82,7 @@ class XpRewardServiceIntegrationTest {
         assertThat(first.created()).isTrue();
         assertThat(duplicate.duplicate()).isTrue();
         assertThat(duplicate.lancamento().getId()).isEqualTo(first.lancamento().getId());
-        assertThat(count("xp_lancamento")).isEqualTo(1);
+        assertThat(count("pontos_lancamento")).isEqualTo(1);
         assertThat(sumQuantidade(pessoaId)).isEqualTo(25);
     }
 
@@ -96,11 +96,11 @@ class XpRewardServiceIntegrationTest {
         var result = rewardService.grantAutomaticCompletionReward(zeroActivity, eventoOcorrenciaId, now);
 
         assertThat(result.skippedZeroValue()).isTrue();
-        assertThat(count("xp_lancamento")).isZero();
+        assertThat(count("pontos_lancamento")).isZero();
     }
 
     @Test
-    void sameActivityAndSameOccurrenceDoNotDuplicateXpAndDifferentCycleGrantsSeparately() {
+    void sameActivityAndSameOccurrenceDoNotDuplicatePointsAndDifferentCycleGrantsSeparately() {
         UUID secondActivity = UUID.randomUUID();
         seedActivity(secondActivity, pessoaId, missaoId, AtividadeStatus.CONCLUIDA, "DIA:2026-09-14");
 
@@ -108,7 +108,7 @@ class XpRewardServiceIntegrationTest {
         rewardService.grantAutomaticCompletionReward(atividadeId, eventoOcorrenciaId, now.plusSeconds(1));
         rewardService.grantAutomaticCompletionReward(secondActivity, eventoOcorrenciaId, now.plusSeconds(2));
 
-        assertThat(count("xp_lancamento")).isEqualTo(2);
+        assertThat(count("pontos_lancamento")).isEqualTo(2);
         assertThat(sumQuantidade(pessoaId)).isEqualTo(50);
     }
 
@@ -120,14 +120,14 @@ class XpRewardServiceIntegrationTest {
         );
 
         assertThat(results).allSatisfy(result ->
-                assertThat(result).isInstanceOf(XpRewardService.GrantResult.class));
-        assertThat(count("xp_lancamento")).isEqualTo(1);
+                assertThat(result).isInstanceOf(PontosRewardService.GrantResult.class));
+        assertThat(count("pontos_lancamento")).isEqualTo(1);
         assertThat(sumQuantidade(pessoaId)).isEqualTo(25);
     }
 
     @Test
     void divergentIdempotencyContentConflicts() {
-        insertManualLedger(XpRewardService.automaticCompletionKey(atividadeId), 99, eventoOcorrenciaId);
+        insertManualLedger(PontosRewardService.automaticCompletionKey(atividadeId), 99, eventoOcorrenciaId);
 
         assertThatThrownBy(() -> rewardService.grantAutomaticCompletionReward(atividadeId, eventoOcorrenciaId, now))
                 .isInstanceOf(ConflictException.class)
@@ -146,21 +146,21 @@ class XpRewardServiceIntegrationTest {
 
     @Test
     void databaseRejectsInvalidSignsAndZero() {
-        assertThatThrownBy(() -> insertLedger(UUID.randomUUID(), XpLancamentoTipo.CONCESSAO, -1))
+        assertThatThrownBy(() -> insertLedger(UUID.randomUUID(), PontosLancamentoTipo.CONCESSAO, -1))
                 .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> insertLedger(UUID.randomUUID(), XpLancamentoTipo.ESTORNO, 1))
+        assertThatThrownBy(() -> insertLedger(UUID.randomUUID(), PontosLancamentoTipo.ESTORNO, 1))
                 .isInstanceOf(DataIntegrityViolationException.class);
-        assertThatThrownBy(() -> insertLedger(UUID.randomUUID(), XpLancamentoTipo.AJUSTE, 0))
+        assertThatThrownBy(() -> insertLedger(UUID.randomUUID(), PontosLancamentoTipo.AJUSTE, 0))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void entityRejectsInvalidSignsAndRepositoryDoesNotExposeDeleteMethods() {
-        assertThatThrownBy(() -> new XpLancamento(null, null, null, null, XpLancamentoTipo.CONCESSAO,
+        assertThatThrownBy(() -> new PontosLancamento(null, null, null, null, PontosLancamentoTipo.CONCESSAO,
                 -1, "bad", null, now, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new XpLancamento(null, null, null, null, XpLancamentoTipo.ESTORNO,
+        assertThatThrownBy(() -> new PontosLancamento(null, null, null, null, PontosLancamentoTipo.ESTORNO,
                 1, "bad", null, now, null)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> new XpLancamento(null, null, null, null, XpLancamentoTipo.AJUSTE,
+        assertThatThrownBy(() -> new PontosLancamento(null, null, null, null, PontosLancamentoTipo.AJUSTE,
                 0, "bad", null, now, null)).isInstanceOf(IllegalArgumentException.class);
 
         assertThat(Arrays.stream(lancamentoRepository.getClass().getInterfaces())
@@ -171,27 +171,27 @@ class XpRewardServiceIntegrationTest {
 
     @Test
     void saldoSumsGrantsReversalsAndAdjustmentsAndStatementFiltersType() {
-        insertLedger(UUID.randomUUID(), XpLancamentoTipo.CONCESSAO, 25);
-        insertLedger(UUID.randomUUID(), XpLancamentoTipo.ESTORNO, -5);
-        insertLedger(UUID.randomUUID(), XpLancamentoTipo.AJUSTE, 3);
+        insertLedger(UUID.randomUUID(), PontosLancamentoTipo.CONCESSAO, 25);
+        insertLedger(UUID.randomUUID(), PontosLancamentoTipo.ESTORNO, -5);
+        insertLedger(UUID.randomUUID(), PontosLancamentoTipo.AJUSTE, 3);
 
         var saldo = queryService.saldo(pessoaId);
-        var concessoes = queryService.lancamentos(pessoaId, XpLancamentoTipo.CONCESSAO, 0, 10);
+        var concessoes = queryService.lancamentos(pessoaId, PontosLancamentoTipo.CONCESSAO, 0, 10);
 
-        assertThat(saldo.saldoTotal()).isEqualTo(23);
-        assertThat(saldo.totalConcedido()).isEqualTo(25);
-        assertThat(saldo.totalEstornado()).isEqualTo(-5);
-        assertThat(saldo.totalAjustado()).isEqualTo(3);
+        assertThat(saldo.saldoTotalPontos()).isEqualTo(23);
+        assertThat(saldo.totalConcedidoPontos()).isEqualTo(25);
+        assertThat(saldo.totalEstornadoPontos()).isEqualTo(-5);
+        assertThat(saldo.totalAjustadoPontos()).isEqualTo(3);
         assertThat(concessoes.content()).hasSize(1);
-        assertThat(concessoes.content().getFirst().tipo()).isEqualTo(XpLancamentoTipo.CONCESSAO);
+        assertThat(concessoes.content().getFirst().tipo()).isEqualTo(PontosLancamentoTipo.CONCESSAO);
     }
 
     @Test
     void statementIsPagedAndOrderedByCreatedAtDescAndIdDesc() {
         UUID first = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID second = UUID.fromString("00000000-0000-0000-0000-000000000002");
-        insertLedger(first, XpLancamentoTipo.AJUSTE, 1, now);
-        insertLedger(second, XpLancamentoTipo.AJUSTE, 2, now);
+        insertLedger(first, PontosLancamentoTipo.AJUSTE, 1, now);
+        insertLedger(second, PontosLancamentoTipo.AJUSTE, 2, now);
 
         var page = queryService.lancamentos(pessoaId, null, 0, 1);
 
@@ -207,12 +207,12 @@ class XpRewardServiceIntegrationTest {
                 """, id, id, id + "@example.com");
     }
 
-    private void seedMissao(UUID id, int value, int progressoNecessario, boolean conclusaoAutomatica) {
+    private void seedMissao(UUID id, int pontos, int progressoNecessario, boolean conclusaoAutomatica) {
         jdbcTemplate.update("""
                 insert into missao
-                (id, titulo, descricao, tipo, value, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
+                (id, titulo, descricao, tipo, pontos, ativo, created_at, ciclo_tipo, progresso_necessario, conclusao_automatica)
                 values (?, ?, 'Descricao', 'Individual', ?, true, now(), 'UNICA', ?, ?)
-                """, id, "Missao " + id, value, progressoNecessario, conclusaoAutomatica);
+                """, id, "Missao " + id, pontos, progressoNecessario, conclusaoAutomatica);
     }
 
     private void seedActivity(UUID id, String pessoa, UUID missao, AtividadeStatus status, String chaveCiclo) {
@@ -264,10 +264,10 @@ class XpRewardServiceIntegrationTest {
                 "occurrence-" + suffix);
     }
 
-    private void insertManualLedger(String key, int quantidade, UUID occurrence) {
+    private void insertManualLedger(String key, int pontos, UUID occurrence) {
         jdbcTemplate.update("""
-                insert into xp_lancamento
-                (id, pessoa_id, atividade_id, missao_id, evento_ocorrencia_id, tipo, quantidade,
+                insert into pontos_lancamento
+                (id, pessoa_id, atividade_id, missao_id, evento_ocorrencia_id, tipo, pontos,
                  chave_idempotencia, descricao, created_at, created_by)
                 values (?, ?, ?, ?, ?, 'CONCESSAO', ?, ?, 'Manual conflict', ?, ?)
                 """,
@@ -276,20 +276,20 @@ class XpRewardServiceIntegrationTest {
                 atividadeId,
                 missaoId,
                 occurrence,
-                quantidade,
+                pontos,
                 key,
                 Timestamp.from(now),
-                XpLancamento.AUTO_COMPLETION_CREATED_BY);
+                PontosLancamento.AUTO_COMPLETION_CREATED_BY);
     }
 
-    private void insertLedger(UUID id, XpLancamentoTipo tipo, int quantidade) {
-        insertLedger(id, tipo, quantidade, now.plusMillis(Math.abs(id.getLeastSignificantBits() % 1000)));
+    private void insertLedger(UUID id, PontosLancamentoTipo tipo, int pontos) {
+        insertLedger(id, tipo, pontos, now.plusMillis(Math.abs(id.getLeastSignificantBits() % 1000)));
     }
 
-    private void insertLedger(UUID id, XpLancamentoTipo tipo, int quantidade, Instant createdAt) {
+    private void insertLedger(UUID id, PontosLancamentoTipo tipo, int pontos, Instant createdAt) {
         jdbcTemplate.update("""
-                insert into xp_lancamento
-                (id, pessoa_id, atividade_id, missao_id, tipo, quantidade, chave_idempotencia, descricao, created_at, created_by)
+                insert into pontos_lancamento
+                (id, pessoa_id, atividade_id, missao_id, tipo, pontos, chave_idempotencia, descricao, created_at, created_by)
                 values (?, ?, ?, ?, ?, ?, ?, 'Test ledger', ?, 'TEST')
                 """,
                 id,
@@ -297,7 +297,7 @@ class XpRewardServiceIntegrationTest {
                 atividadeId,
                 missaoId,
                 tipo.name(),
-                quantidade,
+                pontos,
                 "test:" + id,
                 Timestamp.from(createdAt));
     }
@@ -305,7 +305,7 @@ class XpRewardServiceIntegrationTest {
     private void cleanDatabase() {
         jdbcTemplate.execute("""
                 truncate table
-                    xp_lancamento,
+                    pontos_lancamento,
                     atividade_evento,
                     evento_ocorrencia_evidencia,
                     evento_ocorrencia,
@@ -336,7 +336,7 @@ class XpRewardServiceIntegrationTest {
 
     private long sumQuantidade(String pessoa) {
         Long total = jdbcTemplate.queryForObject(
-                "select coalesce(sum(quantidade), 0) from xp_lancamento where pessoa_id = ?",
+                "select coalesce(sum(pontos), 0) from pontos_lancamento where pessoa_id = ?",
                 Long.class,
                 pessoa
         );
@@ -344,8 +344,8 @@ class XpRewardServiceIntegrationTest {
     }
 
     private List<Object> runConcurrently(
-            Callable<XpRewardService.GrantResult> first,
-            Callable<XpRewardService.GrantResult> second
+            Callable<PontosRewardService.GrantResult> first,
+            Callable<PontosRewardService.GrantResult> second
     ) throws Exception {
         CountDownLatch ready = new CountDownLatch(2);
         CountDownLatch startTogether = new CountDownLatch(1);
@@ -372,7 +372,7 @@ class XpRewardServiceIntegrationTest {
     }
 
     private Callable<Object> concurrentTask(
-            Callable<XpRewardService.GrantResult> task,
+            Callable<PontosRewardService.GrantResult> task,
             CountDownLatch ready,
             CountDownLatch startTogether
     ) {

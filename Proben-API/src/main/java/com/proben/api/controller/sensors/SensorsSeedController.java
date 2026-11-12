@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensors seed.
+ */
 @RestController
 @RequestMapping("/api/sensors")
 @Tag(name = "Sensors", description = "Seed e ingestao mockada de sensores.")

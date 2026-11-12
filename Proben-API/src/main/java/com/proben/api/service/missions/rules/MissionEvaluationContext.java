@@ -7,6 +7,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Componente de mission evaluation context usado pelo modulo API.
+ */
+
 public record MissionEvaluationContext(
         Instant evaluationTime,
         EventoDefinicao eventDefinition,

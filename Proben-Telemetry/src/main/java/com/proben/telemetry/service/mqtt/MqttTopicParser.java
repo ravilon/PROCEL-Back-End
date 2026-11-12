@@ -5,6 +5,9 @@ import org.springframework.stereotype.Component;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * Componente de mqtt topic parser usado pelo modulo Telemetry.
+ */
 @Component
 public class MqttTopicParser {
     public TopicContext parse(String topic) {

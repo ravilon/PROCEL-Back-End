@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Controlador REST responsavel pelas operacoes de sensor integration snapshot.
+ */
 @RestController
 @RequestMapping("/api/sensor-integrations")
 public class SensorIntegrationSnapshotController {

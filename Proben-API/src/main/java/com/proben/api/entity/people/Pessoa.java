@@ -18,6 +18,9 @@ import java.util.Set;
                 @Index(name = "ix_pessoa_matricula", columnList = "matricula")
         }
 )
+/**
+ * Componente de pessoa usado pelo modulo API.
+ */
 public class Pessoa {
 
     @Id

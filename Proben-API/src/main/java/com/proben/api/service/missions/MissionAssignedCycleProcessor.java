@@ -26,6 +26,9 @@ import java.util.Optional;
 import java.util.TreeSet;
 import java.util.UUID;
 
+/**
+ * Componente de mission assigned cycle processor usado pelo modulo API.
+ */
 @Service
 public class MissionAssignedCycleProcessor {
     private final JdbcTemplate jdbc;
@@ -35,12 +38,12 @@ public class MissionAssignedCycleProcessor {
     private final MissionCycleKeyFactory cycles;
     private final MissionActivityCycleService activities;
     private final MissionActivityProgressService progress;
-    private final XpRewardService rewards;
+    private final PontosRewardService rewards;
 
     public MissionAssignedCycleProcessor(JdbcTemplate jdbc, MissaoRepository missions,
             PessoaRepository people, MissionBeneficiaryResolver beneficiaries,
             MissionCycleKeyFactory cycles, MissionActivityCycleService activities,
-            MissionActivityProgressService progress, XpRewardService rewards) {
+            MissionActivityProgressService progress, PontosRewardService rewards) {
         this.jdbc = jdbc;
         this.missions = missions;
         this.people = people;

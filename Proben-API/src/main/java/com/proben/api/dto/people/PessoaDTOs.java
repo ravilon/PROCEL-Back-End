@@ -5,6 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.Set;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de pessoa.
+ */
+
 public class PessoaDTOs {
 
     @Schema(description = "Dados para criacao de pessoa. Requer role ADMIN.")

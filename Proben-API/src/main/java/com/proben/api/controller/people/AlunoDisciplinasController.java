@@ -22,6 +22,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de aluno disciplinas.
+ */
 @RestController
 @RequestMapping("/api/pessoas/{pessoaId}/disciplinas")
 @Tag(name = "Pessoas", description = "Cadastro e consulta de pessoas/usuarios da API.")

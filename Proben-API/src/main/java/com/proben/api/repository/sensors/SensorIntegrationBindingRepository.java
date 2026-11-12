@@ -7,6 +7,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de sensor integration binding.
+ */
+
 public interface SensorIntegrationBindingRepository extends JpaRepository<SensorIntegrationBinding, UUID> {
     Optional<SensorIntegrationBinding> findByProfile_IdAndSensor_ExternalIdAndAtivoTrue(UUID profileId, String sensorExternalId);
     Optional<SensorIntegrationBinding> findFirstByProfile_IdAndSensor_ExternalIdOrderByCreatedAtDesc(UUID profileId, String sensorExternalId);

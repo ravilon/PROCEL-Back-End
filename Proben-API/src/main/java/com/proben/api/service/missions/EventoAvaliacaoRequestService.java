@@ -17,6 +17,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de evento avaliacao request.
+ */
 @Service
 public class EventoAvaliacaoRequestService {
     private static final String REQUEST_MEDICAO_CONSTRAINT = "ux_evento_avaliacao_request_medicao";

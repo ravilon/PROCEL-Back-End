@@ -5,6 +5,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+/**
+ * Configuracao de componentes e infraestrutura de aulas sync async.
+ */
 @Configuration
 public class AulasSyncAsyncConfig {
 

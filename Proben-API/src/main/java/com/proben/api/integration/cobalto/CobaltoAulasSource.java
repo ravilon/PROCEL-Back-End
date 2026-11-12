@@ -23,6 +23,9 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Componente de cobalto aulas source usado pelo modulo API.
+ */
 @Component
 public class CobaltoAulasSource implements AulasSource {
 

@@ -4,6 +4,13 @@ import com.proben.api.dto.cobalto.CobaltoCompartimentoDTO;
 import com.proben.api.service.rooms.RoomRecord;
 import com.proben.api.service.rooms.TextNorm;
 
+/**
+
+ * Conversor entre os modelos de cobalto.
+
+ */
+
+
 public final class CobaltoMapper {
     private CobaltoMapper() {}
 

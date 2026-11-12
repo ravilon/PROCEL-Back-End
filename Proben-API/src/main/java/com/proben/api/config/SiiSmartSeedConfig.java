@@ -10,6 +10,9 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuracao de componentes e infraestrutura de sii smart seed.
+ */
 @Configuration
 public class SiiSmartSeedConfig {
 

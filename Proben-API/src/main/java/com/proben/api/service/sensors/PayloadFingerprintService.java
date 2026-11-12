@@ -12,6 +12,9 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.*;
 
+/**
+ * Servico que implementa as operacoes de negocio de payload fingerprint.
+ */
 @Service
 public class PayloadFingerprintService {
     private final ObjectMapper objectMapper;

@@ -14,6 +14,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Servico que implementa as operacoes de negocio de aulas sync job.
+ */
 @Service
 public class AulasSyncJobService {
 

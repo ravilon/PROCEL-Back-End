@@ -38,6 +38,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_ocorrencia_compartimento_inicio", columnList = "compartimento_id,inicio_em")
         }
 )
+/**
+ * Componente de evento ocorrencia usado pelo modulo API.
+ */
 public class EventoOcorrencia {
 
     @Id

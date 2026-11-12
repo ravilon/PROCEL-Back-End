@@ -13,6 +13,9 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
+/**
+ * Configuracao de componentes e infraestrutura de open api.
+ */
 @Configuration
 public class OpenApiConfig {
 

@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.time.Duration;
 
+/**
+ * Controlador REST responsavel pelas operacoes de telemetry ingest.
+ */
 @RestController
 @RequestMapping("/api/telemetry/events")
 public class TelemetryIngestController {

@@ -20,6 +20,9 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Componente de room state fact loader usado pelo modulo API.
+ */
 @Component
 public class RoomStateFactLoader {
     private static final ZoneId ACADEMIC_ZONE = ZoneId.of("America/Sao_Paulo");

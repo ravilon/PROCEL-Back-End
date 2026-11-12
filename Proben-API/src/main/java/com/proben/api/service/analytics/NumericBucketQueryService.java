@@ -19,6 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de numeric bucket query.
+ */
 @Service
 public class NumericBucketQueryService {
     private final JdbcTemplate jdbcTemplate;

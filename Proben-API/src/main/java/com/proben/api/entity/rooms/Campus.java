@@ -10,6 +10,9 @@ import java.math.BigDecimal;
         @UniqueConstraint(name = "ux_campus_nome", columnNames = {"nome"})
     }
 )
+/**
+ * Componente de campus usado pelo modulo API.
+ */
 public class Campus {
     @Id
     @Column(name = "nome", nullable = false, length = 255)

@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST responsavel pelas operacoes de auth.
+ */
 @RestController
 @RequestMapping("/api/auth")
 @Tag(name = "Auth", description = "Autenticacao e emissao de JWT.")

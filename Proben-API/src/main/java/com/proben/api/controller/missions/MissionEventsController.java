@@ -27,6 +27,9 @@ import java.util.UUID;
         name = "Mission Events",
         description = "Catalogo persistente de definicoes de eventos de missoes e suas condicoes."
 )
+/**
+ * Controlador REST responsavel pelas operacoes de mission events.
+ */
 public class MissionEventsController {
 
     private final EventoDefinicaoService service;

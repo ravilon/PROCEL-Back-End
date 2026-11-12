@@ -10,6 +10,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controlador REST responsavel pelas operacoes de pessoas.
+ */
 @RestController
 @RequestMapping("/api/pessoas")
 @Tag(name = "Pessoas", description = "Cadastro e consulta de pessoas/usuarios da API.")

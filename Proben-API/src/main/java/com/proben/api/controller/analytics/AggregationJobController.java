@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de aggregation job.
+ */
 @RestController
 @RequestMapping("/api/analytics/aggregation-jobs")
 @Tag(name = "Analytics", description = "Orquestracao assincrona de agregacoes por periodo.")

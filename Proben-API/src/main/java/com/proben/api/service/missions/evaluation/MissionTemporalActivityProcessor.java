@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Componente de mission temporal activity processor usado pelo modulo API.
+ */
 @Service
 public class MissionTemporalActivityProcessor {
     private final MissionEvaluationProperties properties;

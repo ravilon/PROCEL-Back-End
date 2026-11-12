@@ -8,6 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 
+/**
+ * Componente de canonical measurement window scanner usado pelo modulo API.
+ */
 @Service
 public class CanonicalMeasurementWindowScanner implements AggregationWindowProcessor {
     private final JdbcTemplate jdbcTemplate;

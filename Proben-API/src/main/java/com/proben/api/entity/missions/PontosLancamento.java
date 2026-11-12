@@ -22,17 +22,20 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "xp_lancamento",
+        name = "pontos_lancamento",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_xp_lancamento_chave_idempotencia", columnNames = "chave_idempotencia")
+                @UniqueConstraint(name = "uk_pontos_lancamento_chave_idempotencia", columnNames = "chave_idempotencia")
         },
         indexes = {
-                @Index(name = "ix_xp_lancamento_pessoa_created_at", columnList = "pessoa_id,created_at"),
-                @Index(name = "ix_xp_lancamento_atividade", columnList = "atividade_id"),
-                @Index(name = "ix_xp_lancamento_evento_ocorrencia", columnList = "evento_ocorrencia_id")
+                @Index(name = "ix_pontos_lancamento_pessoa_created_at", columnList = "pessoa_id,created_at"),
+                @Index(name = "ix_pontos_lancamento_atividade", columnList = "atividade_id"),
+                @Index(name = "ix_pontos_lancamento_evento_ocorrencia", columnList = "evento_ocorrencia_id")
         }
 )
-public class XpLancamento {
+/**
+ * Componente de pontos lancamento usado pelo modulo API.
+ */
+public class PontosLancamento {
 
     public static final String AUTO_COMPLETION_CREATED_BY = "SYSTEM_AUTO_COMPLETION";
 
@@ -42,27 +45,27 @@ public class XpLancamento {
     private UUID id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "pessoa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_xp_lancamento_pessoa"))
+    @JoinColumn(name = "pessoa_id", nullable = false, foreignKey = @ForeignKey(name = "fk_pontos_lancamento_pessoa"))
     private Pessoa pessoa;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "atividade_id", nullable = false, foreignKey = @ForeignKey(name = "fk_xp_lancamento_atividade"))
+    @JoinColumn(name = "atividade_id", nullable = false, foreignKey = @ForeignKey(name = "fk_pontos_lancamento_atividade"))
     private Atividade atividade;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "missao_id", nullable = false, foreignKey = @ForeignKey(name = "fk_xp_lancamento_missao"))
+    @JoinColumn(name = "missao_id", nullable = false, foreignKey = @ForeignKey(name = "fk_pontos_lancamento_missao"))
     private Missao missao;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "evento_ocorrencia_id", foreignKey = @ForeignKey(name = "fk_xp_lancamento_evento_ocorrencia"))
+    @JoinColumn(name = "evento_ocorrencia_id", foreignKey = @ForeignKey(name = "fk_pontos_lancamento_evento_ocorrencia"))
     private EventoOcorrencia eventoOcorrencia;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tipo", nullable = false, length = 30)
-    private XpLancamentoTipo tipo;
+    private PontosLancamentoTipo tipo;
 
-    @Column(name = "quantidade", nullable = false)
-    private int quantidade;
+    @Column(name = "pontos", nullable = false)
+    private int pontos;
 
     @Column(name = "chave_idempotencia", nullable = false, length = 200)
     private String chaveIdempotencia;
@@ -76,27 +79,27 @@ public class XpLancamento {
     @Column(name = "created_by", length = 120)
     private String createdBy;
 
-    protected XpLancamento() {}
+    protected PontosLancamento() {}
 
-    public XpLancamento(
+    public PontosLancamento(
             Pessoa pessoa,
             Atividade atividade,
             Missao missao,
             EventoOcorrencia eventoOcorrencia,
-            XpLancamentoTipo tipo,
-            int quantidade,
+            PontosLancamentoTipo tipo,
+            int pontos,
             String chaveIdempotencia,
             String descricao,
             Instant createdAt,
             String createdBy
     ) {
-        validate(tipo, quantidade);
+        validate(tipo, pontos);
         this.pessoa = pessoa;
         this.atividade = atividade;
         this.missao = missao;
         this.eventoOcorrencia = eventoOcorrencia;
         this.tipo = tipo;
-        this.quantidade = quantidade;
+        this.pontos = pontos;
         this.chaveIdempotencia = requireText(chaveIdempotencia, "chaveIdempotencia");
         this.descricao = blankToNull(descricao);
         this.createdAt = createdAt == null ? Instant.now() : createdAt;
@@ -108,8 +111,8 @@ public class XpLancamento {
     public Atividade getAtividade() { return atividade; }
     public Missao getMissao() { return missao; }
     public EventoOcorrencia getEventoOcorrencia() { return eventoOcorrencia; }
-    public XpLancamentoTipo getTipo() { return tipo; }
-    public int getQuantidade() { return quantidade; }
+    public PontosLancamentoTipo getTipo() { return tipo; }
+    public int getPontos() { return pontos; }
     public String getChaveIdempotencia() { return chaveIdempotencia; }
     public String getDescricao() { return descricao; }
     public Instant getCreatedAt() { return createdAt; }
@@ -118,17 +121,17 @@ public class XpLancamento {
     @PreUpdate
     @PreRemove
     void preventMutation() {
-        throw new UnsupportedOperationException("XpLancamento is append-only");
+        throw new UnsupportedOperationException("PontosLancamento is append-only");
     }
 
-    private static void validate(XpLancamentoTipo tipo, int quantidade) {
+    private static void validate(PontosLancamentoTipo tipo, int pontos) {
         if (tipo == null) throw new IllegalArgumentException("tipo is required");
-        if (quantidade == 0) throw new IllegalArgumentException("quantidade must not be zero");
-        if (tipo == XpLancamentoTipo.CONCESSAO && quantidade < 0) {
-            throw new IllegalArgumentException("CONCESSAO requires positive quantidade");
+        if (pontos == 0) throw new IllegalArgumentException("pontos must not be zero");
+        if (tipo == PontosLancamentoTipo.CONCESSAO && pontos < 0) {
+            throw new IllegalArgumentException("CONCESSAO requires positive pontos");
         }
-        if (tipo == XpLancamentoTipo.ESTORNO && quantidade > 0) {
-            throw new IllegalArgumentException("ESTORNO requires negative quantidade");
+        if (tipo == PontosLancamentoTipo.ESTORNO && pontos > 0) {
+            throw new IllegalArgumentException("ESTORNO requires negative pontos");
         }
     }
 

@@ -18,6 +18,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de aulas sync.
+ */
 @RestController
 @RequestMapping("/api/rooms/aulas/sync")
 @Tag(name = "Rooms", description = "Sincronizacao de salas e suas aulas.")

@@ -12,6 +12,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.WeekFields;
 
+/**
+ * Componente de mission cycle key factory usado pelo modulo API.
+ */
 @Component
 public class MissionCycleKeyFactory {
 

@@ -17,6 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensors seed.
+ */
 @Service
 public class SensorsSeedService {
 

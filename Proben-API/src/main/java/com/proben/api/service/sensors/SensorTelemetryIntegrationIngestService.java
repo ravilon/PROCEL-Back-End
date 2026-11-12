@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensor telemetry integration ingest.
+ */
 @Service
 public class SensorTelemetryIntegrationIngestService {
     private final SensorIntegrationProfileRepository profileRepo;

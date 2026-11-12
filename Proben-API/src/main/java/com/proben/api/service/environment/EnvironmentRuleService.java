@@ -26,6 +26,9 @@ import java.time.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
+/**
+ * Servico que implementa as operacoes de negocio de environment rule.
+ */
 @Service
 public class EnvironmentRuleService {
     public static final String TEN_MINUTES_PRESET = "0 */10 * * * *";

@@ -29,6 +29,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_condicao_parametro", columnList = "parametro_def_id")
         }
 )
+/**
+ * Componente de evento condicao usado pelo modulo API.
+ */
 public class EventoCondicao {
 
     @Id

@@ -10,7 +10,7 @@ Enquanto a janela esta aberta, medicoes do mesmo contexto temporal atualizam `ul
 
 No processamento do fechamento, o worker temporal reclama a janela por lease, reconstrui os fatos do PostgreSQL no intervalo semiaberto e avalia o ultimo fato de cada parametro requerido. `ALL` exige que todos os parametros obrigatorios estejam satisfeitos no ultimo fato observado dentro do intervalo; `ANY` exige pelo menos um. Condicoes opcionais sao registradas como evidencia quando ha fato correspondente, mas nao decidem a ocorrencia.
 
-Se a avaliacao confirmar, a ocorrencia usa chave idempotente `event:{eventoId}:window:{janelaId}`, recebe snapshot auditavel e evidencias `CONDICAO` dos fatos usados. Atividades, progresso, conclusao e XP so sao aplicados quando `proben.missions.evaluation.temporal-windows.activities-enabled=true`; com a flag desabilitada, a ocorrencia permanece `CONFIRMADO`.
+Se a avaliacao confirmar, a ocorrencia usa chave idempotente `event:{eventoId}:window:{janelaId}`, recebe snapshot auditavel e evidencias `CONDICAO` dos fatos usados. Atividades, progresso, conclusao e pontos so sao aplicados quando `proben.missions.evaluation.temporal-windows.activities-enabled=true`; com a flag desabilitada, a ocorrencia permanece `CONFIRMADO`.
 
 ## Fora desta etapa
 

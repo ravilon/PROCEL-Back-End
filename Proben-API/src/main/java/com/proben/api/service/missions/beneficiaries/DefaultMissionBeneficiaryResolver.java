@@ -7,6 +7,9 @@ import java.time.Instant;
 import java.util.LinkedHashSet;
 import java.util.List;
 
+/**
+ * Componente de default mission beneficiary resolver usado pelo modulo API.
+ */
 @Component
 public class DefaultMissionBeneficiaryResolver implements MissionBeneficiaryResolver {
 

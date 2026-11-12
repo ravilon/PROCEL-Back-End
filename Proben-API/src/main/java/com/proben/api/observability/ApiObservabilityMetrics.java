@@ -10,6 +10,9 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.function.Supplier;
 
+/**
+ * Componente de api observability metrics usado pelo modulo API.
+ */
 @Component
 public class ApiObservabilityMetrics {
     private final MeterRegistry registry;
@@ -94,23 +97,23 @@ public class ApiObservabilityMetrics {
         counter("proben.missions.activity.processing.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
     }
 
-    public void missionXpGranted() {
-        counter("proben.missions.xp.granted").increment();
+    public void missionPointsGranted() {
+        counter("proben.missions.points.granted").increment();
     }
 
-    public void missionXpAmount(int amount) {
-        DistributionSummary.builder("proben.missions.xp.amount")
-                .description("XP amount granted by automatic mission completion")
+    public void missionPointsAmount(int amount) {
+        DistributionSummary.builder("proben.missions.points.amount")
+                .description("Points granted by automatic mission completion")
                 .register(registry)
                 .record(Math.max(0, amount));
     }
 
-    public void missionXpDuplicate() {
-        counter("proben.missions.xp.duplicates").increment();
+    public void missionPointsDuplicate() {
+        counter("proben.missions.points.duplicates").increment();
     }
 
-    public void missionXpFailure(String type) {
-        counter("proben.missions.xp.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
+    public void missionPointsFailure(String type) {
+        counter("proben.missions.points.failures", "type", type == null || type.isBlank() ? "unknown" : type).increment();
     }
 
     public void droolsCompilation(String mode, Duration duration) {
@@ -206,7 +209,7 @@ public class ApiObservabilityMetrics {
 
     public void environmentRulePoints(long amount) {
         DistributionSummary.builder("proben.environment.rules.points")
-                .description("XP granted by environment rules")
+                .description("Points granted by environment rules")
                 .register(registry)
                 .record(Math.max(0, amount));
     }

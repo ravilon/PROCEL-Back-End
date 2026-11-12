@@ -1,5 +1,9 @@
 package com.proben.api.service.rooms;
 
+/**
+ * Componente de rooms ingestion result usado pelo modulo API.
+ */
+
 public class RoomsIngestionResult {
 
     private int fetched;

@@ -13,6 +13,9 @@ import java.util.UUID;
                 @Index(name = "idx_sensor_grupo_regra_grupo", columnList = "grupo_regra_id")
         }
 )
+/**
+ * Componente de sensor grupo regra usado pelo modulo API.
+ */
 public class SensorGrupoRegra {
 
     @Id

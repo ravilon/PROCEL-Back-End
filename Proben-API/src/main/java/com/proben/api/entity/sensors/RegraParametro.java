@@ -14,6 +14,9 @@ import java.util.UUID;
                 @Index(name = "idx_regra_parametro_ativo", columnList = "ativo")
         }
 )
+/**
+ * Componente de regra parametro usado pelo modulo API.
+ */
 public class RegraParametro {
 
     @Id

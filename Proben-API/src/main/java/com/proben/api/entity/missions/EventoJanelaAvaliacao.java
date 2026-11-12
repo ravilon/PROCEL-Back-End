@@ -37,6 +37,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_janela_evento_compartimento", columnList = "evento_definicao_id,compartimento_id,inicio_em")
         }
 )
+/**
+ * Componente de evento janela avaliacao usado pelo modulo API.
+ */
 public class EventoJanelaAvaliacao {
 
     @Id

@@ -18,6 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Servico que implementa as operacoes de negocio de rooms ingestion.
+ */
 @Service
 @Transactional
 public class RoomsIngestionService {

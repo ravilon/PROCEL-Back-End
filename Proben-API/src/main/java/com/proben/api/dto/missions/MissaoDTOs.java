@@ -7,6 +7,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de missao.
+ */
+
 public class MissaoDTOs {
 
         @Schema(description = "Dados para criacao de um modelo de missao.")
@@ -14,7 +18,7 @@ public class MissaoDTOs {
                         @Schema(description = "Titulo da missao.", example = "Inspecionar ocupacao da Sala 2") String titulo,
                         @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String descricao,
                         @Schema(description = "Tipo da missao. Se omitido, usa Individual.", example = "Individual") String tipo,
-                        @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
+                        @Schema(description = "Quantidade de pontos concedida pela missao.", example = "20") Integer pontos,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas. Se omitido, usa true.", example = "true") Boolean ativo,
                         @Schema(description = "Missao pai opcional.") UUID parentId,
                         @Schema(description = "Tipo de ciclo da missao. Se omitido, usa UNICA.", example = "UNICA") MissaoCicloTipo cicloTipo,
@@ -27,7 +31,7 @@ public class MissaoDTOs {
                         @Schema(description = "Titulo da missao.", example = "Inspecionar ocupacao da Sala 2") String titulo,
                         @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String descricao,
                         @Schema(description = "Tipo da missao.", example = "Individual") String tipo,
-                        @Schema(description = "Pontuacao de XP da missao. Informe apenas o valor numerico.", example = "20") Integer value,
+                        @Schema(description = "Quantidade de pontos concedida pela missao.", example = "20") Integer pontos,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") Boolean ativo,
                         @Schema(description = "Missao pai opcional. Envie null para tornar a missao raiz.") UUID parentId,
                         @Schema(description = "Tipo de ciclo da missao.", example = "DIARIA") MissaoCicloTipo cicloTipo,
@@ -41,7 +45,7 @@ public class MissaoDTOs {
                         @Schema(description = "Titulo da missao.", example = "Inspecionar ocupacao da Sala 2") String titulo,
                         @Schema(description = "Descricao detalhada da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String descricao,
                         @Schema(description = "Tipo da missao.", example = "Individual") String tipo,
-                        @Schema(description = "Pontuacao de XP da missao.", example = "20") int value,
+                        @Schema(description = "Quantidade de pontos concedida pela missao.", example = "20") int pontos,
                         @Schema(description = "Indica se a missao pode ser atribuida a pessoas.", example = "true") boolean ativo,
                         @Schema(description = "Instante de criacao.", example = "2026-05-11T21:30:00Z") Instant createdAt,
                         @Schema(description = "Identificador da missao pai.") UUID parentId,
@@ -74,7 +78,7 @@ public class MissaoDTOs {
                         @Schema(description = "Titulo da missao.", example = "Inspecionar ocupacao da Sala 2") String missaoTitulo,
                         @Schema(description = "Descricao da missao.", example = "Verificar sensores e presenca atual antes do fechamento do turno.") String missaoDescricao,
                         @Schema(description = "Tipo da missao.", example = "Individual") String missaoTipo,
-                        @Schema(description = "Pontuacao XP da missao.", example = "20") int missaoValue,
+                        @Schema(description = "Quantidade de pontos concedida pela missao.", example = "20") int missaoPontos,
                         @Schema(description = "Missao pai, quando houver.") UUID missaoParentId,
                         @Schema(description = "Status da atividade.", example = "PENDENTE") AtividadeStatus status,
                         @Schema(description = "Quantidade de atividades filhas diretas.") int totalFilhas,

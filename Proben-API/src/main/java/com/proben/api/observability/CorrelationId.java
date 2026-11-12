@@ -5,6 +5,10 @@ import org.slf4j.MDC;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+/**
+ * Componente de correlation id usado pelo modulo API.
+ */
+
 public final class CorrelationId {
     public static final String HEADER = "X-Correlation-ID";
     public static final String MDC_KEY = "correlationId";

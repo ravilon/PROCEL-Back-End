@@ -10,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Componente de sensor ingest duplicate reader usado pelo modulo API.
+ */
 @Service
 public class SensorIngestDuplicateReader {
     private final MedicaoIngestaoMetadataRepository metadataRepo;

@@ -11,6 +11,10 @@ import java.util.Collection;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de sensor integration parser version.
+ */
+
 public interface SensorIntegrationParserVersionRepository extends JpaRepository<SensorIntegrationParserVersion, UUID> {
     List<SensorIntegrationParserVersion> findAllByProfile_IdOrderByVersionDesc(UUID profileId);
     Optional<SensorIntegrationParserVersion> findByProfile_IdAndStatus(UUID profileId, SensorIntegrationParserStatus status);

@@ -59,7 +59,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
     void setup() {
         jdbc.execute("drop trigger if exists test_delay_env_completion on regra_ambiente_execucao");
         jdbc.execute("drop function if exists test_delay_env_completion()");
-        jdbc.update("delete from xp_lancamento where origem='ENVIRONMENT_RULE'");
+        jdbc.update("delete from pontos_lancamento where origem='ENVIRONMENT_RULE'");
         jdbc.update("delete from regra_ambiente_execucao");
         jdbc.update("delete from regra_ambiente");
         String suffix = UUID.randomUUID().toString();
@@ -166,7 +166,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
     }
 
     @Test
-    void retryLimitProducesPermanentFailureWithoutStuckLeaseOrXp() {
+    void retryLimitProducesPermanentFailureWithoutStuckLeaseOrPoints() {
         var execution = service.manual(rule().id(), room, Instant.now().minusSeconds(1));
         jdbc.update("update regra_ambiente_execucao set regra_snapshot='{}'::jsonb where id=?", execution.id());
         EnvironmentRuleWorker worker = worker(2);
@@ -179,7 +179,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
         assertThat(failed.attempts()).isEqualTo(2);
         assertThat(failed.leaseUntil()).isNull();
         assertThat(jdbc.queryForObject("select lease_token is null from regra_ambiente_execucao where id=?", Boolean.class, execution.id())).isTrue();
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, execution.id())).isZero();
     }
 
     @Test
@@ -210,7 +210,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
         assertThat(execution.status()).isEqualTo("COMPLETED");
         assertThat(execution.resultado()).isEqualTo("SKIPPED_NO_DATA");
         assertThat(execution.pontosCalculados()).isZero();
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=?", Integer.class, pending.id())).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=?", Integer.class, pending.id())).isZero();
     }
 
     @Test
@@ -227,7 +227,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
     }
 
     @Test
-    void canonicalXpIdempotencyConstraintHoldsUnderConcurrentInserts() throws Exception {
+    void canonicalPointsIdempotencyConstraintHoldsUnderConcurrentInserts() throws Exception {
         var execution = service.manual(rule().id(), room, Instant.now().minusSeconds(1));
         jdbc.update("insert into pessoa(id,email,nome,password,created_at) values ('concurrent-beneficiary',?,'Concurrent','test',now())", UUID.randomUUID() + "@test.local");
         CountDownLatch start = new CountDownLatch(1);
@@ -235,7 +235,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
             var insert = (java.util.concurrent.Callable<Boolean>) () -> {
                 start.await();
                 try {
-                    return jdbc.update("insert into xp_lancamento(pessoa_id,tipo,quantidade,chave_idempotencia,origem,regra_ambiente_execucao_id,compartimento_id) values ('concurrent-beneficiary','CONCESSAO',5,?,'ENVIRONMENT_RULE',?,?)", "xp:environment:" + execution.id() + ":concurrent-beneficiary", execution.id(), room) == 1;
+                    return jdbc.update("insert into pontos_lancamento(pessoa_id,tipo,pontos,chave_idempotencia,origem,regra_ambiente_execucao_id,compartimento_id) values ('concurrent-beneficiary','CONCESSAO',5,?,'ENVIRONMENT_RULE',?,?)", "pontos:ambiente:" + execution.id() + ":concurrent-beneficiary", execution.id(), room) == 1;
                 } catch (org.springframework.dao.DataIntegrityViolationException ignored) {
                     return false;
                 }
@@ -245,7 +245,7 @@ class EnvironmentRuleWorkerConcurrencyIntegrationTest {
             start.countDown();
             assertThat(List.of(left.get(10, TimeUnit.SECONDS), right.get(10, TimeUnit.SECONDS))).containsExactlyInAnyOrder(true, false);
         }
-        assertThat(jdbc.queryForObject("select count(*) from xp_lancamento where regra_ambiente_execucao_id=? and pessoa_id='concurrent-beneficiary'", Integer.class, execution.id())).isEqualTo(1);
+        assertThat(jdbc.queryForObject("select count(*) from pontos_lancamento where regra_ambiente_execucao_id=? and pessoa_id='concurrent-beneficiary'", Integer.class, execution.id())).isEqualTo(1);
     }
 
     private EnvironmentRuleWorker worker(int attempts) {

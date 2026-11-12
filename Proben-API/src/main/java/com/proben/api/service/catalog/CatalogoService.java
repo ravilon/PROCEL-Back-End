@@ -27,6 +27,9 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Servico que implementa as operacoes de negocio de catalogo.
+ */
 @Service
 public class CatalogoService {
 

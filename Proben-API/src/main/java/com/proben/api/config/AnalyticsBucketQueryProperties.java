@@ -4,6 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 
+/**
+ * Propriedades de configuracao de analytics bucket query.
+ */
 @ConfigurationProperties(prefix = "proben.analytics.buckets")
 public class AnalyticsBucketQueryProperties {
     private Duration maxPeriod = Duration.ofDays(366);

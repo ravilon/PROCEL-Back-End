@@ -3,6 +3,9 @@ package com.proben.api.security;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Componente de bcrypt password hasher usado pelo modulo API.
+ */
 @Component
 public class BcryptPasswordHasher implements PasswordHasher {
 

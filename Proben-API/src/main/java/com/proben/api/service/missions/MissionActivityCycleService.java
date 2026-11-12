@@ -23,6 +23,9 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de mission activity cycle.
+ */
 @Service
 public class MissionActivityCycleService {
 

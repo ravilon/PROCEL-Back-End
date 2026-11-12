@@ -105,7 +105,7 @@ const mission: Missao = {
   titulo: "Economia de energia",
   descricao: "Reduzir consumo",
   tipo: "Individual",
-  value: 10,
+  pontos: 10,
   ativo: true,
   createdAt: "2026-09-14T10:00:00Z",
 };

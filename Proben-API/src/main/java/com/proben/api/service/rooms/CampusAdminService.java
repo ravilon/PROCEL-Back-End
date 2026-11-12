@@ -9,6 +9,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de campus admin.
+ */
 @Service
 public class CampusAdminService {
     private final CampusRepository repository;

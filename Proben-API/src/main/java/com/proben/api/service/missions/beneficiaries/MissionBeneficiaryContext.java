@@ -6,6 +6,10 @@ import com.proben.api.service.academic.AcademicContext;
 
 import java.util.Optional;
 
+/**
+ * Componente de mission beneficiary context usado pelo modulo API.
+ */
+
 public record MissionBeneficiaryContext(
         EventoPoliticaAtribuicao politicaAtribuicao,
         EventoOcorrencia eventoOcorrencia,

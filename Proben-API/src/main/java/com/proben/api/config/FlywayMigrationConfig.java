@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.sql.DataSource;
 
+/**
+ * Configuracao de componentes e infraestrutura de flyway migration.
+ */
 @Configuration
 public class FlywayMigrationConfig {
 

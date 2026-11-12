@@ -1,44 +1,48 @@
 package com.proben.api.dto.people;
 
-import com.proben.api.entity.missions.XpLancamentoTipo;
+import com.proben.api.entity.missions.PontosLancamentoTipo;
 import org.springframework.data.domain.Page;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-public final class XpDTOs {
-    private XpDTOs() {}
+/**
+ * Definicoes dos objetos de transferencia de dados de pontos.
+ */
 
-    public record XpSaldoResponse(
+public final class PontosDTOs {
+    private PontosDTOs() {}
+
+    public record PontosSaldoResponse(
             String pessoaId,
-            long saldoTotal,
-            long totalConcedido,
-            long totalEstornado,
-            long totalAjustado
+            long saldoTotalPontos,
+            long totalConcedidoPontos,
+            long totalEstornadoPontos,
+            long totalAjustadoPontos
     ) {}
 
-    public record XpLancamentoResponse(
+    public record PontosLancamentoResponse(
             UUID id,
             UUID atividadeId,
             UUID missaoId,
             String missaoTitulo,
             UUID eventoOcorrenciaId,
-            XpLancamentoTipo tipo,
-            int quantidade,
+            PontosLancamentoTipo tipo,
+            int pontos,
             String descricao,
             Instant createdAt
     ) {}
 
-    public record XpLancamentosPageResponse(
-            List<XpLancamentoResponse> content,
+    public record PontosLancamentosPageResponse(
+            List<PontosLancamentoResponse> content,
             int page,
             int size,
             long totalElements,
             int totalPages
     ) {
-        public static XpLancamentosPageResponse from(Page<XpLancamentoResponse> page) {
-            return new XpLancamentosPageResponse(
+        public static PontosLancamentosPageResponse from(Page<PontosLancamentoResponse> page) {
+            return new PontosLancamentosPageResponse(
                     page.getContent(),
                     page.getNumber(),
                     page.getSize(),

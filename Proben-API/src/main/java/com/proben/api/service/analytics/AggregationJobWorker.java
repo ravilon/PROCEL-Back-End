@@ -15,6 +15,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Processador em segundo plano responsavel por aggregation job.
+ */
 @Service
 public class AggregationJobWorker {
     private static final Logger log = LoggerFactory.getLogger(AggregationJobWorker.class);

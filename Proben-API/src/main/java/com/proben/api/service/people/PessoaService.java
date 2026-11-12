@@ -14,6 +14,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Servico que implementa as operacoes de negocio de pessoa.
+ */
 @Service
 public class PessoaService {
 

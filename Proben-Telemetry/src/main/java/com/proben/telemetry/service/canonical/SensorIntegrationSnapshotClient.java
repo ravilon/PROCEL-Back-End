@@ -12,6 +12,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Instant;
 
+/**
+ * Cliente de integracao para comunicacao com sensor integration snapshot.
+ */
 @Service
 public class SensorIntegrationSnapshotClient {
     private final ObjectMapper objectMapper;

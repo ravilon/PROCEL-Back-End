@@ -2,6 +2,10 @@ package com.proben.api.exception;
 
 import org.springframework.http.HttpStatus;
 
+/**
+ * Excecao que representa falhas relacionadas a api status.
+ */
+
 public class ApiStatusException extends RuntimeException {
     private final HttpStatus status;
     private final String error;

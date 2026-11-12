@@ -43,10 +43,10 @@
 | OK | POST /api/missoes | 354 ms |  |
 | OK | POST /api/missoes returns active mission | 0 ms |  |
 | OK | POST /api/missoes returns Individual type | 0 ms |  |
-| OK | POST /api/missoes returns numeric XP value | 0 ms |  |
+| OK | POST /api/missoes returns numeric pontos value | 0 ms |  |
 | OK | POST /api/missoes (inactive) | 308 ms |  |
 | OK | POST /api/missoes inactive returns Individual type | 0 ms |  |
-| OK | POST /api/missoes inactive returns numeric XP value | 0 ms |  |
+| OK | POST /api/missoes inactive returns numeric pontos value | 0 ms |  |
 | OK | GET /api/missoes?ativo=true | 365 ms |  |
 | OK | GET /api/missoes?ativo=true includes created mission | 0 ms |  |
 | OK | GET /api/missoes?ativo=false | 327 ms |  |
@@ -56,11 +56,11 @@
 | OK | GET /api/missoes/8dafbc1e-2499-4354-9cf1-a9245be4fa9e | 295 ms |  |
 | OK | GET /api/missoes/{missaoId} returns requested mission | 0 ms |  |
 | OK | GET /api/missoes/{missaoId} returns Individual type | 0 ms |  |
-| OK | GET /api/missoes/{missaoId} returns numeric XP value | 0 ms |  |
+| OK | GET /api/missoes/{missaoId} returns numeric pontos value | 0 ms |  |
 | OK | PUT /api/missoes/8dafbc1e-2499-4354-9cf1-a9245be4fa9e | 305 ms |  |
 | OK | PUT /api/missoes/{missaoId} updates title | 0 ms |  |
 | OK | PUT /api/missoes/{missaoId} keeps Individual type | 0 ms |  |
-| OK | PUT /api/missoes/{missaoId} updates numeric XP value | 0 ms |  |
+| OK | PUT /api/missoes/{missaoId} updates numeric pontos value | 0 ms |  |
 | OK | POST /api/pessoas/api-test-user/atividades rejects inactive missao | 314 ms | failed as expected (HTTP 409) |
 | OK | POST /api/pessoas/api-test-user/atividades | 344 ms |  |
 | OK | POST /api/pessoas/{pessoaId}/atividades returns PENDENTE activity | 0 ms |  |

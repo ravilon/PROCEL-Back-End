@@ -4,6 +4,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Componente de mission rule evaluation result usado pelo modulo API.
+ */
+
 public record MissionRuleEvaluationResult(
         UUID eventDefinitionId,
         boolean matched,

@@ -21,6 +21,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensor admin.
+ */
 @Service
 public class SensorAdminService {
 

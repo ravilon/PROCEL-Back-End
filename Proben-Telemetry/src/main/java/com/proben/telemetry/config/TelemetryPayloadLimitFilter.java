@@ -17,6 +17,9 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * Filtro da aplicacao responsavel por telemetry payload limit.
+ */
 @Component
 public class TelemetryPayloadLimitFilter extends OncePerRequestFilter {
     private final TelemetryProperties properties;

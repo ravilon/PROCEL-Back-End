@@ -11,6 +11,9 @@ import java.math.BigDecimal;
         @Index(name = "idx_compartimento_unidade_id", columnList = "unidade_id")
     }
 )
+/**
+ * Componente de compartimento usado pelo modulo API.
+ */
 public class Compartimento {
 
     /**

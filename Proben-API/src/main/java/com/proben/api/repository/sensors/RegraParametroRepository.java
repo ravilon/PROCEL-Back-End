@@ -6,6 +6,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de regra parametro.
+ */
+
 public interface RegraParametroRepository extends JpaRepository<RegraParametro, UUID> {
 
     List<RegraParametro> findAllByGrupoRegra_IdOrderByPrioridadeDescSeveridadeDesc(UUID grupoRegraId);

@@ -10,6 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de aluno disciplina.
+ */
+
 public interface AlunoDisciplinaRepository extends JpaRepository<AlunoDisciplina, UUID> {
 
     boolean existsByPessoaIdAndDisciplinaIdAndTurmaAndPeriodoLetivo(

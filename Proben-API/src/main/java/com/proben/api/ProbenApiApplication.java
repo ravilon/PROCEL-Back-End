@@ -10,6 +10,9 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import com.proben.api.integration.cobalto.CobaltoProperties;
 
 
+/**
+ * Componente de proben api application usado pelo modulo API.
+ */
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableConfigurationProperties(CobaltoProperties.class)

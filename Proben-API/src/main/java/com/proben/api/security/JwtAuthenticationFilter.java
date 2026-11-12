@@ -13,6 +13,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro da aplicacao responsavel por jwt authentication.
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 

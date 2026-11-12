@@ -3,6 +3,9 @@ package com.proben.api.service.rooms;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+/**
+ * Servico que implementa as operacoes de negocio de rooms sync.
+ */
 @Service
 public class RoomsSyncService {
 

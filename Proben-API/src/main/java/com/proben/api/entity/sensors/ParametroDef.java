@@ -17,6 +17,9 @@ import java.util.UUID;
         @Index(name = "idx_parametro_def_tipo_nome", columnList = "tipo_nome")
     }
 )
+/**
+ * Componente de parametro def usado pelo modulo API.
+ */
 public class ParametroDef {
 
     @Id

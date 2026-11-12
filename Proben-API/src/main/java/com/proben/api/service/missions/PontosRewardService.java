@@ -1,12 +1,12 @@
 package com.proben.api.service.missions;
 
 import com.proben.api.entity.missions.AtividadeStatus;
-import com.proben.api.entity.missions.XpLancamento;
-import com.proben.api.entity.missions.XpLancamentoTipo;
+import com.proben.api.entity.missions.PontosLancamento;
+import com.proben.api.entity.missions.PontosLancamentoTipo;
 import com.proben.api.exception.ConflictException;
 import com.proben.api.exception.NotFoundException;
 import com.proben.api.observability.ApiObservabilityMetrics;
-import com.proben.api.repository.missions.XpLancamentoRepository;
+import com.proben.api.repository.missions.PontosLancamentoRepository;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -17,19 +17,22 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de pontos reward.
+ */
 @Service
-public class XpRewardService {
+public class PontosRewardService {
 
-    private final XpLancamentoRepository xpLancamentoRepository;
+    private final PontosLancamentoRepository pontosLancamentoRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ApiObservabilityMetrics metrics;
 
-    public XpRewardService(
-            XpLancamentoRepository xpLancamentoRepository,
+    public PontosRewardService(
+            PontosLancamentoRepository pontosLancamentoRepository,
             JdbcTemplate jdbcTemplate,
             ApiObservabilityMetrics metrics
     ) {
-        this.xpLancamentoRepository = xpLancamentoRepository;
+        this.pontosLancamentoRepository = pontosLancamentoRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.metrics = metrics;
     }
@@ -41,15 +44,15 @@ public class XpRewardService {
 
         ActivityRewardData activity = loadActivityRewardData(atividadeId);
         if (activity.status() != AtividadeStatus.CONCLUIDA) {
-            metrics.missionXpFailure("activity_not_completed");
-            throw new ConflictException("XP reward requires completed activity id=" + atividadeId);
+            metrics.missionPointsFailure("activity_not_completed");
+            throw new ConflictException("pontos reward requires completed activity id=" + atividadeId);
         }
-        int value = activity.missaoValue();
-        if (value < 0) {
-            metrics.missionXpFailure("negative_mission_value");
-            throw new ConflictException("Missao reward value must not be negative id=" + activity.missaoId());
+        int pontos = activity.missaoPontos();
+        if (pontos < 0) {
+            metrics.missionPointsFailure("negative_mission_value");
+            throw new ConflictException("Mission points must not be negative id=" + activity.missaoId());
         }
-        if (value == 0) {
+        if (pontos == 0) {
             return GrantResult.skippedZero(atividadeId);
         }
 
@@ -57,46 +60,46 @@ public class XpRewardService {
         String key = automaticCompletionKey(atividadeId);
 
         try {
-            UUID insertedId = insertAutomaticGrant(activity, eventoOcorrenciaId, key, value, effectiveGrantedAt);
+            UUID insertedId = insertAutomaticGrant(activity, eventoOcorrenciaId, key, pontos, effectiveGrantedAt);
             if (insertedId != null) {
-                XpLancamento inserted = xpLancamentoRepository.findById(insertedId)
-                        .orElseThrow(() -> new NotFoundException("XpLancamento not found id=" + insertedId));
-                metrics.missionXpGranted();
-                metrics.missionXpAmount(value);
+                PontosLancamento inserted = pontosLancamentoRepository.findById(insertedId)
+                        .orElseThrow(() -> new NotFoundException("PontosLancamento not found id=" + insertedId));
+                metrics.missionPointsGranted();
+                metrics.missionPointsAmount(pontos);
                 return GrantResult.created(inserted);
             }
         } catch (DataIntegrityViolationException ex) {
-            metrics.missionXpFailure("constraint_conflict");
+            metrics.missionPointsFailure("constraint_conflict");
             throw automaticGrantConflict(atividadeId, ex);
         }
 
-        XpLancamento existing = xpLancamentoRepository.findByChaveIdempotencia(key)
-                .orElseThrow(() -> new ConflictException("XP idempotency key conflict without readable ledger entry"));
-        validateEquivalent(existing, activity, eventoOcorrenciaId, value);
-        metrics.missionXpDuplicate();
+        PontosLancamento existing = pontosLancamentoRepository.findByChaveIdempotencia(key)
+                .orElseThrow(() -> new ConflictException("pontos idempotency key conflict without readable ledger entry"));
+        validateEquivalent(existing, activity, eventoOcorrenciaId, pontos);
+        metrics.missionPointsDuplicate();
         return GrantResult.duplicate(existing);
     }
 
     public static String automaticCompletionKey(UUID atividadeId) {
         if (atividadeId == null) throw new IllegalArgumentException("atividadeId is required");
-        return "xp:activity:" + atividadeId + ":completion";
+        return "pontos:atividade:" + atividadeId + ":completion";
     }
 
     private UUID insertAutomaticGrant(
             ActivityRewardData activity,
             UUID eventoOcorrenciaId,
             String key,
-            int value,
+            int pontos,
             Instant grantedAt
     ) {
         var rows = jdbcTemplate.query("""
-                insert into xp_lancamento (
+                insert into pontos_lancamento (
                     pessoa_id,
                     atividade_id,
                     missao_id,
                     evento_ocorrencia_id,
                     tipo,
-                    quantidade,
+                    pontos,
                     chave_idempotencia,
                     descricao,
                     created_at,
@@ -111,12 +114,12 @@ public class XpRewardService {
                 activity.atividadeId(),
                 activity.missaoId(),
                 eventoOcorrenciaId,
-                XpLancamentoTipo.CONCESSAO.name(),
-                value,
+                PontosLancamentoTipo.CONCESSAO.name(),
+                pontos,
                 key,
                 "Conclusao automatica da missao " + activity.missaoTitulo(),
                 Timestamp.from(grantedAt),
-                XpLancamento.AUTO_COMPLETION_CREATED_BY
+                PontosLancamento.AUTO_COMPLETION_CREATED_BY
         );
         return rows.isEmpty() ? null : rows.getFirst();
     }
@@ -129,7 +132,7 @@ public class XpRewardService {
                     a.missao_id,
                     a.status,
                     m.titulo as missao_titulo,
-                    m.value as missao_value
+                    m.pontos as missao_pontos
                 from atividade a
                 join missao m on m.id = a.missao_id
                 where a.id = ?
@@ -140,7 +143,7 @@ public class XpRewardService {
                         rs.getObject("missao_id", UUID.class),
                         AtividadeStatus.valueOf(rs.getString("status")),
                         rs.getString("missao_titulo"),
-                        rs.getInt("missao_value")
+                        rs.getInt("missao_pontos")
                 ),
                 atividadeId
         );
@@ -165,32 +168,32 @@ public class XpRewardService {
     }
 
     private RuntimeException automaticGrantConflict(UUID atividadeId, DataIntegrityViolationException ex) {
-        return xpLancamentoRepository.findFirstByAtividadeIdAndTipoAndCreatedBy(
+        return pontosLancamentoRepository.findFirstByAtividadeIdAndTipoAndCreatedBy(
                         atividadeId,
-                        XpLancamentoTipo.CONCESSAO,
-                        XpLancamento.AUTO_COMPLETION_CREATED_BY
+                        PontosLancamentoTipo.CONCESSAO,
+                        PontosLancamento.AUTO_COMPLETION_CREATED_BY
                 )
-                .map(existing -> new ConflictException("Automatic completion XP already exists with divergent idempotency key for activity id=" + atividadeId))
-                .orElse(new ConflictException("XP ledger constraint conflict for activity id=" + atividadeId));
+                .map(existing -> new ConflictException("Automatic completion pontos already exists with divergent idempotency key for activity id=" + atividadeId))
+                .orElse(new ConflictException("pontos ledger constraint conflict for activity id=" + atividadeId));
     }
 
     private static void validateEquivalent(
-            XpLancamento existing,
+            PontosLancamento existing,
             ActivityRewardData activity,
             UUID eventoOcorrenciaId,
-            int value
+            int pontos
     ) {
         if (!Objects.equals(existing.getPessoa().getId(), activity.pessoaId())
                 || !Objects.equals(existing.getAtividade().getId(), activity.atividadeId())
                 || !Objects.equals(existing.getMissao().getId(), activity.missaoId())
                 || !Objects.equals(eventId(existing), eventoOcorrenciaId)
-                || existing.getQuantidade() != value
-                || existing.getTipo() != XpLancamentoTipo.CONCESSAO) {
-            throw new ConflictException("XP idempotency key reused with different reward content");
+                || existing.getPontos() != pontos
+                || existing.getTipo() != PontosLancamentoTipo.CONCESSAO) {
+            throw new ConflictException("pontos idempotency key reused with different reward content");
         }
     }
 
-    private static UUID eventId(XpLancamento lancamento) {
+    private static UUID eventId(PontosLancamento lancamento) {
         return lancamento.getEventoOcorrencia() == null ? null : lancamento.getEventoOcorrencia().getId();
     }
 
@@ -200,7 +203,7 @@ public class XpRewardService {
             UUID missaoId,
             AtividadeStatus status,
             String missaoTitulo,
-            int missaoValue
+            int missaoPontos
     ) {
     }
 
@@ -208,13 +211,13 @@ public class XpRewardService {
             boolean created,
             boolean duplicate,
             boolean skippedZeroValue,
-            XpLancamento lancamento
+            PontosLancamento lancamento
     ) {
-        static GrantResult created(XpLancamento lancamento) {
+        static GrantResult created(PontosLancamento lancamento) {
             return new GrantResult(true, false, false, lancamento);
         }
 
-        static GrantResult duplicate(XpLancamento lancamento) {
+        static GrantResult duplicate(PontosLancamento lancamento) {
             return new GrantResult(false, true, false, lancamento);
         }
 

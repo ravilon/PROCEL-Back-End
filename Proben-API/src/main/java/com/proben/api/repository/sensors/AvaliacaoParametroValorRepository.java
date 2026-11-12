@@ -7,6 +7,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de avaliacao parametro valor.
+ */
+
 public interface AvaliacaoParametroValorRepository extends JpaRepository<AvaliacaoParametroValor, UUID> {
 
     List<AvaliacaoParametroValor> findAllByParametroValor_IdIn(Collection<UUID> parametroValorIds);

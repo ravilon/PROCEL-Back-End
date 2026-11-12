@@ -29,6 +29,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_definicao_ativo", columnList = "ativo")
         }
 )
+/**
+ * Componente de evento definicao usado pelo modulo API.
+ */
 public class EventoDefinicao {
 
     @Id

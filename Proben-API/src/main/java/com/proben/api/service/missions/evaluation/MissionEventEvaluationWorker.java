@@ -15,6 +15,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Processador em segundo plano responsavel por mission event evaluation.
+ */
 @Service
 public class MissionEventEvaluationWorker {
     private static final Logger log = LoggerFactory.getLogger(MissionEventEvaluationWorker.class);

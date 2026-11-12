@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de sensor integration profile.
+ */
+
 public interface SensorIntegrationProfileRepository extends JpaRepository<SensorIntegrationProfile, UUID> {
     Optional<SensorIntegrationProfile> findByNome(String nome);
 

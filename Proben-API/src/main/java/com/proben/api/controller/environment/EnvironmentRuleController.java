@@ -11,6 +11,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de environment rule.
+ */
 @RestController
 @RequestMapping("/api/environment-rules")
 public class EnvironmentRuleController {

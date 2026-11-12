@@ -7,6 +7,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Propriedades de configuracao de telemetry.
+ */
 @Component
 @ConfigurationProperties(prefix = "proben.telemetry")
 public class TelemetryProperties {

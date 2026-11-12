@@ -96,7 +96,7 @@ class EventoJanelaAvaliacaoServiceTest {
                 values (?, ?, ?, ?, true)
                 """, sensorExternalId, "Sensor", tipoSensor, compartimentoId);
         jdbcTemplate.update("""
-                insert into missao (id, titulo, descricao, tipo, value, ativo, created_at)
+                insert into missao (id, titulo, descricao, tipo, pontos, ativo, created_at)
                 values (?, 'Missao', 'Descricao', 'Individual', 10, true, now())
                 """, missaoId);
         jdbcTemplate.update("""

@@ -26,6 +26,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_janela_evidencia_medicao", columnList = "medicao_id")
         }
 )
+/**
+ * Componente de evento janela evidencia usado pelo modulo API.
+ */
 public class EventoJanelaEvidencia {
 
     @Id

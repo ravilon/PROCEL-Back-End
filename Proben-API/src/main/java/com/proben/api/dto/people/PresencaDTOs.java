@@ -5,6 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de presenca.
+ */
+
 public class PresencaDTOs {
 
     @Schema(description = "Dados para check-in em um compartimento.")

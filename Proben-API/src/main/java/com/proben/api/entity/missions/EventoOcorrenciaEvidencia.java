@@ -27,6 +27,9 @@ import java.util.UUID;
                 @Index(name = "ix_evento_evidencia_parametro_valor", columnList = "parametro_valor_id")
         }
 )
+/**
+ * Componente de evento ocorrencia evidencia usado pelo modulo API.
+ */
 public class EventoOcorrenciaEvidencia {
 
     @Id

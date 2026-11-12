@@ -18,6 +18,9 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Filtro da aplicacao responsavel por sensor integration payload limit.
+ */
 @Component
 public class SensorIntegrationPayloadLimitFilter extends OncePerRequestFilter {
     private static final Pattern PROFILE_ROUTE = Pattern.compile("^/api/sensors/ingest/integrations/[^/]+$");

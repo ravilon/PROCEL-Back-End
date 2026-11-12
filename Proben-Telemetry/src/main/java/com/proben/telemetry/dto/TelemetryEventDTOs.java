@@ -7,6 +7,10 @@ import com.proben.telemetry.entity.TelemetrySource;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de telemetry event.
+ */
+
 public final class TelemetryEventDTOs {
     private TelemetryEventDTOs() {}
 

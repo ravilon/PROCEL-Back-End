@@ -38,6 +38,9 @@ import java.util.UUID;
                 )
         }
 )
+/**
+ * Componente de aluno disciplina usado pelo modulo API.
+ */
 public class AlunoDisciplina {
 
     @Id

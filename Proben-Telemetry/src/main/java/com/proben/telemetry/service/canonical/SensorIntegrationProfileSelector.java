@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Componente de sensor integration profile selector usado pelo modulo Telemetry.
+ */
 @Service
 public class SensorIntegrationProfileSelector {
     public CanonicalApiDTOs.ProfileSnapshot select(

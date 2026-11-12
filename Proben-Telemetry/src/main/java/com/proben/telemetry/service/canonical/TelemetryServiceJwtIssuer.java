@@ -14,6 +14,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Componente de telemetry service jwt issuer usado pelo modulo Telemetry.
+ */
 @Service
 public class TelemetryServiceJwtIssuer {
     static final String ROLE = "TELEMETRY_SERVICE";

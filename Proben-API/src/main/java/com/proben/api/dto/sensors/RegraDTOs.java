@@ -10,6 +10,10 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.List;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de regra.
+ */
+
 public class RegraDTOs {
 
     public record GrupoRegraRequest(

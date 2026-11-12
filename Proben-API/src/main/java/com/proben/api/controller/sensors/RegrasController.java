@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Controlador REST responsavel pelas operacoes de regras.
+ */
 @RestController
 @RequestMapping("/api/rules")
 @Tag(name = "Rules", description = "Cadastro de grupos de regras, regras por parametro e vinculos com sensores. Um grupo pode ter varias regras para o mesmo parametro, permitindo estados como luz ligada OK e luz desligada alerta.")

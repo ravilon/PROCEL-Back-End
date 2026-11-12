@@ -49,6 +49,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Componente de drools mission rule engine usado pelo modulo API.
+ */
+
 public class DroolsMissionRuleEngine implements MissionRuleEngine {
     private static final Comparator<DroolsMeasurementFact> FACT_ORDER = Comparator
             .comparing(

@@ -21,6 +21,9 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de aggregation job.
+ */
 @Service
 public class AggregationJobService {
     private final JdbcTemplate jdbcTemplate;

@@ -6,6 +6,10 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 
+/**
+ * Definicoes dos objetos de transferencia de dados de sensor telemetry ingest.
+ */
+
 public final class SensorTelemetryIngestDTOs {
     private SensorTelemetryIngestDTOs() {}
 

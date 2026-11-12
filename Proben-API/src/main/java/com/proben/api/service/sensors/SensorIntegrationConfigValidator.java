@@ -10,6 +10,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
 
+/**
+ * Componente de sensor integration config validator usado pelo modulo API.
+ */
 @Service
 public class SensorIntegrationConfigValidator {
     private final SensorIntegrationParserProperties properties;

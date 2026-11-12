@@ -19,6 +19,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensor ingestion.
+ */
 @Service
 @Transactional
 public class SensorIngestionService {

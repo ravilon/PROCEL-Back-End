@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
 
+/**
+ * Controlador REST responsavel pelas operacoes de telemetry admin.
+ */
 @RestController
 @RequestMapping("/api/telemetry/events")
 public class TelemetryAdminController {

@@ -14,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Componente de sensor canonical ingestion transaction usado pelo modulo API.
+ */
 @Service
 public class SensorCanonicalIngestionTransaction {
     private final SensorRepository sensorRepo;

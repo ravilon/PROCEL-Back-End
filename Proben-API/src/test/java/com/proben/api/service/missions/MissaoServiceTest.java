@@ -67,7 +67,7 @@ class MissaoServiceTest {
         when(mission.getTitulo()).thenReturn(title);
         when(mission.getDescricao()).thenReturn("");
         when(mission.getTipo()).thenReturn("Individual");
-        when(mission.getValue()).thenReturn(10);
+        when(mission.getPontos()).thenReturn(10);
         when(mission.isAtivo()).thenReturn(true);
         when(mission.getParent()).thenReturn(parent);
         return mission;

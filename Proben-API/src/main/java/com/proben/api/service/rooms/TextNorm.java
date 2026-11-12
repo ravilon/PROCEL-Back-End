@@ -2,10 +2,15 @@ package com.proben.api.service.rooms;
 
 import java.math.BigDecimal;
 
+/**
+ * Componente de text norm usado pelo modulo API.
+ */
+
 public final class TextNorm {
     private TextNorm() {}
 
     /** trim + collapse whitespace. Não muda caixa, não remove acentos. */
+
     public static String norm(String s) {
         if (s == null) return null;
         // NBSP -> space, trim, collapse whitespace

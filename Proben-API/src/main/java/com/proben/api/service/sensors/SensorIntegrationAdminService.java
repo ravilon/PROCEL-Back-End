@@ -14,6 +14,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensor integration admin.
+ */
 @Service
 public class SensorIntegrationAdminService {
     private final SensorIntegrationProfileRepository profileRepo;

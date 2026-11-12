@@ -3,6 +3,10 @@ package com.proben.api.service.environment;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/**
+ * Componente de adaptive comfort calculator usado pelo modulo API.
+ */
+
 public final class AdaptiveComfortCalculator {
     private AdaptiveComfortCalculator() {}
 

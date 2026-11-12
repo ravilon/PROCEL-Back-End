@@ -14,6 +14,9 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 
+/**
+ * Servico que implementa as operacoes de negocio de raw telemetry claim.
+ */
 @Service
 public class RawTelemetryClaimService {
     private final MongoTemplate mongoTemplate;

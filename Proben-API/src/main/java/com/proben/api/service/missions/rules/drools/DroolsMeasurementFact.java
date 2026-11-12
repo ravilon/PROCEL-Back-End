@@ -6,6 +6,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Componente de drools measurement fact usado pelo modulo API.
+ */
+
 public final class DroolsMeasurementFact {
     private final UUID medicaoId;
     private final UUID parametroValorId;

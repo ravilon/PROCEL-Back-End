@@ -80,8 +80,14 @@ Base local: `http://localhost:8080`
 | `/api/admin/missions/workers/status` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Flags, backlog e estado dos workers |
 | `/api/admin/missions/workers/evaluation/run` | POST | `ADMIN` | `200` | Execucao manual do worker de avaliacao |
 | `/api/admin/missions/workers/temporal-windows/run` | POST | `ADMIN` | `200` | Execucao manual do worker temporal |
-| `/api/pessoas/{pessoaId}/xp` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Saldo calculado pelo ledger |
-| `/api/pessoas/{pessoaId}/xp/lancamentos` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Extrato paginado e ordenado |
+| `/api/pessoas/{pessoaId}/pontos` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Saldo calculado pelo ledger |
+| `/api/pessoas/{pessoaId}/pontos/lancamentos` | GET | `ADMIN`, `OPERADOR` ou proprio usuario | `200` | Extrato paginado e ordenado |
+
+A resposta de saldo usa `saldoTotalPontos`, `totalConcedidoPontos`,
+`totalEstornadoPontos` e `totalAjustadoPontos`. Cada item do extrato expõe o
+montante como `pontos`. O catálogo de missões também recebe e retorna `pontos`
+no lugar do antigo campo `value`. O ledger é `pontos_lancamento`; saldo é
+calculado pela soma dos lançamentos.
 
 Erros comuns: `400` validacao, `401` ausente/invalido, `403` role insuficiente, `404` recurso inexistente, `409` conflito idempotente ou de estado, `422` payload semanticamente invalido.
 
@@ -183,9 +189,9 @@ derivados e sem recalcular media consolidada.
 Eventos instantaneos usam `SimpleMissionRuleEngine` por padrao. Janelas temporais
 e Drools permanecem opt-in por configuracao. Ocorrencias confirmadas registram
 snapshot e evidencias; os efeitos em atividades, progresso, conclusao automatica
-e XP sao idempotentes e usam constraints no PostgreSQL.
+e pontos sao idempotentes e usam constraints no PostgreSQL.
 
-`xp_lancamento` e append-only. O saldo retornado por `/api/pessoas/{pessoaId}/xp`
+`pontos_lancamento` e append-only. O saldo retornado por `/api/pessoas/{pessoaId}/pontos`
 e calculado pela soma de concessoes, estornos e ajustes existentes no ledger.
 
 ## Proben-Telemetry

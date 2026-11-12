@@ -4,6 +4,10 @@ import com.proben.api.entity.sensors.AvaliacaoResultado;
 
 import java.util.UUID;
 
+/**
+ * Componente de rule evaluation fact usado pelo modulo API.
+ */
+
 public record RuleEvaluationFact(
         UUID avaliacaoId,
         UUID regraId,

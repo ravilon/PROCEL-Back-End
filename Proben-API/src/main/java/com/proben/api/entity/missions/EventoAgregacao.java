@@ -2,6 +2,10 @@ package com.proben.api.entity.missions;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
+/**
+ * Componente de evento agregacao usado pelo modulo API.
+ */
+
 public enum EventoAgregacao {
     ULTIMO,
     PRIMEIRO,

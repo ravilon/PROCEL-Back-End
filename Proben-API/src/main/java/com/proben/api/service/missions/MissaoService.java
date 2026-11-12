@@ -18,6 +18,9 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Servico que implementa as operacoes de negocio de missao.
+ */
 @Service
 public class MissaoService {
 
@@ -39,7 +42,7 @@ public class MissaoService {
             throw new IllegalArgumentException("titulo is required");
 
         boolean ativo = req.ativo() == null || req.ativo();
-        Missao missao = new Missao(req.titulo().trim(), req.descricao(), req.tipo(), req.value(), ativo);
+        Missao missao = new Missao(req.titulo().trim(), req.descricao(), req.tipo(), req.pontos(), ativo);
         missao.setCicloTipo(req.cicloTipo());
         missao.setProgressoNecessario(req.progressoNecessario());
         missao.setConclusaoAutomatica(req.conclusaoAutomatica());
@@ -76,8 +79,8 @@ public class MissaoService {
             missao.setDescricao(req.descricao());
         if (req.tipo() != null)
             missao.setTipo(req.tipo());
-        if (req.value() != null)
-            missao.setValue(req.value());
+        if (req.pontos() != null)
+            missao.setPontos(req.pontos());
         if (req.ativo() != null) {
             if (!req.ativo()) validateDeactivation(missao);
             if (req.ativo()) validateActivation(missao);
@@ -360,7 +363,7 @@ public class MissaoService {
                 missao.getTitulo(),
                 missao.getDescricao(),
                 missao.getTipo(),
-                missao.getValue(),
+                missao.getPontos(),
                 missao.isAtivo(),
                 missao.getCreatedAt(),
                 missao.getParent() == null ? null : missao.getParent().getId(),
@@ -386,7 +389,7 @@ public class MissaoService {
                 atividade.getMissao().getTitulo(),
                 atividade.getMissao().getDescricao(),
                 atividade.getMissao().getTipo(),
-                atividade.getMissao().getValue(),
+                atividade.getMissao().getPontos(),
                 atividade.getMissao().getParent() == null ? null : atividade.getMissao().getParent().getId(),
                 atividade.getStatus(),
                 children.size(),

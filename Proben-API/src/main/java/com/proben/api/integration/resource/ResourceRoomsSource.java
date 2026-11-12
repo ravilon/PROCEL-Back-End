@@ -14,6 +14,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Componente de resource rooms source usado pelo modulo API.
+ */
 @Component
 public class ResourceRoomsSource implements RoomsSource {
 

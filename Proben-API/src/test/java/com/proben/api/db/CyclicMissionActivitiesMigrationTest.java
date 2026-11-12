@@ -97,7 +97,7 @@ class CyclicMissionActivitiesMigrationTest {
                            ('p2', 'Pessoa 2', 'p2@example.com', 'hash', now())
                     """);
             statement.execute("""
-                    insert into missao (id, titulo, descricao, tipo, value, ativo, created_at)
+                    insert into missao (id, titulo, descricao, tipo, pontos, ativo, created_at)
                     values ('%s', 'Missao historica', 'Descricao', 'Individual', 10, true, now())
                     """.formatted(missaoId));
             statement.execute("""

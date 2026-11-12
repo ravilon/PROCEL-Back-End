@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * Configuracao de componentes e infraestrutura de security.
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {

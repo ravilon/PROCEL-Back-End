@@ -8,6 +8,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Repositorio de acesso e consulta aos dados de presenca.
+ */
+
 public interface PresencaRepository extends JpaRepository<Presenca, UUID> {
 
     @Query("""

@@ -8,6 +8,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.UUID;
 
+/**
+ * Componente de sensor ingest orchestrator usado pelo modulo API.
+ */
 @Service
 public class SensorIngestOrchestrator {
     private final SensorCanonicalIngestionTransaction ingestionTransaction;

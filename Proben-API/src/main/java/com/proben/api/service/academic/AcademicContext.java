@@ -4,6 +4,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Componente de academic context usado pelo modulo API.
+ */
+
 public record AcademicContext(
         UUID periodoAulaId,
         Long disciplinaId,

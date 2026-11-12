@@ -15,6 +15,9 @@ import java.util.UUID;
         @Index(name = "ix_presenca_checkin", columnList = "checkin_at")
     }
 )
+/**
+ * Componente de presenca usado pelo modulo API.
+ */
 public class Presenca {
 
     @Id

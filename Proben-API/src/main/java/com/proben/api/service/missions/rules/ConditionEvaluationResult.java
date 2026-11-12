@@ -3,6 +3,10 @@ package com.proben.api.service.missions.rules;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Componente de condition evaluation result usado pelo modulo API.
+ */
+
 public record ConditionEvaluationResult(
         UUID eventoCondicaoId,
         boolean matched,

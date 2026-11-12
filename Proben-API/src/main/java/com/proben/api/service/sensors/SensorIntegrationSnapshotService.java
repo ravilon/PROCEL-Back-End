@@ -11,6 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * Servico que implementa as operacoes de negocio de sensor integration snapshot.
+ */
 @Service
 public class SensorIntegrationSnapshotService {
     private final SensorIntegrationProfileRepository profileRepo;

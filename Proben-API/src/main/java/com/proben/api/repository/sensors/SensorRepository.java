@@ -7,6 +7,10 @@ import java.util.Optional;
 import java.util.List;
 import java.util.Collection;
 
+/**
+ * Repositorio de acesso e consulta aos dados de sensor.
+ */
+
 public interface SensorRepository extends JpaRepository<Sensor, String> {
     List<Sensor> findByCompartimentoIdOrderByNomeAsc(String compartimentoId);
     List<Sensor> findByCompartimento_IdIn(Collection<String> compartimentoIds);

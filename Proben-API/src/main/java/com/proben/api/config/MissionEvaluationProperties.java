@@ -5,6 +5,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 import java.time.ZoneId;
 
+/**
+ * Propriedades de configuracao de mission evaluation.
+ */
 @ConfigurationProperties(prefix = "proben.missions.evaluation")
 public class MissionEvaluationProperties {
     private boolean workerEnabled = false;

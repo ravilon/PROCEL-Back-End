@@ -4,6 +4,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
 
+/**
+ * Propriedades de configuracao de analytics aggregation.
+ */
 @ConfigurationProperties(prefix = "proben.analytics.aggregation")
 public class AnalyticsAggregationProperties {
     private boolean workerEnabled = false;

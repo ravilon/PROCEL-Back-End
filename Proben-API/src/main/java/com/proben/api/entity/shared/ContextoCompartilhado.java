@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+/**
+ * Componente de contexto compartilhado usado pelo modulo API.
+ */
 @Entity
 @Table(name = "contexto_compartilhado")
 public class ContextoCompartilhado {

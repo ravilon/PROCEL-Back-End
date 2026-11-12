@@ -35,7 +35,6 @@ import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -108,7 +107,7 @@ public class DroolsMissionRuleEngineBenchmark {
                 ParametroDef extra = parameter("extra_" + i, DataType.NUMERIC, i);
                 measurements.add(numericFact(extra, "99", now.minusMillis(i), i));
             }
-            context = new MissionEvaluationContext(now, event, Optional.empty(), List.copyOf(measurements));
+            context = new MissionEvaluationContext(now, event, Optional.empty(), Collections.unmodifiableList(new ArrayList<>(measurements)));
             drools = newDrools();
             drools.evaluate(context);
         }
