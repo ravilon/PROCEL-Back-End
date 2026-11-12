@@ -113,7 +113,7 @@ POST /api/analytics/aggregation-jobs
 GET  /api/analytics/aggregation-jobs/{id}
 ```
 
-A API de consulta analitica e a interface de graficos estao implementadas. Jobs e buckets sao consultaveis por endpoints paginados; o grafico do Admin usa a pagina atual.
+A API de consulta analitica e a interface de graficos estao implementadas. Jobs e buckets sao consultaveis por endpoints paginados; o grafico do Admin usa a pagina atual. A tela `/analiticos` aceita filtros independentes ou combinados por modelo/tipo, parametro, sensor, compartimento e versao. O periodo pode ter inicio e fim opcionais; uma data ausente completa uma janela de 30 dias. A API limita cada consulta a 366 dias. O tamanho inicial da pagina e 100, configuravel ate 200.
 
 ### Consulta Analitica
 
@@ -140,7 +140,15 @@ maximo e soma das amostras.
 O `Proben-Admin` possui a rota `/analiticos`, visivel para `ADMIN`, `OPERADOR`
 e `ANALISTA`, com consulta de buckets numericos e observacoes compartilhadas.
 A tela de buckets apresenta resumo, serie da pagina consultada e tabela
-paginada; calculos permanecem no backend.
+paginada; calculos permanecem no backend. Parametros disponiveis acompanham o
+modelo selecionado, e escolher um sensor sincroniza o modelo para evitar
+combinacoes incompatíveis. Para analisar uma serie especifica, selecione o
+modelo e o parametro; o grafico representa a pagina atual.
+
+O job de agregacao cria buckets de forma assincrona e exige o worker habilitado.
+O Admin inicia jobs com janela de um minuto por padrao para manter resolucao
+temporal em series curtas; o periodo e limitado ao sensor ou compartimento
+selecionado, se houver.
 
 ### Missoes, Eventos e pontos
 

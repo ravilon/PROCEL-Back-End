@@ -69,7 +69,9 @@ export function AnalyticsFilters({
         <Box>
           <Typography variant="h6">Filtros</Typography>
           <Typography variant="body2" color="text.secondary">
-            Consultas usam apenas buckets numericos persistidos.
+            Os campos podem ser combinados livremente. Datas sao opcionais: sem
+            uma delas, a consulta completa uma janela de 30 dias. Consultas usam
+            buckets numericos persistidos.
           </Typography>
         </Box>
         <Box
@@ -86,24 +88,22 @@ export function AnalyticsFilters({
           <TextField
             label="Inicio"
             type="datetime-local"
-            required
             value={value.from}
             onChange={(event) =>
               onChange({ ...value, from: event.target.value })
             }
             error={Boolean(periodError)}
-            helperText={periodError || "Obrigatorio"}
+            helperText={periodError || "Opcional; se vazio, usa janela de 30 dias"}
             slotProps={{ inputLabel: { shrink: true } }}
             inputProps={{ "aria-label": "Inicio" }}
           />
           <TextField
             label="Fim"
             type="datetime-local"
-            required
             value={value.to}
             onChange={(event) => onChange({ ...value, to: event.target.value })}
             error={Boolean(periodError)}
-            helperText={periodError || "Obrigatorio"}
+            helperText={periodError || "Opcional; se vazio, completa janela de 30 dias"}
             slotProps={{ inputLabel: { shrink: true } }}
             inputProps={{ "aria-label": "Fim" }}
           />
@@ -111,9 +111,17 @@ export function AnalyticsFilters({
             options={sensorTypes}
             value={value.sensorTypeName ?? null}
             loading={loadingCatalogs}
-            onChange={(_, sensorTypeName) =>
-              onChange({ ...value, sensorTypeName: sensorTypeName ?? undefined })
-            }
+            onChange={(_, sensorTypeName) => {
+              const nextType = sensorTypeName ?? undefined;
+              const sensor = sensors.find((item) => item.externalId === value.sensorExternalId);
+              const parametro = parametros.find((item) => item.id === value.parametroDefId);
+              onChange({
+                ...value,
+                sensorTypeName: nextType,
+                sensorExternalId: sensor && nextType && sensor.tipoNome !== nextType ? undefined : value.sensorExternalId,
+                parametroDefId: parametro && nextType && parametro.tipoNome !== nextType ? undefined : value.parametroDefId,
+              });
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -130,9 +138,16 @@ export function AnalyticsFilters({
             isOptionEqualToValue={(option, selected) =>
               option.externalId === selected.externalId
             }
-            onChange={(_, sensor) =>
-              onChange({ ...value, sensorExternalId: sensor?.externalId })
-            }
+            onChange={(_, sensor) => {
+              const nextType = sensor?.tipoNome;
+              const parametro = parametros.find((item) => item.id === value.parametroDefId);
+              onChange({
+                ...value,
+                sensorExternalId: sensor?.externalId,
+                sensorTypeName: sensor ? nextType : value.sensorTypeName,
+                parametroDefId: parametro && nextType && parametro.tipoNome !== nextType ? undefined : value.parametroDefId,
+              });
+            }}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -142,7 +157,11 @@ export function AnalyticsFilters({
             )}
           />
           <Autocomplete
-            options={parametros}
+            options={parametros.filter((item) => {
+              const sensor = sensors.find((entry) => entry.externalId === value.sensorExternalId);
+              const typeName = sensor?.tipoNome ?? value.sensorTypeName;
+              return !typeName || item.tipoNome === typeName;
+            })}
             value={selectedParametro}
             loading={loadingCatalogs}
             getOptionLabel={(parametro) =>

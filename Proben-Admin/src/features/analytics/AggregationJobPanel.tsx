@@ -34,7 +34,7 @@ export function AggregationJobPanel({
   );
   const [from, setFrom] = useState(() => toLocalDateTime(filters.from));
   const [to, setTo] = useState(() => toLocalDateTime(filters.to));
-  const [windowDuration, setWindowDuration] = useState("PT1H");
+  const [windowDuration, setWindowDuration] = useState("PT1M");
   const [jobId, setJobId] = useState<string | null>(null);
 
   useEffect(() => {

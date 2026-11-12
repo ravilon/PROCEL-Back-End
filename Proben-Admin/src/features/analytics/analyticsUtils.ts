@@ -5,7 +5,7 @@ import type {
 } from "../../types/analytics";
 
 export const ANALYTICS_ROLES = ["ADMIN", "OPERADOR", "ANALISTA"] as const;
-export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
+export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200] as const;
 
 export function toDateTimeLocal(date: Date) {
   const offset = date.getTimezoneOffset() * 60_000;
@@ -16,21 +16,22 @@ export function defaultAnalyticsFilters(): Required<
   Pick<NumericBucketFilters, "from" | "to" | "page" | "size">
 > {
   const to = new Date();
-  const from = new Date(to.getTime() - 24 * 60 * 60 * 1000);
+  const from = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
   return {
     from: toDateTimeLocal(from),
     to: toDateTimeLocal(to),
     page: 0,
-    size: 20,
+    size: 100,
   };
 }
 
 export function cleanAnalyticsFilters(
   filters: NumericBucketFilters,
 ): NumericBucketFilters {
+  const { from, to } = resolvePeriod(filters.from, filters.to);
   return {
-    from: filters.from,
-    to: filters.to,
+    from,
+    to,
     sensorExternalId: filters.sensorExternalId || undefined,
     sensorTypeName: filters.sensorTypeName || undefined,
     parametroDefId: filters.parametroDefId || undefined,
@@ -54,18 +55,24 @@ export function summaryFilters(filters: NumericBucketFilters) {
 }
 
 export function validatePeriod(from: string, to: string) {
-  if (!from) return "Informe a data e hora inicial.";
-  if (!to) return "Informe a data e hora final.";
-  if (
-    Number.isNaN(new Date(from).getTime()) ||
-    Number.isNaN(new Date(to).getTime())
-  ) {
+  if ((from && Number.isNaN(new Date(from).getTime())) || (to && Number.isNaN(new Date(to).getTime()))) {
     return "Informe datas validas.";
   }
-  if (new Date(from).getTime() >= new Date(to).getTime()) {
+  if (from && to && new Date(from).getTime() >= new Date(to).getTime()) {
     return "A data inicial deve ser anterior a data final.";
   }
+  if (from && to && new Date(to).getTime() - new Date(from).getTime() > 366 * 24 * 60 * 60 * 1000) {
+    return "O periodo maximo para consulta e de 366 dias.";
+  }
   return "";
+}
+
+/** Completes an optional/one-sided date range with a 30-day window. */
+export function resolvePeriod(from: string, to: string) {
+  const windowMs = 30 * 24 * 60 * 60 * 1000;
+  const end = to ? new Date(to) : from ? new Date(new Date(from).getTime() + windowMs) : new Date();
+  const start = from ? new Date(from) : new Date(end.getTime() - windowMs);
+  return { from: start.toISOString(), to: end.toISOString() };
 }
 
 export function formatDateTime(value?: string | null) {
