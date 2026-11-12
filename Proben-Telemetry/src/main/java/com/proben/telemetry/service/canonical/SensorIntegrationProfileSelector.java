@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * Componente de sensor integration profile selector usado pelo modulo Telemetry.
+ * Selects a matching active profile and parser from the canonical integration snapshot.
  */
 @Service
 public class SensorIntegrationProfileSelector {

@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Componente de telemetry service jwt issuer usado pelo modulo Telemetry.
+ * Creates short-lived service JWTs for authenticated calls to the canonical API.
  */
 @Service
 public class TelemetryServiceJwtIssuer {

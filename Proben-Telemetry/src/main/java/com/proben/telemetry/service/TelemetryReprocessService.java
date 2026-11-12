@@ -17,7 +17,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * Servico que implementa as operacoes de negocio de telemetry reprocess.
+ * Validates and schedules audited replay requests for previously stored raw telemetry events.
  */
 @Service
 public class TelemetryReprocessService {

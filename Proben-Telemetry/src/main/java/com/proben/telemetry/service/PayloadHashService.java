@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Servico que implementa as operacoes de negocio de payload hash.
+ * Creates stable fingerprints for payloads and tracks whether optional JSON values were present.
  */
 @Service
 public class PayloadHashService {

@@ -17,7 +17,7 @@ import java.time.Duration;
 import java.time.Instant;
 
 /**
- * Servico que implementa as operacoes de negocio de telemetry ingest.
+ * Validates incoming telemetry envelopes and persists raw events idempotently for asynchronous processing.
  */
 @Service
 public class TelemetryIngestService {

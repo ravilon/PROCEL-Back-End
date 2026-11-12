@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
+/** Raw MQTT or HTTP delivery retained for idempotency, retries, and audit. */
 @Document("raw_telemetry_events")
 @CompoundIndexes({
         @CompoundIndex(
@@ -22,9 +23,6 @@ import java.util.List;
         @CompoundIndex(name = "idx_raw_telemetry_claim", def = "{'status': 1, 'processing.nextAttemptAt': 1, 'receivedAt': 1}"),
         @CompoundIndex(name = "idx_raw_telemetry_processing_lock", def = "{'status': 1, 'processing.lockedAt': 1}")
 })
-/**
- * Componente de raw telemetry event usado pelo modulo Telemetry.
- */
 public class RawTelemetryEvent {
     @Id
     private String id;
@@ -44,8 +42,21 @@ public class RawTelemetryEvent {
     @Indexed(name = "ttl_raw_telemetry_expires_at", expireAfter = "0s")
     private Instant expiresAt;
 
+    /** Creates an empty persistence entity for MongoDB mapping. */
     public RawTelemetryEvent() {}
 
+    /**
+     * Creates an event received from a producer.
+     * @param producerId producer identity
+     * @param source transport source
+     * @param messageId producer message identifier
+     * @param sensorId external sensor identifier
+     * @param sourceTimestamp timestamp supplied by producer
+     * @param receivedAt server receipt time
+     * @param payload original message body
+     * @param payloadHash stable payload fingerprint
+     * @param expiresAt retention expiry
+     */
     public RawTelemetryEvent(
             String producerId,
             TelemetrySource source,
@@ -69,21 +80,36 @@ public class RawTelemetryEvent {
         this.status = RawTelemetryStatus.RECEIVED;
     }
 
+    /** @return MongoDB document identifier */
     public String getId() { return id; }
+    /** @return producer identity */
     public String getProducerId() { return producerId; }
+    /** @return transport that delivered the event */
     public TelemetrySource getSource() { return source; }
+    /** @return producer message identifier */
     public String getMessageId() { return messageId; }
+    /** @return external sensor identifier */
     public String getSensorId() { return sensorId; }
+    /** @return producer-provided timestamp */
     public Instant getSourceTimestamp() { return sourceTimestamp; }
+    /** @return server receipt timestamp */
     public Instant getReceivedAt() { return receivedAt; }
+    /** @return original unnormalized payload */
     public Object getPayload() { return payload; }
+    /** @return fingerprint used for idempotency conflict detection */
     public String getPayloadHash() { return payloadHash; }
+    /** @return current processing status */
     public RawTelemetryStatus getStatus() { return status; }
+    /** @return canonical-ingest attempt state */
     public Processing getProcessing() { return processing; }
+    /** @return reprocessing request state */
     public Reprocessing getReprocessing() { return reprocessing; }
+    /** @return audit entries for reprocessing requests */
     public List<ReprocessAuditEntry> getReprocessAudit() { return reprocessAudit; }
+    /** @return configured document expiry */
     public Instant getExpiresAt() { return expiresAt; }
 
+    /** Retry, lease, and canonical-ingest metadata for this event. */
     public static class Processing {
         private int attempts;
         private Instant lastAttemptAt;
@@ -106,6 +132,7 @@ public class RawTelemetryEvent {
         public String getParserVersionId() { return parserVersionId; }
     }
 
+    /** Tracks administrative requests to replay a raw event. */
     public static class Reprocessing {
         private int count;
         private Instant lastRequestedAt;
@@ -118,6 +145,18 @@ public class RawTelemetryEvent {
         public String getLastReason() { return lastReason; }
     }
 
+    /**
+     * Immutable audit snapshot captured when a replay is requested.
+     * @param previousStatus status before replay
+     * @param lastError previous failure detail
+     * @param attempts previous processing attempts
+     * @param canonicalMeasurementId linked canonical measurement
+     * @param profileId selected profile
+     * @param parserVersionId selected parser version
+     * @param requestedBy administrator identity
+     * @param requestedAt replay request time
+     * @param reason operator-provided reason
+     */
     public record ReprocessAuditEntry(
             RawTelemetryStatus previousStatus,
             String lastError,

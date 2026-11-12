@@ -11,6 +11,10 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class JacksonConfig {
+    /** Creates the Jackson configuration. */
+    public JacksonConfig() {}
+
+    /** @return ObjectMapper with discovered modules and ISO date serialization */
     @Bean
     public ObjectMapper objectMapper() {
         return JsonMapper.builder()

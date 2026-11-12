@@ -1,7 +1,7 @@
 package com.proben.telemetry.entity;
 
 /**
- * Componente de telemetry source usado pelo modulo Telemetry.
+ * Transport or ingestion channel from which a raw telemetry event originated.
  */
 
 public enum TelemetrySource {

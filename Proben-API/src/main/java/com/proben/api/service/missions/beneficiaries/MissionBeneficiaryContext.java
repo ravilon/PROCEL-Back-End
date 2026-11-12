@@ -7,7 +7,13 @@ import com.proben.api.service.academic.AcademicContext;
 import java.util.Optional;
 
 /**
- * Componente de mission beneficiary context usado pelo modulo API.
+ * Contexto usado para resolver as pessoas beneficiárias de uma ocorrência.
+ *
+ * @param politicaAtribuicao política que define quem pode receber crédito
+ * @param eventoOcorrencia ocorrência que originou a avaliação
+ * @param academicContext contexto acadêmico disponível para a ocorrência
+ * @param pessoaAtivadoraId pessoa que iniciou a ação, quando identificada
+ * @param ocupacaoFisicaConfirmada indica se a ocupação física foi confirmada
  */
 
 public record MissionBeneficiaryContext(

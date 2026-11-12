@@ -1,7 +1,7 @@
 package com.proben.telemetry.service.mqtt;
 
 /**
- * Excecao que representa falhas relacionadas a mqtt telemetry permanent.
+ * Signals a malformed MQTT topic or payload that should be rejected without retry.
  */
 
 public class MqttTelemetryPermanentException extends RuntimeException {

@@ -1,7 +1,7 @@
 package com.proben.telemetry.service.canonical;
 
 /**
- * Excecao que representa falhas relacionadas a profile selection.
+ * Indicates that a raw event cannot be matched to an active integration profile.
  */
 
 public class ProfileSelectionException extends RuntimeException {

@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * Componente de proben telemetry application usado pelo modulo Telemetry.
+ * Bootstraps the standalone telemetry ingestion and processing service.
  */
 @SpringBootApplication
 @EnableScheduling

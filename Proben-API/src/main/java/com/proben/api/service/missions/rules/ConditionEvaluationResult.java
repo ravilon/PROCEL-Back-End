@@ -4,7 +4,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Componente de condition evaluation result usado pelo modulo API.
+ * Resultado da avaliação de uma condição de regra de missão.
+ *
+ * @param eventoCondicaoId identificador da condição avaliada
+ * @param matched indica se o valor observado satisfez a condição
+ * @param reason explicação do resultado da avaliação
+ * @param parametroValorId identificador do valor de parâmetro utilizado
+ * @param observedValue representação textual do valor observado
+ * @param expectedValue representação textual do valor esperado
+ * @param avaliacaoParametroValorId identificador da avaliação de qualificação associada
  */
 
 public record ConditionEvaluationResult(

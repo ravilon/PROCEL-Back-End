@@ -1,7 +1,7 @@
 package com.proben.telemetry.service.canonical;
 
 /**
- * Excecao que representa falhas relacionadas a transient canonical.
+ * Marks a canonical API failure as temporary and eligible for retry.
  */
 
 public class TransientCanonicalException extends RuntimeException {

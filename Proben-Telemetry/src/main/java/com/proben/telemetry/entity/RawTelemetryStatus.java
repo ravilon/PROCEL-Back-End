@@ -1,7 +1,7 @@
 package com.proben.telemetry.entity;
 
 /**
- * Componente de raw telemetry status usado pelo modulo Telemetry.
+ * Lifecycle states for a raw event as it moves through canonical ingestion.
  */
 
 public enum RawTelemetryStatus {

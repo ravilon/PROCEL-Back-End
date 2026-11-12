@@ -7,16 +7,18 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Componente de backoff policy usado pelo modulo Telemetry.
+ * Computes retry delays from the telemetry worker's configured backoff schedule.
  */
 @Component
 public class BackoffPolicy {
     private final TelemetryProperties properties;
 
+    /** @param properties application settings containing the retry schedule */
     public BackoffPolicy(TelemetryProperties properties) {
         this.properties = properties;
     }
 
+    /** @param attempts one-based failed-attempt count @return delay before retry */
     public Duration delayForAttempt(int attempts) {
         List<Duration> backoff = properties.getCanonicalWorker().getBackoff();
         if (backoff == null || backoff.isEmpty()) {

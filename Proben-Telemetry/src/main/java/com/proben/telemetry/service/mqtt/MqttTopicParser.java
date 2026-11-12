@@ -6,10 +6,11 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Componente de mqtt topic parser usado pelo modulo Telemetry.
+ * Parses supported Proben MQTT topic layouts into producer and optional sensor identifiers.
  */
 @Component
 public class MqttTopicParser {
+    /** @param topic MQTT topic received from the broker @return identifiers encoded by the topic @throws MqttTelemetryPermanentException when the topic is unsupported */
     public TopicContext parse(String topic) {
         if (topic == null || topic.isBlank()) {
             throw new MqttTelemetryPermanentException("MQTT_TOPIC_INVALID", "MQTT topic is required.");
@@ -40,5 +41,6 @@ public class MqttTopicParser {
         return decoded;
     }
 
+    /** Identifiers resolved from an MQTT topic. @param producerId producer segment @param sensorId optional sensor segment */
     public record TopicContext(String producerId, String sensorId) {}
 }

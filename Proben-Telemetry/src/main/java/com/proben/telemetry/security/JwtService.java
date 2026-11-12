@@ -19,7 +19,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Servico que implementa as operacoes de negocio de jwt.
+ * Issues and verifies the HMAC-signed JWTs used between telemetry services.
  */
 @Service
 public class JwtService {
@@ -29,6 +29,7 @@ public class JwtService {
     private final ObjectMapper objectMapper;
     private final byte[] secret;
 
+    /** @param objectMapper mapper for JWT claim JSON @param secret signing secret, which must contain at least 32 characters */
     public JwtService(
             ObjectMapper objectMapper,
             @Value("${proben.security.jwt.secret}") String secret
@@ -40,6 +41,7 @@ public class JwtService {
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
     }
 
+    /** Verifies the signature and expiry, then extracts the supported claims. @param token compact JWT @return verified subject, email, and roles @throws IllegalArgumentException if the token is invalid or expired */
     public Claims verify(String token) {
         if (token == null || token.isBlank()) throw new IllegalArgumentException("token is required");
 
@@ -110,5 +112,12 @@ public class JwtService {
         throw new IllegalArgumentException("missing numeric claim: " + name);
     }
 
+    /** Claims consumed by the telemetry authentication filter. @param subject token subject @param email authenticated user's email @param roles granted role names */
+    /**
+     * Claims consumed by the telemetry authentication filter.
+     * @param subject token subject
+     * @param email authenticated user's email
+     * @param roles granted role names
+     */
     public record Claims(String subject, String email, Set<String> roles) {}
 }

@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Servico que implementa as operacoes de negocio de telemetry query.
+ * Provides filtered and paginated access to persisted raw telemetry events.
  */
 @Service
 public class TelemetryQueryService {

@@ -12,7 +12,7 @@ import javax.net.ssl.SSLSocketFactory;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Componente de mqtt telemetry client factory usado pelo modulo Telemetry.
+ * Builds configured asynchronous MQTT clients and their broker connection options.
  */
 @Component
 public class MqttTelemetryClientFactory {

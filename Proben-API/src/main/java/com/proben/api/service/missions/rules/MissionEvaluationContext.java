@@ -8,7 +8,13 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Componente de mission evaluation context usado pelo modulo API.
+ * Dados de entrada usados pelo motor ao avaliar um evento de missão.
+ *
+ * @param evaluationTime instante de referência para a avaliação
+ * @param eventDefinition definição do evento e das condições a verificar
+ * @param academicContext contexto acadêmico associado, quando existente
+ * @param measurements medições disponíveis para a avaliação
+ * @param ruleEvaluations resultados de avaliação de regras ambientais disponíveis
  */
 
 public record MissionEvaluationContext(

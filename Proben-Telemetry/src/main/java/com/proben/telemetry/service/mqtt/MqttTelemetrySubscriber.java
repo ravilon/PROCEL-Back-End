@@ -17,7 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.Arrays;
 
 /**
- * Componente de mqtt telemetry subscriber usado pelo modulo Telemetry.
+ * Manages the MQTT connection lifecycle and acknowledges messages after durable ingestion.
  */
 @Service
 @ConditionalOnProperty(prefix = "proben.telemetry.mqtt", name = "enabled", havingValue = "true")
@@ -31,6 +31,7 @@ public class MqttTelemetrySubscriber implements SmartLifecycle {
     private volatile MqttAsyncClient client;
     private volatile boolean running;
 
+    /** @param properties broker and subscription settings @param clientFactory creates MQTT clients @param handler validates and stores deliveries @param metrics records subscriber observations */
     public MqttTelemetrySubscriber(
             TelemetryProperties properties,
             MqttTelemetryClientFactory clientFactory,
@@ -44,6 +45,7 @@ public class MqttTelemetrySubscriber implements SmartLifecycle {
     }
 
     @Override
+    /** Connects to the configured broker and subscribes to the configured topic filters. */
     public synchronized void start() {
         if (running) return;
         try {
@@ -62,6 +64,7 @@ public class MqttTelemetrySubscriber implements SmartLifecycle {
     }
 
     @Override
+    /** Disconnects and releases the current broker client. */
     public synchronized void stop() {
         running = false;
         MqttAsyncClient current = client;
@@ -80,6 +83,7 @@ public class MqttTelemetrySubscriber implements SmartLifecycle {
     }
 
     @Override
+    /** @return whether the subscriber currently considers its MQTT connection active */
     public boolean isRunning() {
         return running;
     }

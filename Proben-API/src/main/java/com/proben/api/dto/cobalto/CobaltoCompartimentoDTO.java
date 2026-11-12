@@ -1,7 +1,18 @@
 package com.proben.api.dto.cobalto;
 
 /**
- * Objeto de transferencia de dados usado em cobalto compartimento.
+ * Representação de um compartimento recebida da integração Cobalto.
+ *
+ * @param compartimento_id identificador do compartimento na origem
+ * @param compartimento_nome nome do compartimento
+ * @param lotacao valor de lotação informado pela origem
+ * @param compartimento_pavimento pavimento em que o compartimento está localizado
+ * @param compartimento_area área informada pela origem
+ * @param compartimento_capacidade capacidade máxima do compartimento
+ * @param predio_nome nome do prédio
+ * @param campus_nome nome do campus
+ * @param utilizacao_compartimento_descricao descrição do uso do compartimento
+ * @param unidade_nome nome da unidade acadêmica
  */
 
 public record CobaltoCompartimentoDTO(

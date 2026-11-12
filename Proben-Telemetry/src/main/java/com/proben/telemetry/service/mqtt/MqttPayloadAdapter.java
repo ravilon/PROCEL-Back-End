@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * Componente de mqtt payload adapter usado pelo modulo Telemetry.
+ * Validates an MQTT JSON envelope and maps it to the telemetry ingest request format.
  */
 @Component
 public class MqttPayloadAdapter {

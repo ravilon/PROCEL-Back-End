@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 /**
- * Componente de telemetry observability metrics usado pelo modulo Telemetry.
+ * Publishes counters and latency measurements for telemetry ingestion, MQTT, and worker activity.
  */
 @Component
 public class TelemetryObservabilityMetrics {
