@@ -393,14 +393,13 @@ export function TelemetryOperationsPage() {
         anchor="right"
         open={Boolean(selectedId)}
         onClose={() => setSelectedId(null)}
-        slotProps={{
-          paper: {
-            sx: {
-              width: "min(720px, 100vw)",
-              maxWidth: "100vw",
-              boxSizing: "border-box",
-              overflowX: "hidden",
-            },
+        sx={{
+          "& .MuiDrawer-paper": {
+            width: { xs: "100vw", sm: "min(760px, 68vw)" },
+            maxWidth: "100vw",
+            height: "100dvh",
+            boxSizing: "border-box",
+            overflowX: "hidden",
           },
         }}
       >
