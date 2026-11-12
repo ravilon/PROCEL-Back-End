@@ -456,6 +456,10 @@ Documentos/Catalogo-Dados.md
 Documentos/Organizacao-do-Codigo.md
 ```
 
+## JavaDoc
+
+API e Telemetry geram JavaDoc localmente pelo Maven e a workflow `.github/workflows/javadoc-pages.yml` publica os dois sites no GitHub Pages a cada push na branch `main`. Para ativar a publicacao, abra **Settings > Pages** do repositorio e selecione **GitHub Actions** como origem. A documentacao gerada inclui todos os tipos Java publicos; comentarios ainda estao sendo ampliados e a geracao atual informa avisos para membros sem descricoes.
+
 ## Limitacoes Conhecidas
 
 - A tela de analises limita o grafico a pagina atual dos buckets; uma API dedicada

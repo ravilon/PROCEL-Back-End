@@ -209,3 +209,7 @@ http://localhost:8081/v3/api-docs
 ## Testes
 
 Os testes usam MongoDB Testcontainers e HiveMQ Testcontainers para REST, idempotencia, claim concorrente, MQTT, ACK/redelivery, retained, reconexao, worker e reprocessamento.
+
+## JavaDoc
+
+Gere a documentacao local a partir de `Proben-Telemetry` com `../Proben-API/mvnw -f pom.xml javadoc:javadoc`; a saida fica em `target/reports/apidocs`. A workflow `.github/workflows/javadoc-pages.yml` publica a documentacao das duas aplicacoes no GitHub Pages a cada push em `main`. O repositorio precisa estar configurado para publicar Pages pela origem `GitHub Actions`.

@@ -21,7 +21,7 @@ No Admin, `pages` organiza telas de alto nivel, enquanto `features` agrupa compo
 - `SharedContextService` e `SharedContextCollector` concentram bastante comportamento e SQL. Em futuras mudancas, considerar extrair componentes de persistencia, validacao/mapeamento e transporte HTTP para facilitar revisao e testes sem alterar contratos.
 - `Proben-Admin/src/App.tsx` declara rotas e `api` tem clientes por recurso; para novos dominios, manter telas, tipos, cliente HTTP e testes juntos em `features/<dominio>` quando houver UI complexa.
 - Migrations Flyway sao a fonte de verdade do PostgreSQL. Nao editar migrations ja aplicadas; adicionar nova migration e manter os diagramas explicitamente identificados como completos ou parciais.
-- Foi iniciada documentacao Javadoc nos pacotes de ingestao, analytics, missoes, contexto compartilhado, MQTT e entrega canonica. Ainda nao existe uma rotina configurada de publicacao em CI; ampliar gradualmente a documentacao de classes/metodos publicos e workers, cobrindo pre-condicoes, retry, idempotencia, concorrencia e efeitos colaterais.
+- Foi iniciada documentacao Javadoc nos pacotes de ingestao, analytics, regras ambientais, missoes, contexto compartilhado, MQTT e entrega canonica. A workflow `.github/workflows/javadoc-pages.yml` gera e publica API/Telemetry no GitHub Pages. Ampliar gradualmente a documentacao de classes/metodos publicos e workers, cobrindo pre-condicoes, retry, idempotencia, concorrencia e efeitos colaterais; a geracao ainda reporta avisos para membros sem comentario.
 - Existem contratos manuais de API e OpenAPI gerado em runtime. Tratar OpenAPI e colecoes como artefatos que precisam acompanhar mudancas; evitar usar apenas uma tabela manual extensa como fonte de verdade.
 
 ## Navegacao recomendada
