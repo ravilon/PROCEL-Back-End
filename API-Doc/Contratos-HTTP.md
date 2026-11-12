@@ -31,7 +31,7 @@ Base local: `http://localhost:8080`
 | `/api/sensors/internal/telemetry-events/{sensorExternalId}/ingest/integrations/{profileId}` | POST | `TELEMETRY_SERVICE` | `201`, `200` | Rota interna Telemetry com sensor na rota |
 | `/api/analytics/aggregation-jobs` | POST | `ADMIN`, `OPERADOR` | `202` | Cria ou retorna job equivalente |
 | `/api/analytics/aggregation-jobs/{id}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Estado e progresso |
-| `/api/analytics/numeric-buckets` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista buckets persistidos e paginados; filtros existentes mas sem intersecao retornam pagina vazia |
+| `/api/analytics/numeric-buckets` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista buckets persistidos; filtros por sensor, modelo, parâmetro e compartimento |
 | `/api/analytics/numeric-buckets/summary` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Consolida somente buckets persistidos; media ponderada por `sampleCount` |
 | `/api/shared-contexts` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista contextos compartilhados |
 | `/api/shared-contexts` | POST | `ADMIN` | `201` | Cria contexto e referencia geografica propria ou de campus |
@@ -156,8 +156,22 @@ O filtro temporal retorna buckets integralmente contidos no intervalo:
 fracionados nem usados no resumo, para evitar estatisticas parciais incorretas.
 
 Filtros por `sensorExternalId`, `parametroDefId` e `compartimentoId` inexistentes
-retornam `422`. Filtros existentes, porem incompatíveis entre si, retornam lista
-vazia de forma consistente.
+retornam `422`. `sensorTypeName` filtra pelo nome do modelo/tipo cadastrado em
+`tipo_de_sensor`. Filtros existentes, porem incompatíveis entre si, retornam lista
+vazia de forma consistente. É possível consultar por parâmetro ou modelo sem
+informar um sensor individual ou compartimento.
+
+Buckets não são criados durante a ingestão canônica. É necessário criar um job em
+`/api/analytics/aggregation-jobs` e manter ativo o worker de agregação
+(`PROBEN_ANALYTICS_AGGREGATION_WORKER_ENABLED=true`). Sem jobs processados, as
+consultas retornam listas vazias mesmo quando há medições canônicas no período.
+
+Exemplos de consulta por uma unica dimensao:
+
+```http
+GET /api/analytics/numeric-buckets?from=2026-11-12T00:00:00Z&to=2026-11-13T00:00:00Z&parametroDefId=bd2a1394-bd4d-4991-a0b1-d225016a8a57
+GET /api/analytics/numeric-buckets?from=2026-11-12T00:00:00Z&to=2026-11-13T00:00:00Z&sensorTypeName=TCC_DEMO_SENSOR_20261112-02
+```
 
 O endpoint `/api/analytics/numeric-buckets/summary` nao consulta `medicao` nem
 `parametro_valor`; ele consolida os buckets persistidos usando media ponderada por

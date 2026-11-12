@@ -11,6 +11,7 @@ public record NumericBucketQuery(
         Instant from,
         Instant to,
         String sensorExternalId,
+        String sensorTypeName,
         UUID parametroDefId,
         String compartimentoId,
         Integer aggregationVersion,

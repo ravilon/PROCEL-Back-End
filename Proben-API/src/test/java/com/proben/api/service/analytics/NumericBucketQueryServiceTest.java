@@ -48,6 +48,7 @@ class NumericBucketQueryServiceTest {
                 null,
                 null,
                 null,
+                null,
                 0,
                 1
         ));

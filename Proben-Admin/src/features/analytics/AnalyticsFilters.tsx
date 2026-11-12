@@ -23,6 +23,7 @@ export interface AnalyticsFilterState extends NumericBucketFilters {
 interface AnalyticsFiltersProps {
   value: AnalyticsFilterState;
   sensors: Sensor[];
+  sensorTypes: string[];
   parametros: ParametroDef[];
   compartimentos: Compartimento[];
   loadingCatalogs: boolean;
@@ -34,6 +35,7 @@ interface AnalyticsFiltersProps {
 export function AnalyticsFilters({
   value,
   sensors,
+  sensorTypes,
   parametros,
   compartimentos,
   loadingCatalogs,
@@ -104,6 +106,21 @@ export function AnalyticsFilters({
             helperText={periodError || "Obrigatorio"}
             slotProps={{ inputLabel: { shrink: true } }}
             inputProps={{ "aria-label": "Fim" }}
+          />
+          <Autocomplete
+            options={sensorTypes}
+            value={value.sensorTypeName ?? null}
+            loading={loadingCatalogs}
+            onChange={(_, sensorTypeName) =>
+              onChange({ ...value, sensorTypeName: sensorTypeName ?? undefined })
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Modelo do sensor"
+                placeholder="Todos os modelos"
+              />
+            )}
           />
           <Autocomplete
             options={sensors}

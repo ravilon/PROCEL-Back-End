@@ -43,6 +43,7 @@ export interface NumericBucketFilters {
   from: string;
   to: string;
   sensorExternalId?: string;
+  sensorTypeName?: string;
   parametroDefId?: string;
   compartimentoId?: string;
   aggregationVersion?: number;

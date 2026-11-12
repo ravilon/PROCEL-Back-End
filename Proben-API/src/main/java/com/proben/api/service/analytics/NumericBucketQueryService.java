@@ -190,6 +190,10 @@ public class NumericBucketQueryService {
             sql.append("  and bucket.sensor_external_id = ?\n");
             args.add(query.sensorExternalId());
         }
+        if (query.sensorTypeName() != null) {
+            sql.append("  and sensor.tipo_nome = ?\n");
+            args.add(query.sensorTypeName());
+        }
         if (query.parametroDefId() != null) {
             sql.append("  and bucket.parametro_def_id = ?\n");
             args.add(query.parametroDefId());

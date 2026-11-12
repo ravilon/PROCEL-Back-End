@@ -206,6 +206,7 @@ export function AnalyticsPage() {
       <AnalyticsFilters
         value={draftFilters}
         sensors={sensors.data ?? []}
+        sensorTypes={[...new Set((sensorTypes.data ?? []).map((type) => type.nome))].sort((a, b) => a.localeCompare(b))}
         parametros={parametros}
         compartimentos={rooms.data ?? []}
         loadingCatalogs={
@@ -306,7 +307,15 @@ export function AnalyticsPage() {
             loading={summary.isFetching}
           />
           {hasNoData ? (
-            <AnalyticsEmptyState message="Filtros existentes, mas sem buckets compativeis no periodo informado." />
+            <>
+              <Alert severity="info">
+                Buckets são materializados por um job de agregação assíncrono;
+                a chegada de medições canônicas, sozinha, não cria buckets.
+                Verifique se há jobs concluídos para este período e se o worker
+                de agregação está habilitado.
+              </Alert>
+              <AnalyticsEmptyState message="Filtros existentes, mas sem buckets compativeis no periodo informado." />
+            </>
           ) : (
             <>
               <AnalyticsTimeSeriesChart buckets={bucketPage?.content ?? []} />

@@ -41,13 +41,14 @@ public class NumericBucketController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String sensorExternalId,
+            @RequestParam(required = false) String sensorTypeName,
             @RequestParam(required = false) UUID parametroDefId,
             @RequestParam(required = false) String compartimentoId,
             @RequestParam(required = false) Integer aggregationVersion,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size
     ) {
-        return ResponseEntity.ok(service.list(query(from, to, sensorExternalId, parametroDefId,
+        return ResponseEntity.ok(service.list(query(from, to, sensorExternalId, sensorTypeName, parametroDefId,
                 compartimentoId, aggregationVersion, page, size)));
     }
 
@@ -62,11 +63,12 @@ public class NumericBucketController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
             @RequestParam(required = false) String sensorExternalId,
+            @RequestParam(required = false) String sensorTypeName,
             @RequestParam(required = false) UUID parametroDefId,
             @RequestParam(required = false) String compartimentoId,
             @RequestParam(required = false) Integer aggregationVersion
     ) {
-        return ResponseEntity.ok(service.summary(query(from, to, sensorExternalId, parametroDefId,
+        return ResponseEntity.ok(service.summary(query(from, to, sensorExternalId, sensorTypeName, parametroDefId,
                 compartimentoId, aggregationVersion, null, null)));
     }
 
@@ -74,6 +76,7 @@ public class NumericBucketController {
             Instant from,
             Instant to,
             String sensorExternalId,
+            String sensorTypeName,
             UUID parametroDefId,
             String compartimentoId,
             Integer aggregationVersion,
@@ -84,6 +87,7 @@ public class NumericBucketController {
                 from,
                 to,
                 normalize(sensorExternalId),
+                normalize(sensorTypeName),
                 parametroDefId,
                 normalize(compartimentoId),
                 aggregationVersion,

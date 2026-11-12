@@ -22,6 +22,7 @@ function analyticsQuery(filters: NumericBucketFilters) {
   params.set("from", new Date(filters.from).toISOString());
   params.set("to", new Date(filters.to).toISOString());
   setOptionalParam(params, "sensorExternalId", filters.sensorExternalId);
+  setOptionalParam(params, "sensorTypeName", filters.sensorTypeName);
   setOptionalParam(params, "parametroDefId", filters.parametroDefId);
   setOptionalParam(params, "compartimentoId", filters.compartimentoId);
   setOptionalParam(params, "aggregationVersion", filters.aggregationVersion);
@@ -35,6 +36,7 @@ function summaryQuery(filters: NumericBucketSummaryFilters) {
   params.set("from", new Date(filters.from).toISOString());
   params.set("to", new Date(filters.to).toISOString());
   setOptionalParam(params, "sensorExternalId", filters.sensorExternalId);
+  setOptionalParam(params, "sensorTypeName", filters.sensorTypeName);
   setOptionalParam(params, "parametroDefId", filters.parametroDefId);
   setOptionalParam(params, "compartimentoId", filters.compartimentoId);
   setOptionalParam(params, "aggregationVersion", filters.aggregationVersion);
