@@ -43,6 +43,9 @@
 - integracoes, perfis, parser versions, bindings e snapshot;
 - listagem, detalhe e reprocessamento de eventos brutos da Telemetry;
 - analises de buckets numericos com filtros, cards de resumo, grafico temporal e tabela paginada.
+- consulta de observacoes externas em contextos compartilhados.
+- configuracao de coletas HTTP genericas, mapeamentos, credenciais e auditoria.
+- regras ambientais com resolucao, teste, execucao e historico.
 
 ## Analises
 
@@ -67,8 +70,8 @@ series por sensor, parametro e versao. A tabela exibe os buckets persistidos com
 paginacao server-side, datas locais, numeros formatados, unidade e fallbacks para
 valores ausentes. O frontend nao recalcula medias nem consulta medicoes brutas.
 
-Limitacao atual: o grafico fica restrito a pagina consultada. Uma API propria
-para series temporais extensas fica pendente para a etapa 12.
+Limitacao atual: o grafico de buckets fica restrito a pagina consultada; o
+backend nao fornece ainda um endpoint dedicado para series densas extensas.
 
 ## APIs
 

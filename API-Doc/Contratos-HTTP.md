@@ -33,6 +33,32 @@ Base local: `http://localhost:8080`
 | `/api/analytics/aggregation-jobs/{id}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Estado e progresso |
 | `/api/analytics/numeric-buckets` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista buckets persistidos e paginados; filtros existentes mas sem intersecao retornam pagina vazia |
 | `/api/analytics/numeric-buckets/summary` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Consolida somente buckets persistidos; media ponderada por `sampleCount` |
+| `/api/shared-contexts` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista contextos compartilhados |
+| `/api/shared-contexts` | POST | `ADMIN` | `201` | Cria contexto e referencia geografica propria ou de campus |
+| `/api/shared-contexts/{id}` | GET/PUT/DELETE | Leitura: `ADMIN`, `OPERADOR`, `ANALISTA`; escrita: `ADMIN` | `200`, `204` | Contexto compartilhado e preview de exclusao em `/{id}/delete-preview` |
+| `/api/shared-contexts/{id}/integration` | PUT | `ADMIN` | `200` | Configura coleta HTTP, mapeamentos e credencial gerenciada |
+| `/api/shared-contexts/{id}/integration/test` | POST | `ADMIN` | `200` | Testa configuracao sem persistir observacao |
+| `/api/shared-contexts/{id}/integrations` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista integracoes de coleta |
+| `/api/shared-contexts/integrations/{id}/collect` | POST | `ADMIN` | `200` | Executa coleta manual e ingestao canonica |
+| `/api/shared-contexts/integrations/{id}/test` | POST | `ADMIN` | `200` | Executa teste de coleta |
+| `/api/shared-contexts/integrations/{id}/activate` | POST | `ADMIN` | `200` | Ativa coleta |
+| `/api/shared-contexts/integrations/{id}/deactivate` | POST | `ADMIN` | `200` | Desativa coleta |
+| `/api/shared-contexts/rooms/{roomId}/observations/latest` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Observacoes externas recentes do ambiente |
+| `/api/shared-contexts/rooms/{roomId}/parameters/{parameterId}/latest` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Observacao mais recente para parametro |
+| `/api/shared-contexts/rooms/{roomId}/parameters/{parameterId}/average-7d` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Media da janela recente de sete dias |
+| `/api/environment-rules` | GET/POST | Consulta: `ADMIN`, `OPERADOR`, `ANALISTA`; escrita: `ADMIN` | `200`, `201` | Regras ambientais por escopo |
+| `/api/environment-rules/{id}` | GET/PUT/DELETE | Consulta: `ADMIN`, `OPERADOR`, `ANALISTA`; escrita: `ADMIN` | `200`, `204` | Leitura, atualizacao e remocao |
+| `/api/environment-rules/{id}/activate` | POST | `ADMIN` | `200` | Ativa regra |
+| `/api/environment-rules/{id}/deactivate` | POST | `ADMIN` | `200` | Desativa regra |
+| `/api/environment-rules/{id}/test` | POST | `ADMIN` | `200` | Avalia sem executar efeitos |
+| `/api/environment-rules/{id}/execute` | POST | `ADMIN` | `200` | Execucao manual |
+| `/api/environment-rules/executions` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Historico de execucoes |
+| `/api/environment-rules/resolution/{roomId}` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Resolve regra aplicavel ao ambiente |
+| `/api/campuses` | GET | `ADMIN`, `OPERADOR`, `ANALISTA` | `200` | Lista campi e coordenadas |
+| `/api/campuses/{nome}` | PUT | `ADMIN` | `200` | Atualiza coordenadas do campus |
+| `/api/rooms/sync` | POST | Autenticado | `200` | Sincroniza estrutura de salas da fonte configurada |
+| `/api/rooms/aulas/sync` | POST | Operacao administrativa | `202` | Inicia sincronizacao assincrona de aulas |
+| `/api/rooms/aulas/sync/{jobId}` | GET | Operacao administrativa | `200` | Consulta job de sincronizacao |
 | `/api/missions/{missionId}/events` | GET/POST | `ADMIN`, `OPERADOR`, `ANALISTA` para consulta; `ADMIN` para escrita | `200`, `201` | Eventos configuraveis de missoes |
 | `/api/mission-events/{eventId}` | GET/PUT/DELETE | `ADMIN`, `OPERADOR`, `ANALISTA` para consulta; `ADMIN` para escrita | `200`, `204` | Detalhe, edicao e remocao logica de evento |
 | `/api/mission-events/{eventId}/conditions` | POST | `ADMIN` | `201` | Cria condicao de evento |
@@ -140,8 +166,13 @@ A tela envia somente parametros preenchidos para `/api/analytics/numeric-buckets
 e `/api/analytics/numeric-buckets/summary`. `page` e `size` sao enviados apenas
 para a listagem paginada. O summary alimenta cards por grupo retornado, sem
 misturar unidades, parametros, sensores ou versoes diferentes. O grafico temporal
-usa `averageValue` dos buckets da pagina atual; uma consulta especifica para
-series longas fica pendente para a etapa 12.
+usa `averageValue` dos buckets da pagina atual; a consulta de series extensas e
+limitada pela paginacao atual do endpoint.
+
+Observacoes compartilhadas sao consultadas por `/api/shared-contexts/rooms/...`.
+A tela dedicada permite filtrar salas e parametros sem expor credenciais dos
+provedores. Coletas e regras ambientais possuem configuracao e auditoria propria;
+seus contratos completos estao no OpenAPI gerado, incluindo campos e validacoes.
 
 Os valores decimais chegam como JSON number por serializacao de `BigDecimal`.
 O frontend usa esses numeros para exibicao e grafico, sem persistir calculos
@@ -195,7 +226,9 @@ Base local: `http://localhost:8081`
 
 ## Swagger
 
-OpenAPI gerado em runtime:
+OpenAPI gerado em runtime e fonte de verdade para parametros, schemas, validacoes
+e rotas operacionais nao detalhadas nesta tabela. Os arquivos Postman/Insomnia sao
+colecoes de smoke/regressao, nao inventario completo do contrato.
 
 ```text
 Proben-API:       /v3/api-docs

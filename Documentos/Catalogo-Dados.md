@@ -28,6 +28,10 @@
 | Proben-API | PostgreSQL | `evento_definicao`, `evento_condicao` | Catalogo de eventos configuraveis de missoes | `id`, condicao por `evento_definicao_id + ordem` | Sem TTL automatico | Admin/API | Motor de eventos | Configuracao | Condicoes referenciam `ParametroDef` por FK; Drools temporal e opt-in |
 | Proben-API | PostgreSQL | `evento_ocorrencia`, `evento_ocorrencia_evidencia`, `evento_avaliacao_request` | Persistencia operacional do motor de eventos | `id`, `chave_idempotencia`, uma request por `medicao_id` | Sem TTL automatico | Motor de eventos | Motor de atividades/Admin | Operacional | Snapshots em JSONB; evidencias nao sao removidas fisicamente; transicoes usam papeis `ANTES`/`DEPOIS` |
 | Proben-API | PostgreSQL | `evento_janela_avaliacao`, `evento_janela_evidencia` | Janelas temporais persistentes de missoes | `id`, `chave_idempotencia` | Sem TTL automatico | Motor temporal | Worker temporal/Admin | Operacional | Claim atomico, lease, retry, recuperacao apos reinicio e evidencias por medicao/parametro |
+| Proben-API | PostgreSQL | `contexto_compartilhado` | Contexto compartilhado para ambientes e consultas externas | `id` | Sem TTL automatico | Admin | Coletas/consultas/API | Configuracao | Localizacao propria ou coordenadas resolvidas do campus |
+| Proben-API | PostgreSQL | `contexto_integracao_externa` | Configuracao de fonte HTTP para observacoes externas | `id`, sensor/contexto | Sem TTL automatico | Admin | Collector compartilhado | Configuracao/segredo cifrado | Credenciais cifradas AES-256-GCM; nao armazenar segredo em claro |
+| Proben-API | PostgreSQL | `contexto_coleta_execucao` | Auditoria de testes e execucoes de coleta | `id`, integracao/data | Sem TTL automatico | Collector compartilhado | Admin/operacao | Operacional/auditoria | Respostas e erros sao sanitizados; sem tokens nos logs |
+| Proben-API | PostgreSQL | `regra_ambiente`, `regra_ambiente_execucao` | Regras ambientais e historico do worker | `id`, escopo e chave de idempotencia da execucao | Sem TTL automatico | Admin/worker | Operacao/Admin | Configuracao/operacional | Lease, retry, resolucao por escopo e trilha de execucao |
 
 ## Fundacao de atividades ciclicas
 
@@ -46,3 +50,4 @@
 - `V24` cria `evento_janela_avaliacao` e `evento_janela_evidencia` para `DURACAO`, `TRANSICAO` e `JANELA_ENCERRADA`.
 - `V25` amplia papeis de evidencia de ocorrencia com `ANTES` e `DEPOIS` para transicoes.
 - Workers permanecem desabilitados por padrao; Drools e exclusivo do fluxo temporal opt-in.
+- `V29`-`V32` adicionam dados de contextos compartilhados, observacoes externas, localizacao e integracao HTTP com segredo cifrado; `V33` adiciona regras ambientais.

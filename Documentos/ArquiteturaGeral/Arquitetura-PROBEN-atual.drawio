@@ -1,0 +1,28 @@
+<mxfile host="app.diagrams.net" modified="2026-11-12T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="proben-current" name="Arquitetura atual">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="producer" value="Dispositivos e produtores&lt;br&gt;REST / MQTT 5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="30" y="170" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="admin" value="Proben-Admin&lt;br&gt;React / TypeScript&lt;br&gt;config.js runtime" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="30" y="390" width="180" height="90" as="geometry"/></mxCell>
+        <mxCell id="mqtt" value="Broker MQTT&lt;br&gt;opcional" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="280" y="100" width="160" height="70" as="geometry"/></mxCell>
+        <mxCell id="telemetry" value="Proben-Telemetry&lt;br&gt;REST / MQTT / Admin&lt;br&gt;worker canonico, idempotencia, retry" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="500" y="160" width="240" height="120" as="geometry"/></mxCell>
+        <mxCell id="mongo" value="MongoDB&lt;br&gt;raw_telemetry_events&lt;br&gt;TTL / estado / auditoria" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="830" y="170" width="190" height="100" as="geometry"/></mxCell>
+        <mxCell id="api" value="Proben-API&lt;br&gt;Spring Boot / Java 21&lt;br&gt;auth, dominio, ingestao canonica, integracoes&lt;br&gt;analytics, missoes, regras ambientais, contextos" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="500" y="410" width="280" height="150" as="geometry"/></mxCell>
+        <mxCell id="postgres" value="PostgreSQL&lt;br&gt;schema por Flyway&lt;br&gt;dominio canonico, operacional e analitico" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="900" y="430" width="220" height="110" as="geometry"/></mxCell>
+        <mxCell id="external" value="Fontes externas&lt;br&gt;Cobalto / APIs HTTP configuradas" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="40" y="650" width="210" height="80" as="geometry"/></mxCell>
+        <mxCell id="note" value="Limite de persistencia: Telemetry nao acessa PostgreSQL. Admin acessa os backends por HTTP; coletas externas sao executadas pela API e persistem como ingestao canonica." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="500" y="660" width="500" height="90" as="geometry"/></mxCell>
+        <mxCell id="e1" value="REST" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="producer" target="telemetry"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" value="publica eventos" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="producer" target="mqtt"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" value="subscribe QoS 1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="mqtt" target="telemetry"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" value="grava bruto / atualiza estado" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="telemetry" target="mongo"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" value="claim e consulta" style="endArrow=block;html=1;rounded=0;dashed=1;" edge="1" parent="1" source="mongo" target="telemetry"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" value="JWT TELEMETRY_SERVICE&lt;br&gt;ingestao interna" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="telemetry" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" value="JPA / SQL" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="api" target="postgres"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" value="HTTPS + JWT de usuario" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="admin" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e9" value="HTTPS + JWT de usuario" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="admin" target="telemetry"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="sincronizacao / coleta HTTP" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="external" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

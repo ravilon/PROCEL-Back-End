@@ -80,6 +80,18 @@ Proben-API:
 - `proben.missions.temporal.windows.failed`
 - `proben.missions.temporal.windows.retries`
 - `proben.missions.temporal.windows.backlog`
+- `proben.environment.rules.executions`
+- `proben.environment.rules.duration`
+- `proben.environment.rules.retries`
+- `proben.environment.rules.leases.recovered`
+- `proben.environment.rules.duplicates.prevented`
+- `proben.environment.rules.points`
+- `proben.environment.rules.backlog`
+
+As coletas de contexto compartilhado registram execucoes e auditoria persistida
+em `contexto_coleta_execucao`. Confira o codigo de observabilidade/health do
+modulo para nomes e tags adicionais, pois esta lista manual resume os principais
+indicadores e nao substitui `/actuator/prometheus`.
 
 Tags usadas:
 

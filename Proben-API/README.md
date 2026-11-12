@@ -34,10 +34,17 @@ O schema e criado por migrations em `src/main/resources/db/migration`. Migration
 - `V23`: ledger append-only de XP.
 - `V24`: janelas temporais de avaliacao e evidencias.
 - `V25`: evidencias `ANTES`/`DEPOIS` para transicoes.
+- `V26`-`V28`: catalogo oficial de missoes e contratos de estado/expiracao de eventos.
+- `V29`-`V32`: observacoes externas compartilhadas, localizacao e coletores HTTP com credenciais gerenciadas.
+- `V33`: regras ambientais.
 
-Embora `spring.jpa.hibernate.ddl-auto=update` ainda esteja no `application.yml`, Flyway e a fonte de verdade do schema.
+`spring.jpa.hibernate.ddl-auto=validate`; Flyway e a fonte de verdade do schema.
 
 ## Contexto Academico
+
+## Organizacao e JavaDoc
+
+Os pacotes de casos de uso principais documentam seus limites e invariantes em `package-info.java`. Gere a documentacao Java local com `./mvnw javadoc:javadoc`; a saida fica em `target/site/apidocs`. Novos workers e integracoes devem documentar em JavaDoc suas pre-condicoes, efeitos colaterais, politica de retry e garantias de idempotencia/concorrencia.
 
 `AcademicContextResolver` e a primeira fundacao local para identificar contexto
 academico a partir de um compartimento e um instante. Ele resolve o

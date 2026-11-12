@@ -69,6 +69,10 @@ Erro `Database name must not be empty` indica URI sem database. Erro `Authentica
 
 Use TLS e ACL por produtor no broker. A aplicacao aceita credenciais apenas por properties/env e nao deve registrar senha ou payload completo.
 
+## Credenciais de integracao HTTP
+
+`Proben-API` cifra credenciais gerenciadas de provedores com AES-256-GCM. Configure `PROBEN_CREDENTIAL_ENCRYPTION_KEY` com uma chave Base64 de exatamente 32 bytes no ambiente seguro da API. A chave nao deve ser persistida em arquivos do repositorio, banco ou frontend. Ausencia da chave bloqueia operacoes com credenciais; valor invalido impede a inicializacao. Rotacione a chave com procedimento de migracao de credenciais, pois dados cifrados dependem dela.
+
 ## Health
 
 Rotas de health ficam publicas:
@@ -85,11 +89,9 @@ Eventos brutos usam TTL via `expiresAt` em `raw_telemetry_events`. Medicoes cano
 
 Nao ha backup automatizado no codigo. Defina backup externo para PostgreSQL e MongoDB antes de producao.
 
-## Itens Reservados para Etapa 12
+## Lacunas operacionais a acompanhar
 
-- observabilidade completa;
 - rate limiting;
-- backup automatizado;
-- hardening final de secrets;
-- testes ponta a ponta integrados;
-- deploy integrado documentado com ambientes reais.
+- backup e restauracao automatizados, monitorados fora da aplicacao;
+- alertas e dashboards configurados no ambiente, alem das metricas expostas;
+- smoke/E2E recorrente em staging isolado.

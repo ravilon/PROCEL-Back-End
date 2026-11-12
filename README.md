@@ -6,9 +6,9 @@ O repositorio contem tres aplicacoes principais:
 
 | Aplicacao | Responsabilidade | Banco |
 | --- | --- | --- |
-| `Proben-API` | API principal, autenticacao, dominio academico, sensores, medicoes canonicas, perfis de integracao e jobs analiticos | PostgreSQL |
-| `Proben-Telemetry` | Recebimento bruto REST/MQTT, idempotencia bruta, armazenamento no MongoDB, worker canonico para envio ao `Proben-API` e operacao administrativa da telemetria | MongoDB |
-| `Proben-Admin` | Console web administrativo para catalogo, sensores, regras, integracoes, sincronizacoes, analises e operacao da telemetria | N/A |
+| `Proben-API` | API principal, dominio academico, sensores, ingestao canonica, integracoes, analises, contextos compartilhados e motores operacionais | PostgreSQL |
+| `Proben-Telemetry` | Recepcao bruta REST/MQTT, armazenamento e idempotencia MongoDB, worker canonico e operacao da telemetria | MongoDB |
+| `Proben-Admin` | Console web para catalogo, sensores, missoes, regras ambientais, integracoes, sincronizacoes, contextos compartilhados, analises e telemetria | N/A |
 
 ## Estrutura
 
@@ -17,6 +17,7 @@ O repositorio contem tres aplicacoes principais:
 |-- Proben-API/          # Spring Boot, PostgreSQL, Flyway, dominio canonico
 |-- Proben-Telemetry/    # Spring Boot, MongoDB, MQTT 5, worker canonico
 |-- Proben-Admin/        # React/Vite, console administrativo
+|-- infra/               # Configuracao do broker MQTT no Compose integrado
 |-- API-Doc/             # Postman, Insomnia e orientacao dos contratos
 |-- Database/            # SQL legado e consultas auxiliares
 |-- Documentos/          # Arquitetura, DER, MongoDB, MQTT, seguranca e catalogo de dados
@@ -27,7 +28,7 @@ O repositorio contem tres aplicacoes principais:
 
 | Area | Tecnologia |
 | --- | --- |
-| Backend | Java 21, Spring Boot 4.0.8, Spring Security, Spring Data JPA/MongoDB |
+| Backend | Java 21, Spring Boot 4.0.9, Spring Security, Spring Data JPA/MongoDB |
 | Banco canonico | PostgreSQL, Flyway |
 | Banco bruto | MongoDB |
 | MQTT | MQTT 5, Eclipse Paho MQTT v5, QoS 1 |
@@ -44,6 +45,8 @@ O worker canonico do `Proben-Telemetry`, desabilitado por padrao, faz claim atom
 O `Proben-API` persiste medicoes canonicas no PostgreSQL, com metadata de ingestao, perfis de integracao, versoes de parser, bindings, jobs de agregacao, buckets numericos, motor de eventos de missoes, janelas temporais, atividades ciclicas e ledger de XP. O `Proben-Admin` consome `Proben-API` e `Proben-Telemetry` usando o JWT do usuario autenticado.
 
 `Proben-Telemetry` nao acessa diretamente o PostgreSQL.
+
+A API tambem gerencia contextos compartilhados e observacoes externas por coletas HTTP configuraveis, com credenciais cifradas no backend, alem de regras ambientais processadas por worker. Sincronizacoes de campus, predios, unidades, compartimentos e aulas podem consumir fontes externas configuradas.
 
 ## Fluxos
 
@@ -110,7 +113,7 @@ POST /api/analytics/aggregation-jobs
 GET  /api/analytics/aggregation-jobs/{id}
 ```
 
-A etapa atual inclui orquestracao, claim atomico de janelas, lease, retry, retomada e persistencia de buckets numericos por janela. A API ampla de consulta analitica e a interface de graficos ainda nao existem.
+A API de consulta analitica e a interface de graficos estao implementadas. Jobs e buckets sao consultaveis por endpoints paginados; o grafico do Admin usa a pagina atual.
 
 ### Consulta Analitica
 
@@ -135,12 +138,9 @@ summary consolida somente buckets existentes, sem consultar `medicao` ou
 maximo e soma das amostras.
 
 O `Proben-Admin` possui a rota `/analiticos`, visivel para `ADMIN`, `OPERADOR`
-e `ANALISTA`. A tela oferece filtros por periodo obrigatorio, sensor, parametro,
-compartimento, versao de agregacao e tamanho da pagina; cards de resumo por
-grupo retornado pelo backend; grafico temporal de `averageValue`; e tabela de
-buckets com paginacao server-side. O grafico usa apenas a pagina atual para nao
-buscar milhares de pontos silenciosamente. Calculos analiticos permanecem no
-backend.
+e `ANALISTA`, com consulta de buckets numericos e observacoes compartilhadas.
+A tela de buckets apresenta resumo, serie da pagina consultada e tabela
+paginada; calculos permanecem no backend.
 
 ### Missoes, Eventos e XP
 
@@ -259,9 +259,9 @@ O JWT de servico usado pelo worker e curto, assinado com segredo configurado e n
 | Variavel | Finalidade |
 | --- | --- |
 | `API_BASE_URL` | Injetada pelo entrypoint Docker em runtime para o `Proben-API` |
-| `VITE_TELEMETRY_API_URL` | URL da Telemetry em build-time |
+| `TELEMETRY_API_URL` | URL da Telemetry injetada em runtime pelo entrypoint Docker |
 
-O entrypoint Docker atual injeta `API_BASE_URL`, mas nao injeta `TELEMETRY_API_URL` em runtime. Para trocar a URL da Telemetry no container atual, a variavel deve estar definida no build do frontend ou o entrypoint precisa ser evoluido em etapa separada.
+O entrypoint Docker injeta `API_BASE_URL` e `TELEMETRY_API_URL` em `config.js` em runtime.
 
 ## Execucao Local
 
@@ -436,10 +436,9 @@ mongodb://usuario:senha@host:27017/proben_telemetry?authSource=admin&directConne
 
 ## Postman e Insomnia
 
-Contratos manuais ficam em:
+Contrato manual resumido e export Insomnia ficam em:
 
 ```text
-API-Doc/Postman/
 API-Doc/Insomnia/
 ```
 
@@ -454,6 +453,7 @@ Documentos/Modelo-MongoDB/
 Documentos/MQTT.md
 Documentos/Seguranca-e-Operacao.md
 Documentos/Catalogo-Dados.md
+Documentos/Organizacao-do-Codigo.md
 ```
 
 ## Limitacoes Conhecidas
@@ -461,7 +461,7 @@ Documentos/Catalogo-Dados.md
 - A tela de analises limita o grafico a pagina atual dos buckets; uma API dedicada
   para series temporais densas fica reservada para a etapa 12.
 - Rate limiting, backup automatizado e E2E integrado de staging/producao ficam reservados para evolucao operacional da etapa 12.
-- `spring.jpa.hibernate.ddl-auto=update` ainda aparece na configuracao local da API, mas a criacao do schema deve ser feita por Flyway.
+- O DER visual cobre apenas parte do schema; migrations Flyway continuam sendo a fonte de verdade e o desenho deve acompanhar novas tabelas.
 
 ## Roadmap
 
@@ -480,8 +480,4 @@ Documentos/Catalogo-Dados.md
 | 11 | Interface analitica e graficos | Concluida |
 | 12 | Deploy integrado, observabilidade, seguranca, motor de missoes e E2E | Parcial |
 
-Progresso atual: **91,7%** (`11/12`).
-
-Etapa atual: **11 - Interface analitica e graficos**.
-
-Proxima etapa: finalizar deploy integrado, observabilidade, seguranca operacional e E2E.
+O roadmap historico nao representa com precisao a maturidade atual: motor de missoes, observabilidade, regras ambientais, contextos compartilhados e deploy independente ja possuem implementacao. Use os READMEs dos modulos e os documentos operacionais para capacidades e configuracao vigentes. Pendencias devem ser acompanhadas como itens especificos, sem inferir percentual de conclusao.

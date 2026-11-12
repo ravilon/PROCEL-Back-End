@@ -67,7 +67,7 @@ Para validacao rapida, use duracoes curtas:
 4. Criar MQTT staging, com TLS e credenciais proprias quando exposto fora da rede privada.
 5. Publicar Proben-API com `SPRING_PROFILES_ACTIVE=staging`.
 6. Validar `GET /actuator/health` da API.
-7. Confirmar Flyway em `V25`.
+7. Confirmar Flyway em `V33`.
 8. Publicar Proben-Telemetry com `SPRING_PROFILES_ACTIVE=staging`.
 9. Validar `GET /actuator/health` da Telemetry.
 10. Validar `/actuator/prometheus` com credencial administrativa.
@@ -119,7 +119,7 @@ Antes de qualquer limpeza destrutiva, gere contagem por tabela e revise os IDs.
 GO para conectar atividades temporais de forma controlada:
 
 - health da API e Telemetry `UP`;
-- Flyway em `V25`;
+- Flyway em `V33`;
 - workers explicitamente habilitados apenas em staging;
 - duracao satisfeita gera uma unica ocorrencia confirmada;
 - interrupcao invalida janela sem ocorrencia;

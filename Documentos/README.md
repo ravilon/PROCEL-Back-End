@@ -4,8 +4,9 @@ Documentacao tecnica complementar do PROBEN.
 
 | Caminho | Conteudo |
 | --- | --- |
-| `ArquiteturaGeral/Arquitetura-PROBEN.drawio` | Arquitetura geral atual |
-| `DER-BancoAnalitico/DER-Salas.drawio` | DER existente do banco analitico |
+| `ArquiteturaGeral/Arquitetura-PROBEN.drawio` | Diagrama anterior, mantido como historico |
+| `ArquiteturaGeral/Arquitetura-PROBEN-atual.drawio` | Arquitetura atual de componentes e fluxos |
+| `DER-BancoAnalitico/DER-Salas.drawio` | DER parcial; migrations Flyway definem o schema completo |
 | `Modelo-MongoDB/` | Modelo documental da telemetria bruta |
 | `MQTT.md` | Contrato e operacao MQTT |
 | `Seguranca-e-Operacao.md` | Seguranca, secrets, CORS e operacao |
@@ -13,7 +14,6 @@ Documentacao tecnica complementar do PROBEN.
 | `Decisao-Drools-POC.md` | Decisao tecnica e benchmark do Drools opt-in |
 | `MissionEventWindowClosedSemantics.md` | Semantica de eventos `JANELA_ENCERRADA` |
 | `Staging.md` | Provisionamento e validacao segura de staging |
+| `Organizacao-do-Codigo.md` | Estrutura dos modulos e avaliacao de organizacao |
 
-Os diagramas distinguem componentes implementados, parciais e planejados. `Proben-Telemetry` nao deve ser representado acessando diretamente o PostgreSQL.
-O DER do banco analitico deve acompanhar as migrations Flyway atuais, mantendo o
-estilo visual existente.
+`Arquitetura-PROBEN-atual.drawio` e a referencia atual; o diagrama anterior e mantido como historico. `DER-Salas.drawio` conserva a pagina original e inclui uma segunda pagina expandida com entidades e relacoes das migrations V29-V33, usando a mesma notacao visual. `Proben-Telemetry` nao acessa diretamente PostgreSQL. Migrations Flyway em `Proben-API/src/main/resources/db/migration` definem o schema completo.
