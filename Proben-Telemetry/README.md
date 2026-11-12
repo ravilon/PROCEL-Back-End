@@ -153,7 +153,8 @@ Reprocessamento exige `ADMIN`, motivo textual de 1 a 500 caracteres, preserva pa
 | `PROBEN_TELEMETRY_CANONICAL_WORKER_ENABLED` | Habilita worker |
 | `PROBEN_API_BASE_URL` | Base URL do `Proben-API` |
 | `PROBEN_TELEMETRY_SERVICE_JWT_SUBJECT` | Subject do JWT de servico |
-| `PROBEN_TELEMETRY_SERVICE_JWT_SECRET` | Segredo do JWT de servico |
+| `PROBEN_TELEMETRY_SERVICE_JWT_SECRET` | Segredo do JWT de servico; tem prioridade sobre o alias compartilhado |
+| `PROBEN_JWT_SECRET` | Alias de fallback para o segredo compartilhado com o Proben-API |
 | `PROBEN_TELEMETRY_SERVICE_JWT_TTL` | TTL do JWT de servico |
 | `PROBEN_TELEMETRY_MQTT_ENABLED` | Habilita MQTT |
 | `PROBEN_TELEMETRY_MQTT_BROKER_URL` | Broker MQTT |

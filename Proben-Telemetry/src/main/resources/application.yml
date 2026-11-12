@@ -42,7 +42,7 @@ proben:
       snapshot-cache-ttl: ${PROBEN_TELEMETRY_SNAPSHOT_CACHE_TTL:PT5M}
       jwt:
         subject: ${PROBEN_TELEMETRY_SERVICE_JWT_SUBJECT:proben-telemetry}
-        secret: ${PROBEN_TELEMETRY_SERVICE_JWT_SECRET:change-this-local-development-secret-32chars}
+        secret: ${PROBEN_TELEMETRY_SERVICE_JWT_SECRET:${PROBEN_JWT_SECRET:change-this-local-development-secret-32chars}}
         ttl: ${PROBEN_TELEMETRY_SERVICE_JWT_TTL:PT5M}
     mqtt:
       enabled: ${PROBEN_TELEMETRY_MQTT_ENABLED:false}

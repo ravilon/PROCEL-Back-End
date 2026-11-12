@@ -178,8 +178,19 @@ export function TelemetryOperationsPage() {
       </Box>
 
       <Paper variant="outlined" sx={{ p: 2 }}>
-        <Stack direction={{ xs: "column", lg: "row" }} spacing={2}>
-          <FormControl sx={{ minWidth: 150 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "minmax(0, 1fr)",
+              sm: "repeat(2, minmax(0, 1fr))",
+              lg: "repeat(3, minmax(0, 1fr))",
+            },
+            gap: 2,
+            "& > *": { minWidth: 0, width: "100%" },
+          }}
+        >
+          <FormControl fullWidth sx={{ minWidth: 0 }}>
             <InputLabel id="telemetry-source-label">Source</InputLabel>
             <Select
               labelId="telemetry-source-label"
@@ -198,7 +209,7 @@ export function TelemetryOperationsPage() {
               ))}
             </Select>
           </FormControl>
-          <FormControl sx={{ minWidth: 220 }}>
+          <FormControl fullWidth sx={{ minWidth: 0 }}>
             <InputLabel id="telemetry-status-label">Status</InputLabel>
             <Select
               labelId="telemetry-status-label"
@@ -238,7 +249,7 @@ export function TelemetryOperationsPage() {
             onChange={setMessageId}
             onResetPage={() => setPage(0)}
           />
-        </Stack>
+        </Box>
         <Typography
           variant="caption"
           color="text.secondary"
@@ -495,6 +506,7 @@ function FilterAutocomplete({
   return (
     <Autocomplete
       freeSolo
+      fullWidth
       options={options}
       value={value || null}
       onChange={(_, nextValue) => {
