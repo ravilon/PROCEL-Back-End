@@ -28,6 +28,7 @@ import { searchCatalogSensors } from "../api/sensorIntegrations";
 import { listSensorTypes } from "../api/sensors";
 import { useAuth } from "../auth/AuthContext";
 import { AnalyticsBucketsTable } from "../features/analytics/AnalyticsBucketsTable";
+import { AggregationJobPanel } from "../features/analytics/AggregationJobPanel";
 import { AnalyticsEmptyState } from "../features/analytics/AnalyticsEmptyState";
 import {
   AnalyticsFilters,
@@ -140,7 +141,7 @@ export function AnalyticsPage() {
       resultMode === "measurements" &&
       Boolean(
         session &&
-          (appliedFilters.compartimentoId || appliedFilters.sensorExternalId),
+        (appliedFilters.compartimentoId || appliedFilters.sensorExternalId),
       ) &&
       !validatePeriod(appliedFilters.from, appliedFilters.to),
     placeholderData: (previous) => previous,
@@ -206,7 +207,9 @@ export function AnalyticsPage() {
       <AnalyticsFilters
         value={draftFilters}
         sensors={sensors.data ?? []}
-        sensorTypes={[...new Set((sensorTypes.data ?? []).map((type) => type.nome))].sort((a, b) => a.localeCompare(b))}
+        sensorTypes={[
+          ...new Set((sensorTypes.data ?? []).map((type) => type.nome)),
+        ].sort((a, b) => a.localeCompare(b))}
         parametros={parametros}
         compartimentos={rooms.data ?? []}
         loadingCatalogs={
@@ -244,13 +247,13 @@ export function AnalyticsPage() {
         ? measurements.isFetching
         : buckets.isFetching || summary.isFetching) &&
         !initialLoading && (
-        <Box aria-live="polite">
-          <LinearProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Atualizando analise...
-          </Typography>
-        </Box>
-      )}
+          <Box aria-live="polite">
+            <LinearProgress />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Atualizando analise...
+            </Typography>
+          </Box>
+        )}
       {initialLoading && (
         <Stack
           direction="row"
@@ -271,13 +274,14 @@ export function AnalyticsPage() {
       {resultMode === "measurements" &&
         !appliedFilters.compartimentoId &&
         !appliedFilters.sensorExternalId && (
-        <Alert severity="info">
-          Selecione um compartimento ou sensor nos filtros e aplique para
-          consultar as medições detalhadas.
-        </Alert>
-      )}
+          <Alert severity="info">
+            Selecione um compartimento ou sensor nos filtros e aplique para
+            consultar as medições detalhadas.
+          </Alert>
+        )}
       {resultMode === "measurements" &&
-        (appliedFilters.parametroDefId || appliedFilters.aggregationVersion) && (
+        (appliedFilters.parametroDefId ||
+          appliedFilters.aggregationVersion) && (
           <Alert severity="info">
             Filtros de parâmetro e versão de agregação se aplicam aos buckets.
             No modo de medições detalhadas, os valores de todos os parâmetros
@@ -291,17 +295,18 @@ export function AnalyticsPage() {
       )}
       {resultMode === "measurements" &&
         (appliedFilters.compartimentoId || appliedFilters.sensorExternalId) && (
-        <MeasurementResults
-          measurements={measurements.data ?? []}
-          loading={measurements.isFetching}
-          page={appliedFilters.page ?? 0}
-          pageSize={appliedFilters.size ?? 20}
-          onPageChange={changePage}
-        />
-      )}
+          <MeasurementResults
+            measurements={measurements.data ?? []}
+            loading={measurements.isFetching}
+            page={appliedFilters.page ?? 0}
+            pageSize={appliedFilters.size ?? 20}
+            onPageChange={changePage}
+          />
+        )}
 
       {resultMode === "buckets" && !buckets.isError && (
         <>
+          <AggregationJobPanel filters={appliedFilters} />
           <AnalyticsSummaryCards
             summaries={summary.data ?? []}
             loading={summary.isFetching}
@@ -309,8 +314,8 @@ export function AnalyticsPage() {
           {hasNoData ? (
             <>
               <Alert severity="info">
-                Buckets são materializados por um job de agregação assíncrono;
-                a chegada de medições canônicas, sozinha, não cria buckets.
+                Buckets são materializados por um job de agregação assíncrono; a
+                chegada de medições canônicas, sozinha, não cria buckets.
                 Verifique se há jobs concluídos para este período e se o worker
                 de agregação está habilitado.
               </Alert>

@@ -5,6 +5,8 @@ import type {
   NumericBucketPage,
   NumericBucketSummary,
   NumericBucketSummaryFilters,
+  AggregationJob,
+  CreateAggregationJobRequest,
 } from "../types/analytics";
 
 function setOptionalParam(
@@ -60,6 +62,25 @@ export function getNumericBucketSummary(
 ) {
   return apiRequest<NumericBucketSummary[]>(
     `/api/analytics/numeric-buckets/summary?${summaryQuery(filters)}`,
+    {},
+    session,
+  );
+}
+
+export function createAggregationJob(
+  request: CreateAggregationJobRequest,
+  session?: Session | null,
+) {
+  return apiRequest<AggregationJob>(
+    "/api/analytics/aggregation-jobs",
+    { method: "POST", body: JSON.stringify(request) },
+    session,
+  );
+}
+
+export function getAggregationJob(id: string, session?: Session | null) {
+  return apiRequest<AggregationJob>(
+    `/api/analytics/aggregation-jobs/${encodeURIComponent(id)}`,
     {},
     session,
   );

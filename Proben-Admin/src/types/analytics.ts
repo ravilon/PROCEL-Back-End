@@ -84,6 +84,31 @@ export interface AnalyticsPeriod {
   to: string;
 }
 
+export interface AggregationJob {
+  id: string;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | string;
+  from: string;
+  to: string;
+  windowDuration: string;
+  sensorExternalId?: string | null;
+  compartimentoId?: string | null;
+  error?: string | null;
+  progress: {
+    totalWindows: number;
+    completedWindows: number;
+    failedWindows: number;
+    processingWindows: number;
+  };
+}
+
+export interface CreateAggregationJobRequest {
+  from: string;
+  to: string;
+  windowDuration: string;
+  sensorExternalId?: string;
+  compartimentoId?: string;
+}
+
 // O backend serializa BigDecimal como JSON number. O Admin usa number somente
 // para exibicao e graficos, sem persistir calculos derivados.
 export type AnalyticsDecimal = number;
