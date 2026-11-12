@@ -8,7 +8,7 @@ const repoRoot = resolve(scriptDir, "../..");
 const runTag = process.env.TCC_RUN_TAG ?? "20261112-04";
 const inventoryTag = process.env.TCC_INVENTORY_TAG ?? "20261112-02";
 const artifactRoot = resolve(
-  process.env.TCC_ARTIFACT_ROOT ?? join(repoRoot, "docs/tcc/full-campaign-" + runTag),
+  process.env.TCC_ARTIFACT_ROOT ?? join(repoRoot, "Documentos/TestesDeCarga/full-campaign-" + runTag),
 );
 const harnessRoot = resolve(
   process.env.TCC_HARNESS_PATH ?? "C:/GitHub/PROCEL-demo-harness",
@@ -299,8 +299,18 @@ for (const [mode, stats] of Object.entries(modeStats)) {
   md.push(`| ${mode} | ${stats.repetitions} | ${stats.publisherAcknowledgements.mean === null ? "—" : `${(stats.publisherAcknowledgements.mean * 100).toFixed(1)}%`} | ${fmt(stats.achievedMessagesPerSecond)} | ${fmt(stats.publisherAckMeanMs)} | ${fmt(stats.publisherAckP95Ms)} | ${fmt(stats.canonicalMeasurements)} | ${fmt(stats.qualificationEvaluations)} | ${fmt(stats.qualificationAlerts)} | ${fmt(stats.occurrences)} | ${fmt(stats.temporalWindows)} | ${fmt(stats.completedActivities)} | ${fmt(stats.awardedMissionPoints)} |`);
 }
 md.push("", "## Reconciliação", "", `- Publicações aceitas: ${result.reconciliations.acknowledgements}; falhas: ${result.reconciliations.failures}.`, `- Medições canônicas: ${result.reconciliations.canonicalMessages}/${result.reconciliations.expectedMessages}.`, `- Valores de parâmetros: ${result.reconciliations.observedParameterValues}/${result.reconciliations.expectedParameterValues}.`, `- Avaliações do grupo de regras: ${result.reconciliations.observedQualifications}/${result.reconciliations.expectedQualifications}.`, `- Lançamentos de pontos associados às missões: ${result.reconciliations.pointsLedgerEntries}.`, `- Reconciliação integral de medições/avaliações: ${result.reconciliations.allMeasurementsAndQualificationsReconciled ? "sim" : "não; consultar os métricos por repetição"}.`);
+const durationFailures = result.runs
+  .filter((run) => run.mode === "duracao" && (run.windowStatuses?.INVALIDADA ?? 0) > 0)
+  .map((run) => `${run.runId}: ${run.windowStatuses.INVALIDADA} janelas invalidadas`);
+if (durationFailures.length) {
+  md.push("", "## Observa\u00e7\u00e3o sobre dura\u00e7\u00e3o", "", `Foram observadas invalida\u00e7\u00f5es no modo dura\u00e7\u00e3o: ${durationFailures.join("; ")}. Confira o motivo e as evid\u00eancias em cada \`runs/<runId>/mission-metrics.json\`. Trate essas execu\u00e7\u00f5es como inconsistentes; n\u00e3o infira comportamento uniforme sem nova execu\u00e7\u00e3o diagn\u00f3stica.`);
+}
+if (result.bucketQuery?.page) {
+  md.push("", `A consulta de buckets retornou ${result.bucketQuery.page.totalElements} registros de agrega\u00e7\u00e3o para o intervalo e modelo configurados.`);
+}
 md.push("", "## Escopo e limites", "", "A campanha é um ensaio controlado de fluxo completo em taxa sustentada de 2 msg/s e não mede o ponto de saturação ou capacidade máxima. O publisher confirma o broker; persistência, qualificações e efeitos de missão são conferidos por consultas autenticadas à API. Dados ambientais internos, ocupação, energia, ruído e CO₂ são valores sintéticos. Os alertas representam casos fora da faixa de especificação cadastrada, não medições físicas. Os intervalos t com n=3 são exploratórios e devem ser apresentados junto dos valores individuais e do desvio padrão.");
 md.push("", "## Artefatos", "", "Cada pasta `runs/<runId>` contém o fluxo de eventos NDJSON, manifesto/hash, resumo do publisher, reconciliação canônica e métricas de missões, janelas, atividades e ledger de pontos. `preexisting-active-events.json` guarda os quatro eventos temporariamente desativados e restaurados após os testes.");
+md.push("", "## Desativa\u00e7\u00e3o de dados tempor\u00e1rios", "", "Ap\u00f3s a coleta, as miss\u00f5es da campanha foram desativadas por exclus\u00e3o l\u00f3gica. Medi\u00e7\u00f5es, ocorr\u00eancias, janelas, atividades e lan\u00e7amentos de pontos foram preservados. Consulte \`cleanup.json\` e \`setup-attempts.json\`.");
 await writeFile(join(artifactRoot, "results.md"), `${md.join("\n")}\n`);
 
 for (const runDir of runDirs) {
@@ -308,6 +318,15 @@ for (const runDir of runDirs) {
     const path = join(runDir, name);
     const digest = createHash("sha256").update(await readFile(path)).digest("hex");
     allHashes.push(`${digest}  ${path.replace(artifactRoot + "\\", "")}`);
+  }
+}
+for (const name of ["results.json", "results.md", "cleanup.json", "setup-attempts.json", "preexisting-active-events.json"]) {
+  const path = join(artifactRoot, name);
+  try {
+    const digest = createHash("sha256").update(await readFile(path)).digest("hex");
+    allHashes.push(`${digest}  ${name}`);
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
   }
 }
 await writeFile(join(artifactRoot, "SHA256SUMS.txt"), `${allHashes.join("\n")}\n`);

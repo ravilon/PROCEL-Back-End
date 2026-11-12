@@ -12,87 +12,87 @@
   },
   "missions": [
     {
+      "mode": "instantaneo",
+      "repetition": 1,
       "missionId": "72f9b93c-8328-42ec-a671-4ddcc7711f80",
       "eventId": "1dc588f7-cf6a-42b0-92d4-94345be81bc7",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "instantaneo",
+      "repetition": 2,
       "missionId": "765d591a-edc5-4e11-844a-092829ad1ccd",
       "eventId": "e259ad18-38ef-499e-916f-14c0a2f874e5",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "instantaneo",
+      "repetition": 3,
       "missionId": "8c9d8623-e2eb-4033-acf8-778060ba10f4",
       "eventId": "040101ae-da68-4e4a-a4a6-1ecd0b3434ce",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "transicao",
+      "repetition": 1,
       "missionId": "55852d2a-7e0d-4047-b5b1-f5a145cf6613",
       "eventId": "a0803c4f-8d6e-4528-b9a2-efd5dc4165b7",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "transicao",
+      "repetition": 2,
       "missionId": "103db379-53a3-4ac0-8ea1-6e2e03975232",
       "eventId": "a0b1cfc4-876d-466c-8a81-52ac06ab6cdf",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "transicao",
+      "repetition": 3,
       "missionId": "c94f9651-71c6-4bc0-b9a3-6ad9da02945f",
       "eventId": "d85ba85b-9c2b-4655-999d-61ba8cc6ae4e",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "duracao",
+      "repetition": 1,
       "missionId": "5438d700-88ca-4f4d-a10f-a0b43410b42d",
       "eventId": "9aae0efd-98c6-473f-accb-a837f9b86dc8",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "duracao",
+      "repetition": 2,
       "missionId": "c08d9d30-7c0a-465f-b87f-9d7078e467ba",
       "eventId": "55de1299-efd0-4322-8146-e86c8248b963",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "duracao",
+      "repetition": 3,
       "missionId": "3827f828-2912-4fdb-a98e-49e359493c62",
       "eventId": "93466466-462d-46d4-bf31-4c07fff5a1d5",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "janela-encerrada",
+      "repetition": 1,
       "missionId": "b99ce75c-f81a-41a3-8b07-c656e26c404d",
       "eventId": "3dc368c5-5d8d-4be5-b1c4-36e10c6fa693",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "janela-encerrada",
+      "repetition": 2,
       "missionId": "b4a4358f-8792-4d4e-912f-7c703d25c993",
       "eventId": "35076e24-dee6-4098-b2fb-5fa4d6abc252",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     },
     {
+      "mode": "janela-encerrada",
+      "repetition": 3,
       "missionId": "1067210e-dad4-4d78-aec2-5e34a334d7d5",
       "eventId": "ecedc2ee-0dc2-4a4c-b9a2-ea54f1fe7672",
-      "missionTitle": null,
-      "runId": null,
       "status": "DEACTIVATED"
     }
   ]

@@ -21,6 +21,7 @@ O repositorio contem tres aplicacoes principais:
 |-- API-Doc/             # Postman, Insomnia e orientacao dos contratos
 |-- Database/            # SQL legado e consultas auxiliares
 |-- Documentos/          # Arquitetura, DER, MongoDB, MQTT, seguranca e catalogo de dados
+|   `-- TestesDeCarga/   # Campanhas e resultados de testes de carga/performance
 `-- README.md
 ```
 
@@ -462,7 +463,12 @@ Documentos/MQTT.md
 Documentos/Seguranca-e-Operacao.md
 Documentos/Catalogo-Dados.md
 Documentos/Organizacao-do-Codigo.md
+Documentos/TestesDeCarga/
 ```
+
+Relatorios e artefatos das campanhas para o TCC ficam em
+`Documentos/TestesDeCarga/`; o indice dessa documentacao esta em
+`Documentos/README.md`.
 
 ## JavaDoc
 

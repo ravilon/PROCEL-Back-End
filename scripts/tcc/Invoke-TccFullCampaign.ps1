@@ -14,7 +14,7 @@ if (-not (Test-NetConnection 127.0.0.1 -Port 13001 -InformationLevel Quiet)) {
 }
 
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$artifactRoot = Join-Path $repoRoot "docs\tcc\full-campaign-$RunTag"
+$artifactRoot = Join-Path $repoRoot "Documentos\TestesDeCarga\full-campaign-$RunTag"
 New-Item -ItemType Directory -Force -Path $artifactRoot | Out-Null
 $utf8 = [System.Text.UTF8Encoding]::new($false)
 function Save-Json($Path, $Value) {
