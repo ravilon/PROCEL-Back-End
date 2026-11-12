@@ -5,6 +5,7 @@ import {
   VisibilityOutlined,
 } from "@mui/icons-material";
 import {
+  Autocomplete,
   Alert,
   Box,
   Button,
@@ -103,6 +104,27 @@ export function TelemetryOperationsPage() {
     queryFn: () => listTelemetryEvents(filters, session),
   });
 
+  const filterSuggestions = useQuery({
+    queryKey: ["telemetry", "filter-suggestions", session?.userId],
+    queryFn: () =>
+      listTelemetryEvents(
+        {
+          ...filters,
+          source: "",
+          status: "",
+          sensorId: "",
+          producerId: "",
+          messageId: "",
+          from: "",
+          to: "",
+          page: 0,
+          size: 100,
+        },
+        session,
+      ),
+    staleTime: 60_000,
+  });
+
   const details = useQuery({
     queryKey: ["telemetry", "event", selectedId],
     queryFn: () => getTelemetryEvent(selectedId ?? "", session),
@@ -128,6 +150,19 @@ export function TelemetryOperationsPage() {
   });
 
   const rows = events.data?.content ?? [];
+  const suggestionEvents = filterSuggestions.data?.content ?? [];
+  const sensorOptions = mergeOptions(
+    suggestionEvents.map((item) => item.sensorId ?? ""),
+    sensorId,
+  );
+  const producerOptions = mergeOptions(
+    suggestionEvents.map((item) => item.producerId),
+    producerId,
+  );
+  const messageIdOptions = mergeOptions(
+    suggestionEvents.map((item) => item.messageId),
+    messageId,
+  );
   const totalPages = events.data?.totalPages ?? 0;
   const normalizedReason = reason.trim();
   const reasonError = normalizedReason.length > 500;
@@ -182,25 +217,36 @@ export function TelemetryOperationsPage() {
               ))}
             </Select>
           </FormControl>
-          <FilterText
+          <FilterAutocomplete
             label="Sensor"
             value={sensorId}
+            options={sensorOptions}
             onChange={setSensorId}
             onResetPage={() => setPage(0)}
           />
-          <FilterText
+          <FilterAutocomplete
             label="Producer"
             value={producerId}
+            options={producerOptions}
             onChange={setProducerId}
             onResetPage={() => setPage(0)}
           />
-          <FilterText
+          <FilterAutocomplete
             label="Message ID"
             value={messageId}
+            options={messageIdOptions}
             onChange={setMessageId}
             onResetPage={() => setPage(0)}
           />
         </Stack>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ mt: 1, display: "block" }}
+        >
+          Sugestões dos 100 eventos mais recentes; você também pode digitar
+          outro valor.
+        </Typography>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -336,8 +382,25 @@ export function TelemetryOperationsPage() {
         anchor="right"
         open={Boolean(selectedId)}
         onClose={() => setSelectedId(null)}
+        slotProps={{
+          paper: {
+            sx: {
+              width: "min(720px, 100vw)",
+              maxWidth: "100vw",
+              boxSizing: "border-box",
+              overflowX: "hidden",
+            },
+          },
+        }}
       >
-        <Box sx={{ width: { xs: "100vw", sm: 560 }, p: 3 }}>
+        <Box
+          sx={{
+            width: "100%",
+            minWidth: 0,
+            boxSizing: "border-box",
+            p: { xs: 2, sm: 3 },
+          }}
+        >
           {details.isLoading && <CircularProgress size={24} />}
           {details.isError && (
             <Alert severity="error">{details.error.message}</Alert>
@@ -416,33 +479,59 @@ export function TelemetryOperationsPage() {
   );
 }
 
-function FilterText({
+function FilterAutocomplete({
   label,
   value,
+  options,
   onChange,
   onResetPage,
 }: {
   label: string;
   value: string;
+  options: string[];
   onChange: (value: string) => void;
   onResetPage: () => void;
 }) {
   return (
-    <TextField
-      label={label}
-      value={value}
-      onChange={(event) => {
-        onChange(event.target.value);
+    <Autocomplete
+      freeSolo
+      options={options}
+      value={value || null}
+      onChange={(_, nextValue) => {
+        onChange(nextValue ?? "");
         onResetPage();
       }}
-      InputProps={{
-        startAdornment: (
-          <InputAdornment position="start">
-            <SearchOutlined />
-          </InputAdornment>
-        ),
+      onInputChange={(_, nextValue, reason) => {
+        if (reason === "input" || reason === "clear") {
+          onChange(nextValue);
+          onResetPage();
+        }
       }}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          label={label}
+          placeholder="Selecione ou digite"
+          InputProps={{
+            ...params.InputProps,
+            startAdornment: (
+              <>
+                <InputAdornment position="start">
+                  <SearchOutlined />
+                </InputAdornment>
+                {params.InputProps.startAdornment}
+              </>
+            ),
+          }}
+        />
+      )}
     />
+  );
+}
+
+function mergeOptions(values: string[], current: string) {
+  return Array.from(new Set([...values, current].filter(Boolean))).sort((a, b) =>
+    a.localeCompare(b),
   );
 }
 
@@ -484,7 +573,26 @@ function TelemetryDetails({
         label="Tentativas"
         value={String(event.processing?.attempts ?? 0)}
       />
-      <Detail label="Ultimo erro" value={event.processing?.lastError ?? "-"} />
+      {event.processing?.lastError ? (
+        <Alert
+          severity="error"
+          sx={{ minWidth: 0, overflowWrap: "anywhere" }}
+        >
+          <Stack spacing={0.5}>
+            <Typography variant="subtitle2">Último erro</Typography>
+            <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+              {event.processing.lastError}
+            </Typography>
+            {event.processing.lastAttemptAt && (
+              <Typography variant="caption" color="text.secondary">
+                Última tentativa: {formatDate(event.processing.lastAttemptAt)}
+              </Typography>
+            )}
+          </Stack>
+        </Alert>
+      ) : (
+        <Detail label="Ultimo erro" value="-" />
+      )}
       <Detail
         label="Medicao canonica"
         value={event.processing?.canonicalMeasurementId ?? "-"}
@@ -502,6 +610,8 @@ function TelemetryDetails({
             borderColor: "divider",
             borderRadius: 1,
             maxHeight: 320,
+            maxWidth: "100%",
+            boxSizing: "border-box",
             overflow: "auto",
             p: 1.5,
             whiteSpace: "pre-wrap",
@@ -521,7 +631,7 @@ function TelemetryDetails({
             <Paper
               key={`${entry.requestedAt}-${entry.requestedBy}`}
               variant="outlined"
-              sx={{ p: 1.5 }}
+              sx={{ p: 1.5, minWidth: 0, overflowWrap: "anywhere" }}
             >
               <Typography variant="body2">
                 {formatDate(entry.requestedAt)} por {entry.requestedBy}
@@ -577,7 +687,10 @@ function Detail({ label, value }: { label: string; value?: string }) {
       <Typography variant="caption" color="text.secondary">
         {label}
       </Typography>
-      <Typography variant="body2" sx={{ overflowWrap: "anywhere" }}>
+      <Typography
+        variant="body2"
+        sx={{ minWidth: 0, overflowWrap: "anywhere" }}
+      >
         {value || "-"}
       </Typography>
     </Box>
