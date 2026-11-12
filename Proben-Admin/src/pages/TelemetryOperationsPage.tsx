@@ -394,10 +394,12 @@ export function TelemetryOperationsPage() {
         open={Boolean(selectedId)}
         onClose={() => setSelectedId(null)}
         sx={{
+          zIndex: (theme) => theme.zIndex.appBar + 1,
           "& .MuiDrawer-paper": {
             width: { xs: "100vw", sm: "min(760px, 68vw)" },
             maxWidth: "100vw",
-            height: "100dvh",
+            top: { xs: "56px", sm: "64px" },
+            height: { xs: "calc(100dvh - 56px)", sm: "calc(100dvh - 64px)" },
             boxSizing: "border-box",
             overflowX: "hidden",
           },
