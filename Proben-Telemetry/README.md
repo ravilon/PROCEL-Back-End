@@ -212,4 +212,6 @@ Os testes usam MongoDB Testcontainers e HiveMQ Testcontainers para REST, idempot
 
 ## JavaDoc
 
+Documentacao publicada: [JavaDoc Proben-Telemetry](https://ravilon.github.io/PROCEL-Back-End/telemetry/) · [indice PROBEN](https://ravilon.github.io/PROCEL-Back-End/).
+
 Gere a documentacao local a partir de `Proben-Telemetry` com `../Proben-API/mvnw -f pom.xml javadoc:javadoc`; a saida fica em `target/reports/apidocs`. A workflow `.github/workflows/javadoc-pages.yml` publica a documentacao das duas aplicacoes no GitHub Pages a cada push em `main`. O repositorio precisa estar configurado para publicar Pages pela origem `GitHub Actions`.

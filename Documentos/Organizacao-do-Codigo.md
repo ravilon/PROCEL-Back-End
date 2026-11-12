@@ -30,3 +30,5 @@ No Admin, `pages` organiza telas de alto nivel, enquanto `features` agrupa compo
 2. Consulte o README do modulo para configuracao e responsabilidades locais.
 3. Consulte `API-Doc/Contratos-HTTP.md` para resumo de endpoints e `/v3/api-docs` para o contrato vivo.
 4. Consulte migrations Flyway para estrutura PostgreSQL e o modelo Mongo para eventos brutos.
+
+JavaDoc publicado: [Proben-API](https://ravilon.github.io/PROCEL-Back-End/api/) e [Proben-Telemetry](https://ravilon.github.io/PROCEL-Back-End/telemetry/).

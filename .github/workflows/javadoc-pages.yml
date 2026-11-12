@@ -49,25 +49,7 @@ jobs:
           mkdir -p site/api site/telemetry
           cp -R Proben-API/target/reports/apidocs/. site/api/
           cp -R Proben-Telemetry/target/reports/apidocs/. site/telemetry/
-          cat > site/index.html <<'EOF'
-          <!doctype html>
-          <html lang="pt-BR">
-            <head>
-              <meta charset="utf-8">
-              <meta name="viewport" content="width=device-width, initial-scale=1">
-              <title>PROBEN JavaDoc</title>
-            </head>
-            <body>
-              <main>
-                <h1>PROBEN JavaDoc</h1>
-                <ul>
-                  <li><a href="api/">Proben-API</a></li>
-                  <li><a href="telemetry/">Proben-Telemetry</a></li>
-                </ul>
-              </main>
-            </body>
-          </html>
-          EOF
+          cp .github/pages/index.html site/index.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5

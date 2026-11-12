@@ -458,6 +458,8 @@ Documentos/Organizacao-do-Codigo.md
 
 ## JavaDoc
 
+**JavaDoc publicado:** [PROBEN JavaDoc](https://ravilon.github.io/PROCEL-Back-End/) · [Proben-API](https://ravilon.github.io/PROCEL-Back-End/api/) · [Proben-Telemetry](https://ravilon.github.io/PROCEL-Back-End/telemetry/).
+
 API e Telemetry geram JavaDoc localmente pelo Maven e a workflow `.github/workflows/javadoc-pages.yml` publica os dois sites no GitHub Pages a cada push na branch `main`. Para ativar a publicacao, abra **Settings > Pages** do repositorio e selecione **GitHub Actions** como origem. A documentacao gerada inclui todos os tipos Java publicos; comentarios ainda estao sendo ampliados e a geracao atual informa avisos para membros sem descricoes.
 
 ## Limitacoes Conhecidas

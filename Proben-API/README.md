@@ -44,6 +44,8 @@ O schema e criado por migrations em `src/main/resources/db/migration`. Migration
 
 ## Organizacao e JavaDoc
 
+Documentacao publicada: [JavaDoc Proben-API](https://ravilon.github.io/PROCEL-Back-End/api/) · [indice PROBEN](https://ravilon.github.io/PROCEL-Back-End/).
+
 Os pacotes de casos de uso principais documentam seus limites e invariantes em `package-info.java`. Gere a documentacao Java local com `./mvnw javadoc:javadoc`; a saida fica em `target/reports/apidocs`. A workflow `.github/workflows/javadoc-pages.yml` publica API e Telemetry no GitHub Pages a cada push em `main`. Habilite Pages nas configuracoes do repositorio com a origem `GitHub Actions`. Novos workers e integracoes devem documentar pre-condicoes, efeitos colaterais, politica de retry e garantias de idempotencia/concorrencia.
 
 `AcademicContextResolver` e a primeira fundacao local para identificar contexto
