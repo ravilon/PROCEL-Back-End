@@ -172,6 +172,7 @@ function MissionCatalogPanel() {
   const { session, hasAnyRole } = useAuth();
   const queryClient = useQueryClient();
   const [showOnlyActive, setShowOnlyActive] = useState(false);
+  const [triggerMissionId, setTriggerMissionId] = useState<string | null>(null);
   const [form, setForm] = useState({
     titulo: "",
     descricao: "",
@@ -192,6 +193,9 @@ function MissionCatalogPanel() {
   const roots = useMemo(
     () => missions.data?.filter((mission) => !mission.parentId) ?? [],
     [missions.data],
+  );
+  const triggerMission = missions.data?.find(
+    (mission) => mission.id === triggerMissionId,
   );
   const createMission = useMutation({
     mutationFn: () =>
@@ -336,6 +340,7 @@ function MissionCatalogPanel() {
             key={mission.id}
             mission={mission}
             missions={missions.data ?? []}
+            onConfigureTriggers={setTriggerMissionId}
             onUpdated={() =>
               queryClient.invalidateQueries({ queryKey: ["missions"] })
             }
@@ -352,6 +357,14 @@ function MissionCatalogPanel() {
           <Alert severity="error">{formatError(missions.error)}</Alert>
         )}
       </Stack>
+      {triggerMission && (
+        <MissionTriggerConfigurator
+          mission={triggerMission}
+          readOnly={!hasAnyRole("ADMIN")}
+          open
+          onClose={() => setTriggerMissionId(null)}
+        />
+      )}
     </Box>
   );
 }
@@ -1183,11 +1196,13 @@ function MissionWorkersPanel({ canOperate }: { canOperate: boolean }) {
 function MissionNode({
   mission,
   missions,
+  onConfigureTriggers,
   onUpdated,
   depth = 0,
 }: {
   mission: Missao;
   missions: Missao[];
+  onConfigureTriggers: (missionId: string) => void;
   onUpdated: () => Promise<unknown>;
   depth?: number;
 }) {
@@ -1256,6 +1271,13 @@ function MissionNode({
             <ActiveChip active={mission.ativo} />
             <Button
               size="small"
+              startIcon={<AccountTreeOutlined />}
+              onClick={() => onConfigureTriggers(mission.id)}
+            >
+              Gatilhos
+            </Button>
+            <Button
+              size="small"
               startIcon={<EditOutlined />}
               onClick={() => setEditing(true)}
             >
@@ -1274,6 +1296,7 @@ function MissionNode({
               key={child.id}
               mission={child}
               missions={missions}
+              onConfigureTriggers={onConfigureTriggers}
               onUpdated={onUpdated}
               depth={depth + 1}
             />
